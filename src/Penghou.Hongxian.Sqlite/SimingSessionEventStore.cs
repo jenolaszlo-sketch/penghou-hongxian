@@ -11,7 +11,11 @@ namespace Penghou.Hongxian.Sqlite;
 /// Persists each Hongxian session in its own transactional Siming SQLite ledger
 /// under <c>{root}/{session-id}/session.db</c>.
 /// </summary>
-public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposable, IDisposable
+public sealed class SimingSessionEventStore :
+    ISessionEventDeliveryStore,
+    ISessionLedgerPresenceStore,
+    IAsyncDisposable,
+    IDisposable
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
     private readonly string rootPath;
@@ -48,7 +52,15 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
     }
 
     /// <inheritdoc />
-    public async Task<SessionEvent> AppendAsync(SessionEventRequest request, CancellationToken cancellationToken = default)
+    public async Task<SessionEvent> AppendAsync(
+        SessionEventRequest request,
+        CancellationToken cancellationToken = default) =>
+        (await AppendWithDeliveryAsync(request, cancellationToken).ConfigureAwait(false)).Event;
+
+    /// <inheritdoc />
+    public async Task<SessionEventAppendResult> AppendWithDeliveryAsync(
+        SessionEventRequest request,
+        CancellationToken cancellationToken = default)
     {
         SessionContractValidation.Validate(request);
         var now = timeProvider.GetUtcNow();
@@ -67,8 +79,9 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
             if (existing is not null)
             {
                 var replay = ResolveReplay(existing, request);
-                await ApplyProjectionAsync(replay, cancellationToken).ConfigureAwait(false);
-                return replay;
+                var delivery = await ApplyProjectionAsync(replay, cancellationToken)
+                    .ConfigureAwait(false);
+                return new SessionEventAppendResult(replay, delivery);
             }
         }
 
@@ -84,8 +97,9 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
                     request.ExpectedHead is null ? null : Map(request.ExpectedHead)),
                 cancellationToken).ConfigureAwait(false);
             var committed = Map(entry);
-            await ApplyProjectionAsync(committed, cancellationToken).ConfigureAwait(false);
-            return committed;
+            var delivery = await ApplyProjectionAsync(committed, cancellationToken)
+                .ConfigureAwait(false);
+            return new SessionEventAppendResult(committed, delivery);
         }
         catch (LedgerIdempotencyConflictException) when (request.IdempotencyKey is not null)
         {
@@ -93,8 +107,9 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
                 .ConfigureAwait(false) ?? throw new InvalidOperationException(
                     $"Session event idempotency key '{request.IdempotencyKey}' conflicted but the committed entry could not be read.");
             var replay = ResolveReplay(existing, request);
-            await ApplyProjectionAsync(replay, cancellationToken).ConfigureAwait(false);
-            return replay;
+            var delivery = await ApplyProjectionAsync(replay, cancellationToken)
+                .ConfigureAwait(false);
+            return new SessionEventAppendResult(replay, delivery);
         }
         catch (Penghou.Siming.LedgerHeadConflictException conflict)
         {
@@ -119,6 +134,16 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
             if (!page.HasMore) return result;
             cursor = page.NextSequence!.Value;
         }
+    }
+
+    /// <inheritdoc />
+    public Task<bool> ExistsAsync(
+        SessionId sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        SessionContractValidation.ValidateSessionId(sessionId, nameof(sessionId));
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(File.Exists(GetLedgerPath(sessionId)));
     }
 
     /// <inheritdoc />
@@ -190,8 +215,11 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
     }
 
     /// <summary>Returns the deterministic ledger path for a session.</summary>
-    public string GetLedgerPath(SessionId sessionId) =>
-        Path.Combine(rootPath, sessionId.ToString(), "session.db");
+    public string GetLedgerPath(SessionId sessionId)
+    {
+        SessionContractValidation.ValidateSessionId(sessionId, nameof(sessionId));
+        return Path.Combine(rootPath, sessionId.ToString(), "session.db");
+    }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
@@ -317,22 +345,28 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
                 : ValueTask.CompletedTask;
     }
 
-    private async Task ApplyProjectionAsync(
+    private async Task<SessionProjectionDeliveryResult> ApplyProjectionAsync(
         SessionEvent sessionEvent,
         CancellationToken cancellationToken)
     {
         if (projectionStore is null)
-            return;
+            return new SessionProjectionDeliveryResult(
+                SessionProjectionDeliveryOutcome.NotConfigured,
+                DeliveryStatusRecorded: false);
         var delivery = projectionStore as ISessionProjectionDeliveryStore;
+        Exception? trackingFailure = null;
+        var statusRecorded = false;
         if (delivery is not null)
         {
             try
             {
                 await delivery.RecordCommittedAsync(sessionEvent, cancellationToken)
                     .ConfigureAwait(false);
+                statusRecorded = true;
             }
             catch (Exception exception)
             {
+                trackingFailure = exception;
                 Trace.TraceError(
                     "Could not record committed projection cursor for session {0} sequence {1}: {2}",
                     sessionEvent.SessionId,
@@ -345,6 +379,11 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
         {
             await projectionStore.ApplyAsync(sessionEvent, cancellationToken)
                 .ConfigureAwait(false);
+            return new SessionProjectionDeliveryResult(
+                SessionProjectionDeliveryOutcome.Applied,
+                statusRecorded,
+                TrackingFailureType: trackingFailure?.GetType().FullName,
+                TrackingFailureDetail: trackingFailure?.Message);
         }
         catch (Exception exception)
         {
@@ -356,9 +395,11 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
                         sessionEvent,
                         exception,
                         CancellationToken.None).ConfigureAwait(false);
+                    statusRecorded = true;
                 }
                 catch (Exception statusException)
                 {
+                    trackingFailure = statusException;
                     Trace.TraceError(
                         "Could not record projection failure for session {0} sequence {1}: {2}",
                         sessionEvent.SessionId,
@@ -371,6 +412,13 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
                 sessionEvent.SessionId,
                 sessionEvent.Sequence,
                 exception.Message);
+            return new SessionProjectionDeliveryResult(
+                SessionProjectionDeliveryOutcome.Lagging,
+                statusRecorded,
+                exception.GetType().FullName,
+                exception.Message,
+                trackingFailure?.GetType().FullName,
+                trackingFailure?.Message);
         }
     }
 

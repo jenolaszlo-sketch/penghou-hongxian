@@ -12,6 +12,7 @@ namespace Penghou.Hongxian.Sqlite;
 public sealed class SqliteSessionCatalog :
     ISessionStore,
     ISessionDecisionLeaseProvider,
+    ISessionDecisionLeaseInspector,
     ISessionEvidenceOutbox
 {
     private readonly string databasePath;
@@ -352,6 +353,39 @@ public sealed class SqliteSessionCatalog :
             transaction.Commit();
             await Task.Delay(leaseRetryDelay, timeProvider, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    public async Task<SessionDecisionLeaseStatus?> GetStatusAsync(
+        SessionId sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateSessionId(sessionId, nameof(sessionId));
+        var observedAt = timeProvider.GetUtcNow();
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT operation_id, fencing_token, acquired_at, expires_at
+            FROM session_decision_leases
+            WHERE session_id = $sessionId;
+            """;
+        command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            return null;
+        return new SessionDecisionLeaseStatus(
+            sessionId,
+            Guid.Parse(reader.GetString(0)),
+            reader.GetInt64(1),
+            DateTimeOffset.Parse(
+                reader.GetString(2),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind),
+            DateTimeOffset.Parse(
+                reader.GetString(3),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind),
+            observedAt);
     }
 
     private async Task<DateTimeOffset> RenewAsync(

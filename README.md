@@ -145,6 +145,33 @@ The same session can later attach another execution, record a failure, append a
 recovery plan and verified receipt, rebuild its projection, and prove the
 ordered ledger without rewriting the earlier history.
 
+For applications using the standard local provider, `HongxianSqliteStoreSet`
+opens the complete, consistently configured surface from one root:
+
+```csharp
+await using var hongxian = new HongxianSqliteStoreSet(
+    new HongxianSqliteOptions { RootPath = "hongxian-data" });
+
+var session = await hongxian.SessionStore.CreateAsync("project", "workspace/1");
+await hongxian.CatalogEvidence.DispatchPendingAsync();
+
+var audit = await hongxian.ConsistencyAudit.InspectAsync(session.Id);
+```
+
+The store set exposes both concrete SQLite implementations and the
+provider-neutral event, projection, catalog, lease, operation, and inspection
+interfaces. It is composition convenience, not a service locator or a new
+authority boundary.
+
+Callers that need immediate delivery visibility can use
+`ISessionEventDeliveryStore.AppendWithDeliveryAsync`. Its result separates the
+authoritative ledger commit from `Applied`, `Lagging`, or `NotConfigured`
+projection delivery. The consistency audit later correlates the verified
+ledger head, projection cursor, catalog version, incomplete operations,
+participant failures, evidence outboxes, and the best-known decision lease.
+The audit is intentionally a non-atomic diagnostic snapshot and never claims a
+distributed transaction.
+
 Typed and `JsonElement` appends first become a JSON tree, then the SQLite
 provider uses Siming's canonical JSON contract. Object-property order,
 insignificant whitespace, and equivalent JSON number spelling therefore do not

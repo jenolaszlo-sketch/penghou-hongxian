@@ -63,6 +63,28 @@ public sealed class SessionEventPayloadApiTests : IDisposable
             .Which.Retention.Should().Be(SessionPayloadRetention.DigestOnly);
     }
 
+    [Fact]
+    public async Task TypedAppendWithDelivery_ReportsWhenProjectionIsNotConfigured()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var concreteStore = new SimingSessionEventStore(rootPath);
+        ISessionEventDeliveryStore store = concreteStore;
+        var result = await store.AppendWithDeliveryAsync(
+            new SessionEventRequest(
+                SessionId.New(),
+                Participant("agent"),
+                SessionEventTypes.AssistantMessage,
+                DateTimeOffset.UtcNow),
+            new MessagePayload("done", 1),
+            cancellationToken: ct);
+
+        result.ProjectionDelivery.Outcome.Should().Be(
+            SessionProjectionDeliveryOutcome.NotConfigured);
+        result.ProjectionDelivery.DeliveryStatusRecorded.Should().BeFalse();
+        result.Event.ReadPayload<MessagePayload>().Should().Be(
+            new MessagePayload("done", 1));
+    }
+
     private sealed record MessagePayload(string Text, decimal Count);
 
     public void Dispose()

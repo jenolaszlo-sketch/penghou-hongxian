@@ -45,6 +45,46 @@ public static class SessionEventPayloadExtensions
             cancellationToken);
     }
 
+    /// <summary>
+    /// Appends a CLR payload and reports projection delivery separately from
+    /// the authoritative event commit.
+    /// </summary>
+    public static Task<SessionEventAppendResult> AppendWithDeliveryAsync<T>(
+        this ISessionEventDeliveryStore store,
+        SessionEventRequest request,
+        T payload,
+        JsonSerializerOptions? serializerOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        ArgumentNullException.ThrowIfNull(request);
+        EnsurePayloadIsUnset(request);
+        var element = JsonSerializer.SerializeToElement(
+            payload,
+            serializerOptions ?? DefaultOptions);
+        return store.AppendWithDeliveryAsync(
+            request with { Payload = element },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Appends an existing JSON tree and reports projection delivery separately
+    /// from the authoritative event commit.
+    /// </summary>
+    public static Task<SessionEventAppendResult> AppendWithDeliveryAsync(
+        this ISessionEventDeliveryStore store,
+        SessionEventRequest request,
+        JsonElement payload,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        ArgumentNullException.ThrowIfNull(request);
+        EnsurePayloadIsUnset(request);
+        return store.AppendWithDeliveryAsync(
+            request with { Payload = payload.Clone() },
+            cancellationToken);
+    }
+
     /// <summary>Reads a retained payload without requiring its original CLR type.</summary>
     public static JsonElement ReadPayload(this SessionEvent sessionEvent)
     {

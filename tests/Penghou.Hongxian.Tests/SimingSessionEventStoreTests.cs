@@ -202,9 +202,15 @@ public sealed class SimingSessionEventStoreTests : IDisposable
             DateTimeOffset.UtcNow,
             IdempotencyKey: "workflow:start");
 
-        var committed = await store.AppendAsync(request, ct);
+        var append = await store.AppendWithDeliveryAsync(request, ct);
+        var committed = append.Event;
 
         committed.Sequence.Should().Be(1);
+        append.ProjectionDelivery.Outcome.Should()
+            .Be(SessionProjectionDeliveryOutcome.Lagging);
+        append.ProjectionDelivery.DeliveryStatusRecorded.Should().BeFalse();
+        append.ProjectionDelivery.ProjectionFailureType.Should()
+            .Be(typeof(InvalidOperationException).FullName);
         projection.Applied.Should().BeEmpty();
         projection.Attempts.Should().Be(1);
 
@@ -233,16 +239,23 @@ public sealed class SimingSessionEventStoreTests : IDisposable
             DateTimeOffset.UtcNow,
             IdempotencyKey: "workflow:tracked-start");
 
-        var committed = await store.AppendAsync(request, ct);
+        var append = await store.AppendWithDeliveryAsync(request, ct);
+        var committed = append.Event;
         var lagging = await durable.GetDeliveryStatusAsync(sessionId, ct);
 
         committed.Sequence.Should().Be(1);
+        append.ProjectionDelivery.Outcome.Should()
+            .Be(SessionProjectionDeliveryOutcome.Lagging);
+        append.ProjectionDelivery.DeliveryStatusRecorded.Should().BeTrue();
         lagging!.IsLagging.Should().BeTrue();
         lagging.LastFailureType.Should().Be(typeof(InvalidOperationException).FullName);
 
-        var replay = await store.AppendAsync(request, ct);
+        var replayAppend = await store.AppendWithDeliveryAsync(request, ct);
+        var replay = replayAppend.Event;
         var healed = await durable.GetDeliveryStatusAsync(sessionId, ct);
         replay.Should().BeEquivalentTo(committed);
+        replayAppend.ProjectionDelivery.Outcome.Should()
+            .Be(SessionProjectionDeliveryOutcome.Applied);
         healed!.IsLagging.Should().BeFalse();
         healed.LastFailureType.Should().BeNull();
     }

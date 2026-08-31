@@ -34,6 +34,49 @@ public interface ISessionEventStore
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Optional event-store capability that reports projection delivery separately
+/// from the authoritative ledger commit.
+/// </summary>
+public interface ISessionEventDeliveryStore : ISessionEventStore
+{
+    Task<SessionEventAppendResult> AppendWithDeliveryAsync(
+        SessionEventRequest request,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>Optional read-only capability for detecting an initialized ledger.</summary>
+public interface ISessionLedgerPresenceStore
+{
+    Task<bool> ExistsAsync(
+        SessionId sessionId,
+        CancellationToken cancellationToken = default);
+}
+
+public enum SessionProjectionDeliveryOutcome
+{
+    NotConfigured,
+    Applied,
+    Lagging
+}
+
+/// <summary>Typed projection-delivery diagnostics for one committed event.</summary>
+public sealed record SessionProjectionDeliveryResult(
+    SessionProjectionDeliveryOutcome Outcome,
+    bool DeliveryStatusRecorded,
+    string? ProjectionFailureType = null,
+    string? ProjectionFailureDetail = null,
+    string? TrackingFailureType = null,
+    string? TrackingFailureDetail = null);
+
+/// <summary>
+/// An authoritative committed event plus the non-authoritative projection
+/// delivery result observed by this append attempt.
+/// </summary>
+public sealed record SessionEventAppendResult(
+    SessionEvent Event,
+    SessionProjectionDeliveryResult ProjectionDelivery);
+
 public sealed record SessionEventRequest(
     SessionId SessionId,
     SessionParticipantAttribution Participant,

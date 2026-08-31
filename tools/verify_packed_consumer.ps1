@@ -38,22 +38,29 @@ using Penghou.Hongxian.Sqlite;
 var root = Path.Combine(Path.GetTempPath(), "hongxian-packed-consumer", Guid.NewGuid().ToString("N"));
 try
 {
-    var projections = new SqliteSessionProjectionStore(Path.Combine(root, "catalog.db"), pooling: false);
-    await using var events = new SimingSessionEventStore(
-        Path.Combine(root, "sessions"),
-        projectionStore: projections,
-        maximumCachedLedgers: 2);
-    var sessionId = SessionId.New();
-    await events.AppendAsync(new SessionEventRequest(
-        sessionId,
-        SessionParticipantAttribution.System("packed-consumer", "package-test"),
-        SessionEventTypes.SessionCreated,
-        DateTimeOffset.UtcNow,
-        IdempotencyKey: $"session:{sessionId}:created"));
-    var head = await events.VerifyChainAsync(sessionId);
-    var projection = await projections.GetAsync(sessionId);
-    if (head is null || projection?.AppliedSequence != 1)
-        throw new InvalidOperationException("Packed Hongxian consumer did not persist and project its event.");
+    await using var hongxian = new HongxianSqliteStoreSet(new HongxianSqliteOptions
+    {
+        RootPath = root,
+        Pooling = false,
+        MaximumCachedLedgers = 2
+    });
+    var session = await hongxian.SessionStore.CreateAsync("package-test", "resource/1");
+    await hongxian.CatalogEvidence.DispatchPendingAsync();
+    var append = await hongxian.EventDeliveryStore.AppendWithDeliveryAsync(
+        new SessionEventRequest(
+            session.Id,
+            SessionParticipantAttribution.System("packed-consumer", "package-test"),
+            SessionEventTypes.ExecutionStarted,
+            DateTimeOffset.UtcNow,
+            IdempotencyKey: $"session:{session.Id}:started"));
+    var head = await hongxian.EventStore.VerifyChainAsync(session.Id);
+    var projection = await hongxian.ProjectionStore.GetAsync(session.Id);
+    var audit = await hongxian.ConsistencyAudit.InspectAsync(session.Id);
+    if (head is null ||
+        projection?.AppliedSequence != 2 ||
+        append.ProjectionDelivery.Outcome != SessionProjectionDeliveryOutcome.Applied ||
+        audit.Health != SessionConsistencyHealth.Healthy)
+        throw new InvalidOperationException("Packed Hongxian consumer did not compose, persist, project, and audit its session.");
 }
 finally
 {

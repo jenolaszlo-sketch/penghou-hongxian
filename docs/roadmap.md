@@ -12,16 +12,19 @@ tracks only its application profile and package integration.
 
 ## Current state
 
-Last reviewed: **2026-08-31**
+Last reviewed: **2026-09-01**
 
 - `Penghou.Hongxian` and `Penghou.Hongxian.Sqlite` `0.1.0-preview.1` are
   published on NuGet.
+- `0.1.0-preview.2` is the current release candidate. Its breaking consumer
+  contract, SQLite composition, projection-delivery diagnostics, and
+  consistency audit pass the local package gates.
 - Immutable events, recovery evidence, current-state projections, transactional
   catalog state, decision leases, lifecycle outbox receipts, cross-store
   operation receipts, and forward reconciliation are extracted.
 - Provider-qualified external-operation identity prevents collisions between
   execution systems without introducing workflow-engine types.
-- The suite passes 63 tests; a standalone example and an isolated packed
+- The suite passes 68 tests; a standalone example and an isolated packed
   consumer both persist, project, and verify a session event.
 - A pre-integration review found no vulnerable direct or transitive packages
   and all tests pass. It also identified integrity, fencing, provider-neutral
@@ -141,7 +144,7 @@ Integrity and concurrency:
 - [x] Validate default/empty value-type IDs, enum values, timestamps, monotonic
   transition time, and bounded strings at every public persistence boundary.
   Use `TimeProvider` consistently for library-authored audit and cache times.
-- [ ] Define a provider-neutral consistency-audit result covering verified
+- [x] Define a provider-neutral consistency-audit result covering verified
   ledger head, projection cursor, catalog version, incomplete operations,
   evidence outboxes, leases, and receipts.
 
@@ -180,12 +183,12 @@ Consumer usability:
   consumers must not parse exception messages.
 - [x] Add `TryParse`, JSON converters, and formatting support for public IDs and
   external references.
-- [ ] Add a small SQLite composition root/options model that consistently opens
+- [x] Add a small SQLite composition root/options model that consistently opens
   catalog, per-session ledgers, projections, leases, operations, and evidence
   dispatchers without hiding provider interfaces.
-- [ ] Expose projection-delivery outcome or diagnostics from append so callers
+- [x] Expose projection-delivery outcome or diagnostics from append so callers
   can observe committed-but-lagging state without relying on trace output.
-- [ ] Expose typed, queryable health results for ledger verification,
+- [x] Expose typed, queryable health results for ledger verification,
   projection lag, evidence-outbox delivery, incomplete operations, failed
   participants, lease ownership/loss, schema compatibility, and required
   reconciliation. Logs and traces remain diagnostics, not the operator API.
