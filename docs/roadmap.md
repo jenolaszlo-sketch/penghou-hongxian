@@ -130,6 +130,10 @@ Provider-neutral contract cleanup:
 
 Consumer usability:
 
+- [ ] Replace the free-form actor string with a compact immutable participant
+  attribution reference containing a small kind, provider, stable opaque
+  subject, and optional display-name snapshot. These remain host-supplied
+  claims; metadata or capability claims must never grant authorization.
 - [ ] Add canonical `AppendAsync<T>` and `JsonElement` payload APIs plus typed
   read helpers. Keep retention and idempotency semantics independent of the
   original CLR type and document the identity behavior of omitted payloads.
@@ -143,6 +147,10 @@ Consumer usability:
   dispatchers without hiding provider interfaces.
 - [ ] Expose projection-delivery outcome or diagnostics from append so callers
   can observe committed-but-lagging state without relying on trace output.
+- [ ] Expose typed, queryable health results for ledger verification,
+  projection lag, evidence-outbox delivery, incomplete operations, failed
+  participants, lease ownership/loss, schema compatibility, and required
+  reconciliation. Logs and traces remain diagnostics, not the operator API.
 - [ ] Centralize bounded input limits for actors, event/application kinds,
   external identities, references, metadata, reasons, and receipts across both
   ledger and operational stores.
@@ -156,7 +164,7 @@ Package and contract quality:
 - [ ] Add public API analyzer shipped/unshipped baselines and enable package
   compatibility validation against preview 1.
 
-## Milestone 4 — Query and lifecycle surface
+## Milestone 4 — Query, lifecycle, and portability surface
 
 These reusable APIs moved from Guyabano's interactive-session backlog. UI and
 application policy remain with consumers.
@@ -164,6 +172,17 @@ application policy remain with consumers.
 - [ ] Add bounded query APIs for session catalog lookup, paged timeline,
   projection delivery status, pending inputs, pending decisions, active
   incidents, and incomplete operations.
+- [ ] Add immutable named checkpoints that bind a session ledger sequence and
+  verified head hash to application-defined kind/name, actor, causation, and
+  bounded external resource identities, revisions, and digests. Hongxian
+  records checkpoints but never restores external state.
+- [ ] Add bounded as-of projection at a verified ledger sequence or named
+  checkpoint. Begin with deterministic streaming replay; introduce cached
+  snapshots only after measured interactive workloads justify them.
+- [ ] Add an optional indexed `SessionRelation` with source, target,
+  application-defined kind, actor, time, and causation. Relations support
+  discovery but do not imply lifecycle propagation, inherited authorization,
+  cascading deletion, ownership, or acyclic parent/child semantics.
 - [ ] Define generic session metadata and lifecycle operations for name, rename,
   archive, unarchive, and resume discovery with optimistic concurrency.
 - [ ] Define durable input-request lifecycle events and projections for request,
@@ -174,6 +193,12 @@ application policy remain with consumers.
   without embedding application-specific severity policy.
 - [ ] Document payload retention, ledger deletion, backup, checkpoint anchoring,
   and projection-rebuild responsibilities.
+- [ ] After schema/version contracts stabilize, add verified single-session
+  export/import containing the authoritative ledger, versioned manifest,
+  catalog metadata, relations, checkpoints, and bounded external references.
+  Projections are rebuildable and need not be authoritative export content;
+  import verifies history, rejects ambiguous ID collisions, and never silently
+  merges two ledgers.
 - [ ] Decide whether session branching belongs in the generic kernel only after
   selective rerun and a second consumer establish useful semantics.
 
@@ -203,9 +228,9 @@ which collaboration concepts are genuinely reusable. The invariant is:
 
 Initial scope:
 
-- [ ] Represent human, model, workflow-activity, tool, system, and external
-  participant attribution through provider-neutral, host-supplied identity
-  claims. Hongxian preserves attribution but does not authenticate it.
+- [ ] Reuse the preview 2 participant attribution reference for human, model,
+  workflow-activity, tool, system, and external publications. Collaboration
+  must not introduce a second actor directory or identity format.
 - [ ] Add immutable, application-defined session publications as typed payloads
   over the existing session event and Siming append path—not a second ledger,
   ordering model, or transaction boundary.
@@ -233,8 +258,8 @@ Later, driven by concrete consumers:
 
 - [ ] Add `Supports` and `Contradicts`, graph traversal, participant activity
   projections, richer provenance queries, and collaboration checkpoints.
-- [ ] Evaluate signed publications, trust policy, visibility/scoping,
-  collaboration-specific retention, federation, and export/import formats.
+- [ ] Evaluate signed publications, trust policy, visibility/scoping, and
+  federation only when concrete consumers require them.
 - [ ] Keep proposals and decision candidates distinct from authoritative
   Hongxian decision-coordination records and leases.
 - [ ] Keep session collaboration distinct from Cangjie memory: a publication
@@ -292,7 +317,5 @@ Do not graduate from preview until:
 - Is a trusted checkpoint reference sufficient for the core, with signature and
   anchoring policy left to hosts?
 - What branching semantics remain useful outside code-generation workflows?
-- Should participant attribution be stored entirely as an immutable publication
-  snapshot, or combine a stable subject reference with a historical snapshot?
 - Which publication kinds need generic projection support beyond application
   queries, without making Hongxian interpret their domain meaning?
