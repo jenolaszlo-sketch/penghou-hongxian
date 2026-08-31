@@ -41,6 +41,10 @@ jobs:
               --property:PackageVersion="$version"
           done
 
+      - name: Restore and audit packed consumer
+        shell: pwsh
+        run: ./tools/verify_packed_consumer.ps1 -PackageDirectory artifacts -Version $env:PACKAGE_VERSION
+
       - name: NuGet login (OIDC -> temp API key)
         id: login
         uses: NuGet/login@v1

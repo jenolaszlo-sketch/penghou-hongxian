@@ -35,6 +35,10 @@ jobs:
       - name: Pack
         run: dotnet pack Penghou.Hongxian.slnx --configuration Release --no-build --output artifacts --property:PackageVersion=0.0.0-ci.${{ github.run_id }}
 
+      - name: Restore and audit packed consumer
+        shell: pwsh
+        run: ./tools/verify_packed_consumer.ps1 -PackageDirectory artifacts -Version 0.0.0-ci.${{ github.run_id }}
+
       - name: Upload packages
         uses: actions/upload-artifact@v6
         with:

@@ -12,7 +12,7 @@ Cangjie, or Baize.
 - [x] Record ownership boundaries and security claims.
 - [x] Preserve the first proven event, recovery, and projection tests.
 - [x] Add architecture documentation and a minimal independent sample.
-- [ ] Add packed-consumer validation.
+- [x] Add packed-consumer validation.
 
 ## Milestone 1 — Durable event and projection kernel
 
@@ -53,8 +53,8 @@ Cangjie, or Baize.
 
 ## Milestone 5 — Preview package readiness
 
-- [ ] Add CI build, format, test, pack, and isolated-consumer verification.
-- [ ] Add trusted-publishing workflow consistent with the Penghou ecosystem.
+- [x] Add CI build, format, test, pack, and isolated-consumer verification.
+- [x] Add trusted-publishing workflow consistent with the Penghou ecosystem.
 - [ ] Decide whether to multi-target .NET 8 before the first public preview.
 - [ ] Publish `0.1.0-preview.1` only after Guyabano and the independent sample
   consume packed artifacts successfully.
