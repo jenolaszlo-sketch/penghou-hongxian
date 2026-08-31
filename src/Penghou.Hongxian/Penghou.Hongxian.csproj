@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <PackageId>Penghou.Hongxian</PackageId>
+    <Title>Penghou Hongxian</Title>
+    <Description>Provider-neutral durable session contracts, recovery evidence, projections, and external-operation correlation.</Description>
+    <PackageTags>sessions;audit;recovery;provenance;human-ai;local-first</PackageTags>
+  </PropertyGroup>
+</Project>

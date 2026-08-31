@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Penghou.Hongxian/Penghou.Hongxian.csproj" />
+    <Project Path="src/Penghou.Hongxian.Sqlite/Penghou.Hongxian.Sqlite.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Penghou.Hongxian.Tests/Penghou.Hongxian.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Penghou.Hongxian.Example/Penghou.Hongxian.Example.csproj" />
+  </Folder>
+</Solution>

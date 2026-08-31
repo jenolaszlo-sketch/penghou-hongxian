@@ -1,0 +1,62 @@
+name: Publish to NuGet
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Pack
+        shell: bash
+        run: |
+          version=$(dotnet msbuild src/Penghou.Hongxian/Penghou.Hongxian.csproj -getProperty:Version -nologo)
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+          for csproj in \
+            src/Penghou.Hongxian/Penghou.Hongxian.csproj \
+            src/Penghou.Hongxian.Sqlite/Penghou.Hongxian.Sqlite.csproj; do
+            dotnet pack "$csproj" \
+              --configuration Release \
+              --output ./artifacts \
+              --property:PackageVersion="$version"
+          done
+
+      - name: NuGet login (OIDC -> temp API key)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push packages to NuGet
+        run: >
+          dotnet nuget push ./artifacts/*.nupkg
+          --source https://api.nuget.org/v3/index.json
+          --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          --skip-duplicate
+
+      - name: Push symbols to NuGet
+        run: >
+          dotnet nuget push ./artifacts/*.snupkg
+          --source https://api.nuget.org/v3/index.json
+          --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          --skip-duplicate

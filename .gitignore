@@ -1,0 +1,35 @@
+## Build artifacts
+bin/
+obj/
+artifacts/
+TestResults/
+
+## IDE
+.vs/
+.idea/
+*.user
+*.suo
+
+## Generated code and runtime data
+generated/
+*.db
+*.db-wal
+*.db-shm
+
+## NuGet
+*.nupkg
+packages/
+
+## Temp
+.tmp/
+tmp/
+*.log
+
+## Environment
+.env
+.env.*
+!.env.example
+
+## OS
+.DS_Store
+Thumbs.db
