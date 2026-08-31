@@ -21,8 +21,8 @@ and projection contracts plus per-session Siming/SQLite persistence.
 
 | Package | Responsibility |
 | --- | --- |
-| `Penghou.Hongxian` | Session identity, immutable event envelopes, incidents, recovery receipts, and projections |
-| `Penghou.Hongxian.Sqlite` | Per-session Siming ledgers and rebuildable SQLite projections |
+| `Penghou.Hongxian` | Session identity, external-operation correlation, immutable events, incidents, recovery and participant receipts, projections, leases, and reconciliation contracts |
+| `Penghou.Hongxian.Sqlite` | Per-session Siming ledgers, transactional operational catalogs, decision leases, cross-store operation state, and rebuildable projections |
 
 Planned adapters and catalog functionality are tracked in the
 [roadmap](docs/roadmap.md).

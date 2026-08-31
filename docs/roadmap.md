@@ -21,18 +21,19 @@ Cangjie, or Baize.
 - [x] Extract current-state and timeline projection contracts.
 - [x] Compose one independent Siming SQLite ledger per session.
 - [x] Keep SQLite current-state projections rebuildable from the ledger.
-- [ ] Remove remaining assumptions that an external operation is a workflow or
+- [x] Remove remaining assumptions that an external operation is a workflow or
   that a revision is a source-code workspace.
 - [ ] Add provider conformance tests for session event and projection stores.
 
 ## Milestone 2 — Operational catalog and coordination
 
-- [ ] Extract the concurrency-safe session catalog behind provider-neutral
+- [x] Extract the concurrency-safe session catalog behind provider-neutral
   interfaces.
-- [ ] Model arbitrary external operation references instead of workflow GUIDs.
-- [ ] Extract renewable decision leases and optimistic concurrency.
-- [ ] Extract durable cross-store operation receipts and reconciliation status.
-- [ ] Keep application-authored recovery explanations outside the kernel.
+- [x] Model provider-qualified external operation references instead of bare
+  workflow GUIDs.
+- [x] Extract renewable decision leases and optimistic concurrency.
+- [x] Extract durable cross-store operation receipts and reconciliation status.
+- [x] Keep application-authored recovery explanations outside the kernel.
 
 ## Milestone 3 — Application integration
 
