@@ -9,14 +9,24 @@ public enum SessionIncidentSeverity
     Critical
 }
 
-public enum SessionRecoveryAction
+/// <summary>
+/// Opaque application-defined recovery action. Hongxian records this identity
+/// but does not interpret, authorize, schedule, or execute it.
+/// </summary>
+public sealed record SessionRecoveryActionReference(
+    string Code,
+    string? TargetType = null,
+    string? TargetId = null)
 {
-    None,
-    RefreshPreview,
-    AbandonCandidate,
-    RetryIdempotently,
-    ReconcileForward,
-    HaltMutation
+    public void Validate()
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(Code);
+        if ((TargetType is null) != (TargetId is null))
+            throw new ArgumentException(
+                "Recovery action target type and ID must either both be supplied or both be omitted.");
+        if (TargetType is not null) ArgumentException.ThrowIfNullOrWhiteSpace(TargetType);
+        if (TargetId is not null) ArgumentException.ThrowIfNullOrWhiteSpace(TargetId);
+    }
 }
 
 public enum SessionRecoveryOutcome
@@ -52,9 +62,8 @@ public sealed record SessionRecoveryPlan(
     Guid RecoveryPlanId,
     Guid IncidentId,
     SessionId SessionId,
-    SessionRecoveryAction Action,
+    SessionRecoveryActionReference Action,
     string Explanation,
-    string? SafeRevision,
     bool Automatic,
     DateTimeOffset PlannedAt,
     Guid? CorrelationId = null,
@@ -78,12 +87,11 @@ public sealed record SessionRecoveryResolution(
 /// </summary>
 public sealed record SessionRecoveryActionReceipt(
     Guid ReceiptId,
-    SessionRecoveryAction Action,
-    string ResourceType,
-    string ResourceId,
+    SessionRecoveryActionReference Action,
     string Verification,
     DateTimeOffset ExecutedAt,
     bool Verified,
+    string? ResultIdentity = null,
     IReadOnlyDictionary<string, string>? CrossSystemRefs = null);
 
 public sealed record SessionRecoveryExecutionResult(
@@ -102,12 +110,17 @@ public sealed class SessionRecoveryCoordinator
         new(JsonSerializerDefaults.Web);
     private readonly ISessionEventStore events;
     private readonly string actor;
+    private readonly TimeProvider timeProvider;
 
-    public SessionRecoveryCoordinator(ISessionEventStore events, string actor = "hongxian")
+    public SessionRecoveryCoordinator(
+        ISessionEventStore events,
+        string actor = "hongxian",
+        TimeProvider? timeProvider = null)
     {
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         ArgumentException.ThrowIfNullOrWhiteSpace(actor);
         this.actor = actor;
+        this.timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public Task<SessionEvent> DetectAsync(
@@ -141,6 +154,7 @@ public sealed class SessionRecoveryCoordinator
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentException.ThrowIfNullOrWhiteSpace(plan.Explanation);
+        plan.Action.Validate();
         return events.AppendAsync(new SessionEventRequest(
             plan.SessionId,
             actor,
@@ -152,9 +166,10 @@ public sealed class SessionRecoveryCoordinator
                 plan.CrossSystemRefs,
                 ("incidentId", plan.IncidentId.ToString("D")),
                 ("recoveryPlanId", plan.RecoveryPlanId.ToString("D")),
-                ("recoveryAction", plan.Action.ToString()),
-                ("automatic", plan.Automatic.ToString()),
-                ("safeRevision", plan.SafeRevision)),
+                ("recoveryAction", plan.Action.Code),
+                ("recoveryTargetType", plan.Action.TargetType),
+                ("recoveryTargetId", plan.Action.TargetId),
+                ("automatic", plan.Automatic.ToString())),
             PayloadJson: JsonSerializer.Serialize(plan, SerializerOptions),
             IdempotencyKey: $"incident:{plan.IncidentId:D}:plan:{plan.RecoveryPlanId:D}"),
             cancellationToken);
@@ -171,14 +186,14 @@ public sealed class SessionRecoveryCoordinator
             plan.SessionId,
             actor,
             SessionEventTypes.RecoveryAttempted,
-            DateTimeOffset.UtcNow,
+            timeProvider.GetUtcNow(),
             CausationId: plannedEventId,
             CorrelationId: plan.CorrelationId,
             CrossSystemRefs: References(
                 plan.CrossSystemRefs,
                 ("incidentId", plan.IncidentId.ToString("D")),
                 ("recoveryPlanId", plan.RecoveryPlanId.ToString("D")),
-                ("recoveryAction", plan.Action.ToString()),
+                ("recoveryAction", plan.Action.Code),
                 ("attempt", attempt.ToString(System.Globalization.CultureInfo.InvariantCulture))),
             IdempotencyKey: $"incident:{plan.IncidentId:D}:plan:{plan.RecoveryPlanId:D}:attempt:{attempt}"),
             cancellationToken);
@@ -212,8 +227,7 @@ public sealed class SessionRecoveryCoordinator
                 throw new ArgumentException("A stable recovery receipt ID is required.", nameof(resolution));
             if (receipt.ExecutedAt == default)
                 throw new ArgumentException("A recovery receipt execution time is required.", nameof(resolution));
-            ArgumentException.ThrowIfNullOrWhiteSpace(receipt.ResourceType);
-            ArgumentException.ThrowIfNullOrWhiteSpace(receipt.ResourceId);
+            receipt.Action.Validate();
             ArgumentException.ThrowIfNullOrWhiteSpace(receipt.Verification);
         }
         var eventType = resolution.Outcome switch
@@ -235,102 +249,15 @@ public sealed class SessionRecoveryCoordinator
                 ("recoveryPlanId", resolution.RecoveryPlanId.ToString("D")),
                 ("attempt", resolution.Attempt.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 ("outcome", resolution.Outcome.ToString()),
-                ("recoveryAction", resolution.ActionReceipt?.Action.ToString()),
+                ("recoveryAction", resolution.ActionReceipt?.Action.Code),
                 ("recoveryReceiptId", resolution.ActionReceipt?.ReceiptId.ToString("D")),
-                ("recoveryResourceType", resolution.ActionReceipt?.ResourceType),
-                ("recoveryResourceId", resolution.ActionReceipt?.ResourceId),
+                ("recoveryTargetType", resolution.ActionReceipt?.Action.TargetType),
+                ("recoveryTargetId", resolution.ActionReceipt?.Action.TargetId),
+                ("recoveryResultIdentity", resolution.ActionReceipt?.ResultIdentity),
                 ("recoveryVerification", resolution.ActionReceipt?.Verification)),
             PayloadJson: JsonSerializer.Serialize(resolution, SerializerOptions),
             IdempotencyKey: $"incident:{resolution.IncidentId:D}:plan:{resolution.RecoveryPlanId:D}:attempt:{resolution.Attempt}:outcome"),
             cancellationToken);
-    }
-
-    /// <summary>
-    /// Executes one recovery action and is the only convenience path that can
-    /// turn execution into a successful terminal event. Exceptions and invalid
-    /// receipts are retained as failed recovery evidence.
-    /// </summary>
-    public async Task<SessionRecoveryExecutionResult> ExecuteAsync(
-        SessionRecoveryPlan plan,
-        Guid plannedEventId,
-        int attempt,
-        Func<SessionEvent, CancellationToken, Task<SessionRecoveryActionReceipt>> execute,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(plan);
-        ArgumentNullException.ThrowIfNull(execute);
-        if (plan.Action is SessionRecoveryAction.None or SessionRecoveryAction.HaltMutation)
-            throw new ArgumentException(
-                $"Recovery action '{plan.Action}' cannot be executed automatically.",
-                nameof(plan));
-
-        var attempted = await RecordAttemptAsync(plan, plannedEventId, attempt, cancellationToken)
-            .ConfigureAwait(false);
-        try
-        {
-            var receipt = await execute(attempted, cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidOperationException("The recovery executor returned no receipt.");
-            if (receipt.Action != plan.Action)
-                throw new InvalidOperationException(
-                    $"Recovery receipt action '{receipt.Action}' does not match plan action '{plan.Action}'.");
-            if (!receipt.Verified)
-                throw new InvalidOperationException("The recovery executor did not verify the resulting state.");
-
-            var explanation = $"Recovery action '{plan.Action}' completed and was verified: {receipt.Verification}";
-            var receiptReferences = receipt.CrossSystemRefs is null
-                ? plan.CrossSystemRefs
-                : MergeReferences(plan.CrossSystemRefs, receipt.CrossSystemRefs);
-            var terminal = await CompleteAsync(new SessionRecoveryResolution(
-                    plan.RecoveryPlanId,
-                    plan.IncidentId,
-                    plan.SessionId,
-                    SessionRecoveryOutcome.Recovered,
-                    attempt,
-                    explanation,
-                    DateTimeOffset.UtcNow,
-                    plan.CorrelationId,
-                    References(receiptReferences,
-                        ("recoveryAction", plan.Action.ToString()),
-                        ("recoveryReceiptId", receipt.ReceiptId.ToString("D")),
-                        ("recoveryResourceType", receipt.ResourceType),
-                        ("recoveryResourceId", receipt.ResourceId)),
-                    receipt),
-                attempted.EventId,
-                cancellationToken).ConfigureAwait(false);
-            return new SessionRecoveryExecutionResult(
-                SessionRecoveryOutcome.Recovered,
-                terminal,
-                receipt,
-                explanation);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            var explanation =
-                $"Recovery action '{plan.Action}' did not reach a verified safe state ({exception.GetType().Name}). " +
-                "The prior accepted state remains authoritative and forward reconciliation is required.";
-            var terminal = await CompleteAsync(new SessionRecoveryResolution(
-                    plan.RecoveryPlanId,
-                    plan.IncidentId,
-                    plan.SessionId,
-                    SessionRecoveryOutcome.ReconciliationRequired,
-                    attempt,
-                    explanation,
-                    DateTimeOffset.UtcNow,
-                    plan.CorrelationId,
-                    References(plan.CrossSystemRefs,
-                        ("recoveryErrorType", exception.GetType().Name))),
-                attempted.EventId,
-                cancellationToken).ConfigureAwait(false);
-            return new SessionRecoveryExecutionResult(
-                SessionRecoveryOutcome.ReconciliationRequired,
-                terminal,
-                null,
-                explanation);
-        }
     }
 
     private static IReadOnlyDictionary<string, string> References(
@@ -345,15 +272,4 @@ public sealed class SessionRecoveryCoordinator
         return result;
     }
 
-    private static IReadOnlyDictionary<string, string> MergeReferences(
-        IReadOnlyDictionary<string, string>? first,
-        IReadOnlyDictionary<string, string> second)
-    {
-        var result = first is null
-            ? new Dictionary<string, string>(StringComparer.Ordinal)
-            : new Dictionary<string, string>(first, StringComparer.Ordinal);
-        foreach (var (key, value) in second)
-            result[key] = value;
-        return result;
-    }
 }

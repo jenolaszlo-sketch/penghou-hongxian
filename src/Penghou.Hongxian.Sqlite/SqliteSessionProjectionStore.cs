@@ -71,30 +71,66 @@ public sealed class SqliteSessionProjectionStore :
     }
 
     public async Task<SessionProjectionSnapshot?> RebuildAsync(
-        SessionId sessionId,
-        IReadOnlyList<SessionEvent> events,
+        VerifiedSessionHistory history,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(events);
-        if (events.Any(item => item.SessionId != sessionId))
-            throw new ArgumentException("Every rebuilt event must belong to the requested session.", nameof(events));
-        var ordered = events.OrderBy(item => item.Sequence).ToArray();
+        ArgumentNullException.ThrowIfNull(history);
+        ArgumentNullException.ThrowIfNull(history.VerifiedHead);
+        ArgumentException.ThrowIfNullOrWhiteSpace(history.VerifiedHead.LedgerIdentity);
+        ArgumentException.ThrowIfNullOrWhiteSpace(history.VerifiedHead.Hash);
+        if (history.VerifiedHead.Sequence < 0)
+            throw new ArgumentOutOfRangeException(nameof(history));
+        if (history.Events.Any(item => item.SessionId != history.SessionId))
+            throw new ArgumentException(
+                "Every rebuilt event must belong to the verified session.", nameof(history));
+        var ordered = history.Events.OrderBy(item => item.Sequence).ToArray();
+        if (ordered.LongLength != history.VerifiedHead.Sequence)
+            throw new InvalidOperationException(
+                $"Cannot rebuild session '{history.SessionId}': verified head sequence " +
+                $"{history.VerifiedHead.Sequence} does not match {ordered.LongLength} supplied events.");
         for (var index = 0; index < ordered.Length; index++)
+        {
             if (ordered[index].Sequence != index + 1)
-                throw new InvalidOperationException($"Cannot rebuild session '{sessionId}': sequence {index + 1} is missing.");
+                throw new InvalidOperationException(
+                    $"Cannot rebuild session '{history.SessionId}': sequence {index + 1} is missing.");
+            var expectedPrevious = index == 0 ? null : ordered[index - 1].Hash;
+            if (!string.Equals(
+                    ordered[index].PreviousHash,
+                    expectedPrevious,
+                    StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"Cannot rebuild session '{history.SessionId}': hash-chain continuity failed at sequence {index + 1}.");
+        }
+        if (ordered.Length > 0 && !string.Equals(
+                ordered[^1].Hash,
+                history.VerifiedHead.Hash,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"Cannot rebuild session '{history.SessionId}': supplied history does not reach the verified head hash.");
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
+        var current = await ReadAsync(
+            connection, transaction, history.SessionId, cancellationToken).ConfigureAwait(false);
+        if (current is not null && current.AppliedSequence > history.VerifiedHead.Sequence)
+            throw new InvalidOperationException(
+                $"Cannot rebuild session '{history.SessionId}' to verified sequence {history.VerifiedHead.Sequence}: " +
+                $"the projection has already reached sequence {current.AppliedSequence}.");
+        if (current is not null && current.AppliedSequence == history.VerifiedHead.Sequence &&
+            !string.Equals(current.HeadHash, history.VerifiedHead.Hash, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"Session projection head conflict for '{history.SessionId}' at sequence {history.VerifiedHead.Sequence}.");
         await using (var delete = connection.CreateCommand())
         {
             delete.Transaction = transaction;
             delete.CommandText = "DELETE FROM session_projections WHERE session_id = $sessionId;";
-            delete.Parameters.AddWithValue("$sessionId", sessionId.ToString());
+            delete.Parameters.AddWithValue("$sessionId", history.SessionId.ToString());
             await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
         SessionCurrentState? state = null;
         foreach (var sessionEvent in ordered) state = SessionTimelineProjection.Apply(state, sessionEvent);
         if (state is null) { transaction.Commit(); return null; }
-        var snapshot = new SessionProjectionSnapshot(sessionId, ordered[^1].Sequence, ordered[^1].Hash, state);
+        var snapshot = new SessionProjectionSnapshot(
+            history.SessionId, ordered[^1].Sequence, ordered[^1].Hash, state);
         await WriteAsync(connection, transaction, snapshot, cancellationToken).ConfigureAwait(false);
         await MarkAppliedAsync(
             connection, transaction, ordered[^1], cancellationToken).ConfigureAwait(false);

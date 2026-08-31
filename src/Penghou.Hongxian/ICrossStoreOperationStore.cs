@@ -27,6 +27,7 @@ public interface ICrossStoreOperationStore
         CrossStoreOperationId operationId,
         CrossStoreOperationState targetState,
         DateTimeOffset occurredAt,
-        string? reconciliationReason = null,
+        string? applicationPhase = null,
+        string? reasonCode = null,
         CancellationToken cancellationToken = default);
 }

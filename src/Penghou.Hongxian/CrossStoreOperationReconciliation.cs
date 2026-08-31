@@ -11,7 +11,7 @@ public sealed record CrossStoreOperationReconciliationItem(
     CrossStoreOperationId OperationId,
     CrossStoreOperationState State,
     CrossStoreOperationHealth Health,
-    string OperatorAction,
+    IReadOnlyList<string> SuggestedActionCodes,
     IReadOnlyList<string> FailedParticipants);
 
 public sealed record CrossStoreOperationReconciliationReport(
@@ -54,24 +54,11 @@ public sealed class CrossStoreOperationReconciliationService(
                 operation.Id,
                 operation.State,
                 CrossStoreOperationHealth.Healthy,
-                "No action required.",
+                [],
                 failed);
         }
 
-        var action = operation.State switch
-        {
-            CrossStoreOperationState.Prepared when failed.Length == 0 =>
-                "Resume the external execution from its first incomplete step; participant writes are idempotent.",
-            CrossStoreOperationState.Prepared =>
-                RecoveryFor(operation, failed),
-            CrossStoreOperationState.RevisionCommitted =>
-                "Do not roll back the accepted revision. Verify it, then replay incomplete participant publications in a forward recovery operation.",
-            CrossStoreOperationState.Published =>
-                "Verify publication receipts, then replay the final checkpoint/completion step.",
-            CrossStoreOperationState.ReconciliationRequired =>
-                RecoveryFor(operation, failed),
-            _ => "Inspect the operation receipts and external execution history before taking action."
-        };
+        var actions = SuggestionsFor(operation, failed);
         return new(
             operation.Id,
             operation.State,
@@ -79,24 +66,27 @@ public sealed class CrossStoreOperationReconciliationService(
                 failed.Length > 0
                 ? CrossStoreOperationHealth.ReconciliationRequired
                 : CrossStoreOperationHealth.Incomplete,
-            action,
+            actions,
             failed);
     }
 
-    private static string RecoveryFor(
+    private static IReadOnlyList<string> SuggestionsFor(
         CrossStoreOperation operation,
         IReadOnlyCollection<string> failed)
     {
         var participantActions = operation.Participants
             .Where(item => failed.Contains(item.Participant))
-            .Select(item => item.RecoveryAction)
+            .Select(item => item.SuggestedActionCode)
             .Where(item => !string.IsNullOrWhiteSpace(item))
             .Distinct(StringComparer.Ordinal)
+            .Select(item => item!)
             .ToArray();
         if (participantActions.Length > 0)
-            return string.Join(" ", participantActions!);
-        return operation.ReconciliationReason is null
-            ? "Inspect external execution history and start a forward recovery operation."
-            : $"{operation.ReconciliationReason} Start a forward recovery operation; do not rewrite the failed operation.";
+            return participantActions;
+        if (failed.Count > 0)
+            return [CrossStoreSuggestedActions.InspectFailedParticipants];
+        return operation.State == CrossStoreOperationState.ReconciliationRequired
+            ? [CrossStoreSuggestedActions.ReconcileForward]
+            : [CrossStoreSuggestedActions.ResumeIncompleteParticipants];
     }
 }

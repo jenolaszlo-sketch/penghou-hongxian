@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Data.Sqlite;
 using Penghou.Hongxian;
 using Penghou.Hongxian.Sqlite;
 
@@ -12,51 +13,30 @@ public sealed class SqliteSessionCatalogTests : IDisposable
         Guid.NewGuid().ToString("N"));
 
     [Fact]
-    public async Task ResourcePromotion_CommitsRevisionAndAuditReceiptAtomically()
+    public async Task ResourceVersionCompareAndSwap_CommitsAuditReceiptAtomically()
     {
         var ct = TestContext.Current.CancellationToken;
         var catalog = new SqliteSessionCatalog(
-            Path.Combine(rootPath, "promotion-catalog.db"), pooling: false);
+            Path.Combine(rootPath, "version-catalog.db"), pooling: false);
         var session = await catalog.CreateAsync("repo", "resource", cancellationToken: ct);
-        (await catalog.UpdateRevisionAsync(session.Id, null, "revision-1", ct))
-            .Should().NotBeNull();
-        var operation = new ExternalOperationReference("example-engine", Guid.CreateVersion7());
-        await catalog.AttachExternalOperationAsync(session.Id, operation, ct);
-        var promotedAt = DateTimeOffset.UtcNow;
+        var accepted = await catalog.UpdateRevisionAsync(
+            session.Id, null, "resource-version-1", ct);
 
-        var promoted = await catalog.CommitRevisionPromotionAsync(
-            session.Id,
-            "revision-1",
-            "revision-2",
-            "mutation-7",
-            operation,
-            promotedAt,
-            ct);
-
-        promoted!.CurrentRevision.Should().Be("revision-2");
+        accepted!.CurrentRevision.Should().Be("resource-version-1");
         var receipt = (await catalog.ListPendingAsync(cancellationToken: ct))
             .Single(item =>
-                item.EventType == SessionEventTypes.RevisionPromoted);
-        receipt.CorrelationId.Should().Be(operation.Id);
+                item.EventType == SessionEventTypes.RevisionAccepted);
         receipt.CrossSystemRefs.Should().Contain(new Dictionary<string, string>
         {
-            ["mutationId"] = "mutation-7",
-            ["fromRevision"] = "revision-1",
-            ["toRevision"] = "revision-2",
-            ["auditSource"] = "transactional-revision-promotion"
+            ["fromRevision"] = "uninitialized",
+            ["toRevision"] = "resource-version-1"
         });
 
-        (await catalog.CommitRevisionPromotionAsync(
-            session.Id,
-            "revision-1",
-            "revision-3",
-            "losing-mutation",
-            operation,
-            promotedAt,
-            ct)).Should().BeNull();
+        (await catalog.UpdateRevisionAsync(
+            session.Id, null, "losing-version", ct)).Should().BeNull();
         (await catalog.ListPendingAsync(cancellationToken: ct))
             .Should().NotContain(item =>
-                item.CrossSystemRefs.GetValueOrDefault("mutationId") == "losing-mutation");
+                item.CrossSystemRefs.GetValueOrDefault("toRevision") == "losing-version");
     }
 
     [Fact]
@@ -164,6 +144,55 @@ public sealed class SqliteSessionCatalogTests : IDisposable
         await held.DisposeAsync();
         await using var acquired = await blocked.WaitAsync(TimeSpan.FromSeconds(2), ct);
         acquired.SessionId.Should().Be(session.Id);
+        acquired.FencingToken.Should().BeGreaterThan(held.FencingToken);
+        acquired.ExpiresAt.Should().BeAfter(acquired.AcquiredAt);
+        await acquired.AssertOwnershipAsync(ct);
+    }
+
+    [Fact]
+    public async Task DecisionLease_LossSignalsAndStaleHolderIsRejected()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var path = Path.Combine(rootPath, "lease-loss.db");
+        var catalog = new SqliteSessionCatalog(
+            path,
+            pooling: false,
+            decisionLeaseDuration: TimeSpan.FromSeconds(2),
+            decisionLeaseRenewalInterval: TimeSpan.FromMilliseconds(50));
+        var session = await catalog.CreateAsync("context", "resource", cancellationToken: ct);
+        var first = await catalog.AcquireAsync(session.Id, Guid.CreateVersion7(), ct);
+        await first.AssertOwnershipAsync(ct);
+
+        await using (var connection = new SqliteConnection(
+            new SqliteConnectionStringBuilder
+            {
+                DataSource = path,
+                Mode = SqliteOpenMode.ReadWrite,
+                Pooling = false
+            }.ConnectionString))
+        {
+            await connection.OpenAsync(ct);
+            await using var command = connection.CreateCommand();
+            command.CommandText =
+                "DELETE FROM session_decision_leases WHERE session_id = $sessionId;";
+            command.Parameters.AddWithValue("$sessionId", session.Id.ToString());
+            await command.ExecuteNonQueryAsync(ct);
+        }
+
+        var lost = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var registration = first.LeaseLost.Register(() => lost.TrySetResult());
+        await lost.Task.WaitAsync(TimeSpan.FromSeconds(2), ct);
+        var staleAssertion = () => first.AssertOwnershipAsync(ct);
+        await staleAssertion.Should().ThrowAsync<SessionDecisionLeaseLostException>();
+
+        await using var second = await catalog.AcquireAsync(
+            session.Id, Guid.CreateVersion7(), ct);
+        second.FencingToken.Should().BeGreaterThan(first.FencingToken);
+        await second.AssertOwnershipAsync(ct);
+
+        var disposeLost = async () => await first.DisposeAsync();
+        await disposeLost.Should().ThrowAsync<SessionDecisionLeaseLostException>();
     }
 
     [Fact]

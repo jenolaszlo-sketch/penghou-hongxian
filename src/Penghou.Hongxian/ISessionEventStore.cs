@@ -18,6 +18,14 @@ public interface ISessionEventStore
         SessionEventPageRequest request,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Verifies the authoritative ledger and returns only the history covered
+    /// by that verified head. Concurrent extensions are excluded.
+    /// </summary>
+    Task<VerifiedSessionHistory> ReadVerifiedHistoryAsync(
+        SessionId sessionId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Validates the append-only hash chain and returns the last event (or null).</summary>
     Task<SessionEvent?> VerifyChainAsync(
         SessionId sessionId,
@@ -36,7 +44,36 @@ public sealed record SessionEventRequest(
     string? IdempotencyKey = null,
     Guid? EventId = null,
     SessionPayloadSensitivity PayloadSensitivity = SessionPayloadSensitivity.Internal,
-    SessionPayloadRetention PayloadRetention = SessionPayloadRetention.Retain);
+    SessionPayloadRetention PayloadRetention = SessionPayloadRetention.Retain,
+    SessionLedgerHead? ExpectedHead = null);
+
+/// <summary>Provider-neutral identity of an authoritative session-ledger head.</summary>
+public sealed record SessionLedgerHead(
+    string LedgerIdentity,
+    long Sequence,
+    string Hash);
+
+/// <summary>Raised when a conditional session append observes a different head.</summary>
+public sealed class SessionLedgerHeadConflictException : Exception
+{
+    public SessionLedgerHeadConflictException(
+        SessionLedgerHead expectedHead,
+        SessionLedgerHead actualHead,
+        Exception? innerException = null)
+        : base(
+            $"Session ledger head changed: expected {expectedHead.LedgerIdentity}/" +
+            $"{expectedHead.Sequence}/{expectedHead.Hash}, observed " +
+            $"{actualHead.LedgerIdentity}/{actualHead.Sequence}/{actualHead.Hash}.",
+            innerException)
+    {
+        ExpectedHead = expectedHead;
+        ActualHead = actualHead;
+    }
+
+    public SessionLedgerHead ExpectedHead { get; }
+
+    public SessionLedgerHead ActualHead { get; }
+}
 
 /// <summary>Describes the disclosure risk of an event payload.</summary>
 public enum SessionPayloadSensitivity

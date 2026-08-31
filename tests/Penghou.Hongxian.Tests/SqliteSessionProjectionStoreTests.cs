@@ -28,7 +28,7 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
             DateTimeOffset.UtcNow, CausationId: requested.EventId,
             CorrelationId: workflowRun), ct);
         await events.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.RevisionPromoted,
+            sessionId, "hongxian", SessionEventTypes.RevisionAccepted,
             DateTimeOffset.UtcNow, CrossSystemRefs: new Dictionary<string, string>
             {
                 ["toRevision"] = "workspace:2"
@@ -58,14 +58,49 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
         await events.AppendAsync(new SessionEventRequest(
             sessionId, "hongxian", SessionEventTypes.ExecutionStarted,
             DateTimeOffset.UtcNow, CorrelationId: Guid.CreateVersion7()), ct);
-        var history = await events.ReadAsync(sessionId, cancellationToken: ct);
+        var history = await events.ReadVerifiedHistoryAsync(sessionId, ct);
 
-        var rebuilt = await projections.RebuildAsync(sessionId, history, ct);
+        var rebuilt = await projections.RebuildAsync(history, ct);
 
         rebuilt!.AppliedSequence.Should().Be(2);
-        rebuilt.HeadHash.Should().Be(history[^1].Hash);
+        rebuilt.HeadHash.Should().Be(history.VerifiedHead.Hash);
         rebuilt.State.TotalEvents.Should().Be(2);
         (await projections.ListAsync(ct)).Should().ContainSingle(item => item.SessionId == sessionId);
+    }
+
+    [Fact]
+    public async Task Rebuild_RejectsBrokenHashContinuityAndExistingHeadConflict()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var projections = new SqliteSessionProjectionStore(
+            Path.Combine(rootPath, "verified-rebuild.db"), pooling: false);
+        await using var events = new SimingSessionEventStore(
+            Path.Combine(rootPath, "verified-sessions"));
+        var sessionId = SessionId.New();
+        await events.AppendAsync(new SessionEventRequest(
+            sessionId, "user", SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
+        await events.AppendAsync(new SessionEventRequest(
+            sessionId, "assistant", SessionEventTypes.AssistantMessage, DateTimeOffset.UtcNow), ct);
+        var history = await events.ReadVerifiedHistoryAsync(sessionId, ct);
+
+        var broken = history with
+        {
+            Events = [history.Events[0], history.Events[1] with { PreviousHash = new string('0', 64) }]
+        };
+        var brokenAction = () => projections.RebuildAsync(broken, ct);
+        await brokenAction.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*hash-chain continuity*");
+
+        await projections.RebuildAsync(history, ct);
+        var conflictingHash = new string('f', 64);
+        var conflicting = history with
+        {
+            VerifiedHead = history.VerifiedHead with { Hash = conflictingHash },
+            Events = [history.Events[0], history.Events[1] with { Hash = conflictingHash }]
+        };
+        var conflictAction = () => projections.RebuildAsync(conflicting, ct);
+        await conflictAction.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*head conflict*");
     }
 
     [Fact]

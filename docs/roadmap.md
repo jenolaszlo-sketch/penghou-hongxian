@@ -21,10 +21,10 @@ Last reviewed: **2026-08-31**
   operation receipts, and forward reconciliation are extracted.
 - Provider-qualified external-operation identity prevents collisions between
   execution systems without introducing workflow-engine types.
-- The suite passes 39 tests; a standalone example and an isolated packed
+- The suite passes 45 tests; a standalone example and an isolated packed
   consumer both persist, project, and verify a session event.
 - A pre-integration review found no vulnerable direct or transitive packages
-  and all 39 tests pass. It also identified integrity, fencing, provider-neutral
+  and all 45 tests pass. It also identified integrity, fencing, provider-neutral
   contract, schema-evolution, and usability work to complete in preview 2 before
   Guyabano replaces its internal kernel.
 - A provider-neutral participant collaboration surface is accepted as
@@ -42,6 +42,31 @@ Hongxian does not own workflow scheduling, application recovery policy,
 workspace mutation, generated-file semantics, model requests, code graphs,
 memory promotion, artifact bytes, actor authentication, or authorization.
 Siming remains authoritative for cryptographic ledger format and verification.
+
+## Non-goals
+
+These boundaries are deliberate. Hongxian may preserve evidence about an
+external capability without becoming authoritative for that capability.
+
+- Hongxian is not a workflow engine or a replay log for one. Zhinu remains
+  authoritative for workflow state, fencing, steps, retries, signals, results,
+  and selective restart. Mirrored Zhinu events are diagnostic and audit
+  evidence; they cannot reconstruct, supersede, or repair Zhinu state.
+- Hongxian does not execute sibling branches, evaluate candidates, or select a
+  winner. Zhinu may execute candidates with `FanOutAsync`; an application makes
+  the selection; Hongxian records the resulting decision and its evidence.
+- A Hongxian lease cannot authorize workflow work that Zhinu fencing rejects.
+  Hongxian leases coordinate session-level decisions and execution that is not
+  owned by Zhinu. Operations spanning both boundaries must satisfy each
+  authority at its own protected commit.
+- Hongxian is not an artifact or large-payload store. Events carry bounded
+  evidence and opaque references to externally owned content.
+- Hongxian is not an encryption or key-management system. A future protection
+  contract may retain an opaque encrypted payload, but hosts own encryption,
+  keys, rotation, access control, and disclosure policy.
+- Append-only does not mean retain forever. Hosts own backup, archive, export,
+  anchoring, and deletion policy; Hongxian must make those operations explicit
+  and preserve verifiability where history is retained.
 
 ## Milestone 0 — Repository and boundary
 
@@ -86,20 +111,33 @@ contract that applications integrate against.
 
 Integrity and concurrency:
 
-- [ ] Make projection rebuild consume verified ledger history or a verified
+- [x] Add optional conditional event append against an expected authoritative
+  ledger head (ledger identity, sequence, and hash), distinct from idempotency
+  and operational-catalog versions. State-dependent decisions can reject stale
+  observations while independent messages and diagnostics remain concurrently
+  appendable. Require Siming to enforce the condition atomically inside the
+  append transaction; do not implement a read-then-append check in Hongxian.
+- [x] Make projection rebuild consume verified ledger history or a verified
   head contract. Validate chain continuity as well as sequence continuity, and
   never allow rebuild/application state to replace an authoritative committed
   head hash at the same sequence.
-- [ ] Turn decision leases into a genuine fencing contract: expose fencing
+- [x] Turn decision leases into a genuine fencing contract: expose fencing
   token and expiry, signal lease loss immediately, allow ownership assertion at
   the protected commit, and test renewal failure and stale-holder rejection.
-- [ ] Add a transactional evidence outbox for cross-store operation creation,
+  Document that Zhinu fencing remains authoritative for Zhinu-owned workflow
+  commits and cannot be overridden by a Hongxian lease.
+- [x] Add a transactional evidence outbox for cross-store operation creation,
   participant receipts, and transitions, plus a reusable idempotent dispatcher
   into the session ledger. Operational SQLite rows must not be the only audit
   evidence.
 - [ ] Add versioned SQLite migrations with an explicit schema version,
   serialized upgrade, unsupported-newer-schema rejection, reopen/upgrade tests,
   and documented backup responsibility.
+- [ ] Define event-envelope and application-payload schema versions separately
+  from the SQLite storage schema. Add a provider-neutral upcaster registry for
+  projection replay and typed reads, allow applications to register payload
+  upcasters, reject unsupported versions with typed results, and never rewrite
+  immutable historical ledger entries during migration.
 - [ ] Validate default/empty value-type IDs, enum values, timestamps, monotonic
   transition time, and bounded strings at every public persistence boundary.
   Use `TimeProvider` consistently for library-authored audit and cache times.
@@ -109,22 +147,22 @@ Integrity and concurrency:
 
 Provider-neutral contract cleanup:
 
-- [ ] Replace GUID-only external operation identity with a bounded opaque
+- [x] Replace GUID-only external operation identity with a bounded opaque
   identity while retaining provider/system qualification and ordinal identity
   semantics.
-- [ ] Remove Guyabano-shaped operation phases such as `RevisionCommitted` and
+- [x] Remove Guyabano-shaped operation phases such as `RevisionCommitted` and
   `Published`. Keep only generic lifecycle/health semantics or make application
   phases opaque and validated.
-- [ ] Replace `RefreshPreview`, `AbandonCandidate`, `SafeRevision`, and other
+- [x] Replace `RefreshPreview`, `AbandonCandidate`, `SafeRevision`, and other
   code-generation recovery vocabulary with application-defined action and
   resource references.
-- [ ] Move revision-promotion commit policy out of the generic kernel and into a
+- [x] Move revision-promotion commit policy out of the generic kernel and into a
   Guyabano profile or adapter. Hongxian should expose reusable transactional
   receipt/outbox mechanics rather than one application's mutation.
-- [ ] Separate recovery recording from application recovery execution. A helper
+- [x] Separate recovery recording from application recovery execution. A helper
   may wrap an application-supplied handler, but the core must not choose,
   schedule, or claim authority over the action.
-- [ ] Replace hard-coded application-style reconciliation instructions with
+- [x] Replace hard-coded application-style reconciliation instructions with
   structured health, incomplete participant, and suggested-action-code data;
   applications own user-facing explanations.
 
@@ -169,9 +207,12 @@ Package and contract quality:
 These reusable APIs moved from Guyabano's interactive-session backlog. UI and
 application policy remain with consumers.
 
-- [ ] Add bounded query APIs for session catalog lookup, paged timeline,
-  projection delivery status, pending inputs, pending decisions, active
-  incidents, and incomplete operations.
+- [ ] Add bounded, projection-backed query APIs for session catalog lookup,
+  paged timeline, projection delivery status, pending inputs, pending
+  decisions, active incidents, and incomplete operations. Support reusable
+  envelope filters such as event type, participant, committed/occurrence time,
+  correlation, causation, external reference, and external execution identity
+  without scanning the authoritative ledger for routine queries.
 - [ ] Add immutable named checkpoints that bind a session ledger sequence and
   verified head hash to application-defined kind/name, actor, causation, and
   bounded external resource identities, revisions, and digests. Hongxian
@@ -191,8 +232,18 @@ application policy remain with consumers.
 - [ ] Review operator-state vocabulary and distinguish healthy, warning,
   awaiting-input/decision, reconciliation-required, and corrupt conditions
   without embedding application-specific severity policy.
-- [ ] Document payload retention, ledger deletion, backup, checkpoint anchoring,
-  and projection-rebuild responsibilities.
+- [ ] Define lifecycle, verification, and anchoring as independent dimensions:
+  for example active/closed/archived, unverified/verified/corrupt, and
+  uncheckpointed/checkpointed/externally anchored. Document payload retention,
+  ledger deletion, backup, checkpoint anchoring, archive verification, and
+  projection-rebuild responsibilities without collapsing them into one status
+  enum.
+- [ ] After a concrete threat model and consumer require it, define a
+  host-supplied payload-protection extension that can retain an opaque encrypted
+  envelope with bounded algorithm/version, key reference, protection
+  parameters, and ciphertext digest. Define canonical identity semantics, but
+  leave encryption, keys, rotation, and authorization to the host. Do not add a
+  `RetainEncrypted` value that implies protection without this contract.
 - [ ] After schema/version contracts stabilize, add verified single-session
   export/import containing the authoritative ledger, versioned manifest,
   catalog metadata, relations, checkpoints, and bounded external references.
@@ -272,6 +323,15 @@ Later, driven by concrete consumers:
   current Zhinu-to-Siming mirror implementation.
 - [ ] Consider `Penghou.Hongxian.Zhinu` only if it can map authoritative Zhinu
   receipts/events without importing Guyabano statuses or policy.
+- [ ] Document that Zhinu's persisted run, step, result, restart, signal, and
+  fencing state is authoritative. Hongxian mirrors selected diagnostics and
+  evidence for correlation; it does not treat the Zhinu event stream as an
+  event-sourced replay contract or reconcile it as a peer source of truth.
+- [ ] Add a worked `Zhinu.FanOutAsync` to Hongxian decision-evidence example:
+  reference every candidate and authoritative Zhinu result, then record the
+  application-selected winner, rejected candidates, evaluator, rationale,
+  scores, and bounded evidence/artifact references. Hongxian records the
+  decision but neither executes nor selects the branches.
 - [ ] Keep workflow execution and sequencing optional to Hongxian.
 - [ ] Do not introduce a Siming-specific adapter package unless it materially
   improves provider replacement beyond the existing core ledger port.
@@ -285,6 +345,10 @@ Later, driven by concrete consumers:
   without adding media-specific types or bytes to Hongxian.
 - [ ] Confirm that application-defined event payloads and artifact references
   require no core API changes.
+- [ ] Benchmark per-session SQLite append and projection behavior under a
+  representative parallel media batch or large fan-out before introducing
+  write-behind complexity or recommending another provider. Treat measured
+  contention, not hypothetical scale, as the trigger for optimization.
 
 ## Milestone 9 — Package quality and stability
 

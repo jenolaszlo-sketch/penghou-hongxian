@@ -4,7 +4,7 @@ namespace Penghou.Hongxian;
 /// Transactional outbox record produced by the operational catalog. Delivery
 /// to Siming is retry-safe and does not roll back the catalog mutation.
 /// </summary>
-public sealed record SessionLifecycleReceipt
+public sealed record SessionEvidenceOutboxRecord
 {
     public required Guid ReceiptId { get; init; }
 
@@ -18,15 +18,17 @@ public sealed record SessionLifecycleReceipt
 
     public Guid? CorrelationId { get; init; }
 
+    public Guid? CausationId { get; init; }
+
     public IReadOnlyDictionary<string, string> CrossSystemRefs { get; init; } =
         new Dictionary<string, string>(StringComparer.Ordinal);
 
     public DateTimeOffset? DeliveredAt { get; init; }
 }
 
-public interface ISessionLifecycleReceiptStore
+public interface ISessionEvidenceOutbox
 {
-    Task<IReadOnlyList<SessionLifecycleReceipt>> ListPendingAsync(
+    Task<IReadOnlyList<SessionEvidenceOutboxRecord>> ListPendingAsync(
         int maximumCount = 100,
         CancellationToken cancellationToken = default);
 
@@ -36,20 +38,51 @@ public interface ISessionLifecycleReceiptStore
         CancellationToken cancellationToken = default);
 }
 
+public sealed record SessionEvidenceDispatchResult(int Attempted, int Delivered);
+
 /// <summary>
-/// Commits the accepted revision and its audit outbox receipt in one
-/// operational-catalog transaction. The application mutates its resource
-/// immediately before this CAS; a committed catalog mutation is therefore
-/// discoverable even while the immutable session ledger is unavailable.
+/// Delivers transactional operational evidence into the immutable session
+/// ledger. Appends and delivery acknowledgements are independently retry-safe.
 /// </summary>
-public interface ISessionRevisionPromotionCommitStore
+public sealed class SessionEvidenceOutboxDispatcher(
+    ISessionEvidenceOutbox outbox,
+    ISessionEventStore eventStore,
+    string actor = "hongxian")
 {
-    Task<Session?> CommitRevisionPromotionAsync(
-        SessionId sessionId,
-        string expectedRevision,
-        string replacementRevision,
-        string mutationId,
-        ExternalOperationReference? externalOperation,
-        DateTimeOffset promotedAt,
-        CancellationToken cancellationToken = default);
+    private readonly ISessionEvidenceOutbox outbox =
+        outbox ?? throw new ArgumentNullException(nameof(outbox));
+    private readonly ISessionEventStore eventStore =
+        eventStore ?? throw new ArgumentNullException(nameof(eventStore));
+    private readonly string actor = !string.IsNullOrWhiteSpace(actor)
+        ? actor
+        : throw new ArgumentException("An evidence actor is required.", nameof(actor));
+
+    public async Task<SessionEvidenceDispatchResult> DispatchPendingAsync(
+        int maximumCount = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var pending = await outbox.ListPendingAsync(maximumCount, cancellationToken)
+            .ConfigureAwait(false);
+        var delivered = 0;
+        foreach (var record in pending)
+        {
+            var committed = await eventStore.AppendAsync(
+                new SessionEventRequest(
+                    record.SessionId,
+                    actor,
+                    record.EventType,
+                    record.OccurredAt,
+                    CausationId: record.CausationId,
+                    CorrelationId: record.CorrelationId,
+                    CrossSystemRefs: record.CrossSystemRefs,
+                    IdempotencyKey: record.IdempotencyKey),
+                cancellationToken).ConfigureAwait(false);
+            await outbox.MarkDeliveredAsync(
+                record.ReceiptId,
+                committed.CommittedAt,
+                cancellationToken).ConfigureAwait(false);
+            delivered++;
+        }
+        return new SessionEvidenceDispatchResult(pending.Count, delivered);
+    }
 }

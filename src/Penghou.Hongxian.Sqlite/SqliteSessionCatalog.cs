@@ -12,25 +12,36 @@ namespace Penghou.Hongxian.Sqlite;
 public sealed class SqliteSessionCatalog :
     ISessionStore,
     ISessionDecisionLeaseProvider,
-    ISessionLifecycleReceiptStore,
-    ISessionRevisionPromotionCommitStore
+    ISessionEvidenceOutbox
 {
-    private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(25);
-    private static readonly TimeSpan LeaseDuration = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan RenewalInterval = TimeSpan.FromSeconds(10);
     private readonly string databasePath;
     private readonly TimeProvider timeProvider;
     private readonly bool pooling;
+    private readonly TimeSpan leaseRetryDelay;
+    private readonly TimeSpan leaseDuration;
+    private readonly TimeSpan leaseRenewalInterval;
 
     public SqliteSessionCatalog(
         string databasePath,
         TimeProvider? timeProvider = null,
-        bool pooling = true)
+        bool pooling = true,
+        TimeSpan? decisionLeaseDuration = null,
+        TimeSpan? decisionLeaseRenewalInterval = null,
+        TimeSpan? decisionLeaseRetryDelay = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
         this.databasePath = Path.GetFullPath(databasePath);
         this.timeProvider = timeProvider ?? TimeProvider.System;
         this.pooling = pooling;
+        leaseDuration = decisionLeaseDuration ?? TimeSpan.FromSeconds(30);
+        leaseRenewalInterval = decisionLeaseRenewalInterval ?? TimeSpan.FromSeconds(10);
+        leaseRetryDelay = decisionLeaseRetryDelay ?? TimeSpan.FromMilliseconds(25);
+        if (leaseDuration <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(decisionLeaseDuration));
+        if (leaseRenewalInterval <= TimeSpan.Zero || leaseRenewalInterval >= leaseDuration)
+            throw new ArgumentOutOfRangeException(nameof(decisionLeaseRenewalInterval));
+        if (leaseRetryDelay <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(decisionLeaseRetryDelay));
     }
 
     public async Task<Session> CreateAsync(
@@ -130,7 +141,7 @@ public sealed class SqliteSessionCatalog :
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT session_id FROM session_external_operations WHERE external_system = $system AND external_operation_id = $operationId;";
         command.Parameters.AddWithValue("$system", externalOperation.System);
-        command.Parameters.AddWithValue("$operationId", externalOperation.Id.ToString("D"));
+        command.Parameters.AddWithValue("$operationId", externalOperation.Id);
         var value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return value is string raw
             ? await ReadSessionAsync(connection, SessionId.Parse(raw), cancellationToken).ConfigureAwait(false)
@@ -155,7 +166,7 @@ public sealed class SqliteSessionCatalog :
             ON CONFLICT(external_system, external_operation_id) DO NOTHING;
             """;
         command.Parameters.AddWithValue("$system", externalOperation.System);
-        command.Parameters.AddWithValue("$operationId", externalOperation.Id.ToString("D"));
+        command.Parameters.AddWithValue("$operationId", externalOperation.Id);
         command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
         command.Parameters.AddWithValue("$attachedAt", timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture));
         var attached = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -164,7 +175,7 @@ public sealed class SqliteSessionCatalog :
         owner.Transaction = transaction;
         owner.CommandText = "SELECT session_id FROM session_external_operations WHERE external_system = $system AND external_operation_id = $operationId;";
         owner.Parameters.AddWithValue("$system", externalOperation.System);
-        owner.Parameters.AddWithValue("$operationId", externalOperation.Id.ToString("D"));
+        owner.Parameters.AddWithValue("$operationId", externalOperation.Id);
         var actualOwner = (string?)await owner.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         if (!string.Equals(actualOwner, sessionId.ToString(), StringComparison.Ordinal))
             throw new InvalidOperationException(
@@ -182,13 +193,13 @@ public sealed class SqliteSessionCatalog :
                 sessionId,
                 SessionEventTypes.ExecutionAttached,
                 timeProvider.GetUtcNow(),
-                $"session:{sessionId}:external-operation:{externalOperation.System}:{externalOperation.Id:D}:attached",
-                externalOperation.Id,
+                $"session:{sessionId}:external-operation:{externalOperation.System}:{externalOperation.Id}:attached",
+                null,
                 new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["sessionId"] = sessionId.ToString(),
                     ["externalSystem"] = externalOperation.System,
-                    ["externalOperationId"] = externalOperation.Id.ToString("D")
+                    ["externalOperationId"] = externalOperation.Id
                 },
                 cancellationToken).ConfigureAwait(false);
         }
@@ -242,66 +253,6 @@ public sealed class SqliteSessionCatalog :
         return null;
     }
 
-    public async Task<Session?> CommitRevisionPromotionAsync(
-        SessionId sessionId,
-        string expectedRevision,
-        string replacementRevision,
-        string mutationId,
-        ExternalOperationReference? externalOperation,
-        DateTimeOffset promotedAt,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(expectedRevision);
-        ArgumentException.ThrowIfNullOrWhiteSpace(replacementRevision);
-        ArgumentException.ThrowIfNullOrWhiteSpace(mutationId);
-        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
-        using var transaction = connection.BeginTransaction(deferred: false);
-        await using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = """
-            UPDATE sessions
-            SET current_revision = $replacement, version = version + 1
-            WHERE session_id = $sessionId AND current_revision = $expected;
-            """;
-        command.Parameters.AddWithValue("$replacement", replacementRevision);
-        command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
-        command.Parameters.AddWithValue("$expected", expectedRevision);
-        var changed = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        if (changed == 1)
-        {
-            await InsertLifecycleReceiptAsync(
-                connection,
-                transaction,
-                sessionId,
-                SessionEventTypes.RevisionPromoted,
-                promotedAt,
-                $"session:{sessionId}:promotion:{mutationId}:{replacementRevision}",
-                externalOperation?.Id,
-                new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    ["sessionId"] = sessionId.ToString(),
-                    ["mutationId"] = mutationId,
-                    ["fromRevision"] = expectedRevision,
-                    ["toRevision"] = replacementRevision,
-                    ["externalSystem"] = externalOperation?.System ?? "(none)",
-                    ["externalOperationId"] = externalOperation?.Id.ToString("D") ?? "(none)",
-                    ["auditSource"] = "transactional-revision-promotion"
-                },
-                cancellationToken).ConfigureAwait(false);
-            transaction.Commit();
-            return await ReadSessionAsync(connection, sessionId, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        if (await ReadSessionAsync(
-                connection, sessionId, cancellationToken, transaction)
-            .ConfigureAwait(false) is null)
-        {
-            throw new KeyNotFoundException($"Session '{sessionId}' does not exist.");
-        }
-        transaction.Commit();
-        return null;
-    }
-
     public async ValueTask<ISessionDecisionLease> AcquireAsync(
         SessionId sessionId,
         Guid operationId,
@@ -309,7 +260,6 @@ public sealed class SqliteSessionCatalog :
     {
         if (operationId == Guid.Empty)
             throw new ArgumentException("A non-empty operation ID is required.", nameof(operationId));
-        var token = Guid.CreateVersion7();
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -317,6 +267,15 @@ public sealed class SqliteSessionCatalog :
             await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
             using var transaction = connection.BeginTransaction(deferred: false);
             var previousLease = await ReadDecisionLeaseAsync(
+                connection, transaction, sessionId, cancellationToken).ConfigureAwait(false);
+            if (previousLease is not null && previousLease.Value.ExpiresAt > now)
+            {
+                transaction.Commit();
+                await Task.Delay(leaseRetryDelay, timeProvider, cancellationToken)
+                    .ConfigureAwait(false);
+                continue;
+            }
+            var token = await NextFencingTokenAsync(
                 connection, transaction, sessionId, cancellationToken).ConfigureAwait(false);
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
@@ -327,14 +286,14 @@ public sealed class SqliteSessionCatalog :
                     operation_id = excluded.operation_id,
                     fencing_token = excluded.fencing_token,
                     acquired_at = excluded.acquired_at,
-                    expires_at = excluded.expires_at
-                WHERE session_decision_leases.expires_at <= $now;
+                    expires_at = excluded.expires_at;
                 """;
             command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
             command.Parameters.AddWithValue("$operationId", operationId.ToString("D"));
-            command.Parameters.AddWithValue("$token", token.ToString("D"));
+            command.Parameters.AddWithValue("$token", token);
             command.Parameters.AddWithValue("$now", now.ToString("O", CultureInfo.InvariantCulture));
-            command.Parameters.AddWithValue("$expires", (now + LeaseDuration).ToString("O", CultureInfo.InvariantCulture));
+            var expiresAt = now + leaseDuration;
+            command.Parameters.AddWithValue("$expires", expiresAt.ToString("O", CultureInfo.InvariantCulture));
             if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 1)
             {
                 if (previousLease is not null && previousLease.Value.ExpiresAt <= now)
@@ -345,13 +304,13 @@ public sealed class SqliteSessionCatalog :
                         sessionId,
                         SessionEventTypes.DecisionLeaseExpired,
                         now,
-                        $"session:{sessionId}:decision-lease:{previousLease.Value.Token:D}:expired",
+                        $"session:{sessionId}:decision-lease:{previousLease.Value.Token}:expired",
                         previousLease.Value.OperationId,
                         new Dictionary<string, string>(StringComparer.Ordinal)
                         {
                             ["sessionId"] = sessionId.ToString(),
                             ["operationId"] = previousLease.Value.OperationId.ToString("D"),
-                            ["fencingToken"] = previousLease.Value.Token.ToString("D"),
+                            ["fencingToken"] = previousLease.Value.Token.ToString(CultureInfo.InvariantCulture),
                             ["expiredAt"] = previousLease.Value.ExpiresAt.ToString("O", CultureInfo.InvariantCulture)
                         },
                         cancellationToken).ConfigureAwait(false);
@@ -362,41 +321,47 @@ public sealed class SqliteSessionCatalog :
                     sessionId,
                     SessionEventTypes.DecisionLeaseAcquired,
                     now,
-                    $"session:{sessionId}:decision-lease:{token:D}:acquired",
+                    $"session:{sessionId}:decision-lease:{token}:acquired",
                     operationId,
                     new Dictionary<string, string>(StringComparer.Ordinal)
                     {
                         ["sessionId"] = sessionId.ToString(),
                         ["operationId"] = operationId.ToString("D"),
-                        ["fencingToken"] = token.ToString("D"),
-                        ["expiresAt"] = (now + LeaseDuration).ToString("O", CultureInfo.InvariantCulture)
+                        ["fencingToken"] = token.ToString(CultureInfo.InvariantCulture),
+                        ["expiresAt"] = expiresAt.ToString("O", CultureInfo.InvariantCulture)
                     },
                     cancellationToken).ConfigureAwait(false);
                 transaction.Commit();
-                return new SqliteDecisionLease(this, sessionId, operationId, token, now);
+                return new SqliteDecisionLease(
+                    this, sessionId, operationId, token, now, expiresAt);
             }
             transaction.Commit();
-            await Task.Delay(RetryDelay, timeProvider, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(leaseRetryDelay, timeProvider, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task RenewAsync(SessionId sessionId, Guid token, CancellationToken cancellationToken)
+    private async Task<DateTimeOffset> RenewAsync(
+        SessionId sessionId,
+        long token,
+        CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
         command.CommandText = "UPDATE session_decision_leases SET expires_at = $expires WHERE session_id = $sessionId AND fencing_token = $token;";
-        command.Parameters.AddWithValue("$expires", (now + LeaseDuration).ToString("O", CultureInfo.InvariantCulture));
+        var expiresAt = now + leaseDuration;
+        command.Parameters.AddWithValue("$expires", expiresAt.ToString("O", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
-        command.Parameters.AddWithValue("$token", token.ToString("D"));
+        command.Parameters.AddWithValue("$token", token);
         if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
-            throw new InvalidOperationException($"Decision lease for session '{sessionId}' was lost.");
+            throw new SessionDecisionLeaseLostException(sessionId, token);
+        return expiresAt;
     }
 
     private async Task ReleaseAsync(
         SessionId sessionId,
         Guid operationId,
-        Guid token)
+        long token)
     {
         await using var connection = await OpenAsync(CancellationToken.None).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
@@ -404,7 +369,7 @@ public sealed class SqliteSessionCatalog :
         command.Transaction = transaction;
         command.CommandText = "DELETE FROM session_decision_leases WHERE session_id = $sessionId AND fencing_token = $token;";
         command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
-        command.Parameters.AddWithValue("$token", token.ToString("D"));
+        command.Parameters.AddWithValue("$token", token);
         if (await command.ExecuteNonQueryAsync().ConfigureAwait(false) == 1)
         {
             var now = timeProvider.GetUtcNow();
@@ -414,20 +379,20 @@ public sealed class SqliteSessionCatalog :
                 sessionId,
                 SessionEventTypes.DecisionLeaseReleased,
                 now,
-                $"session:{sessionId}:decision-lease:{token:D}:released",
+                $"session:{sessionId}:decision-lease:{token}:released",
                 operationId,
                 new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["sessionId"] = sessionId.ToString(),
                     ["operationId"] = operationId.ToString("D"),
-                    ["fencingToken"] = token.ToString("D")
+                    ["fencingToken"] = token.ToString(CultureInfo.InvariantCulture)
                 },
                 CancellationToken.None).ConfigureAwait(false);
         }
         transaction.Commit();
     }
 
-    public async Task<IReadOnlyList<SessionLifecycleReceipt>> ListPendingAsync(
+    public async Task<IReadOnlyList<SessionEvidenceOutboxRecord>> ListPendingAsync(
         int maximumCount = 100,
         CancellationToken cancellationToken = default)
     {
@@ -444,10 +409,10 @@ public sealed class SqliteSessionCatalog :
             LIMIT $limit;
             """;
         command.Parameters.AddWithValue("$limit", maximumCount);
-        var result = new List<SessionLifecycleReceipt>();
+        var result = new List<SessionEvidenceOutboxRecord>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            result.Add(new SessionLifecycleReceipt
+            result.Add(new SessionEvidenceOutboxRecord
             {
                 ReceiptId = Guid.Parse(reader.GetString(0)),
                 SessionId = SessionId.Parse(reader.GetString(1)),
@@ -477,7 +442,7 @@ public sealed class SqliteSessionCatalog :
         command.Parameters.AddWithValue("$deliveredAt", deliveredAt.ToString("O", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$receiptId", receiptId.ToString("D"));
         if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
-            throw new KeyNotFoundException($"Lifecycle receipt '{receiptId:D}' does not exist.");
+            throw new KeyNotFoundException($"Evidence outbox record '{receiptId:D}' does not exist.");
     }
 
     private async Task<SqliteConnection> OpenAsync(CancellationToken cancellationToken)
@@ -515,9 +480,13 @@ public sealed class SqliteSessionCatalog :
             CREATE TABLE IF NOT EXISTS session_decision_leases(
                 session_id TEXT PRIMARY KEY NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
                 operation_id TEXT NOT NULL,
-                fencing_token TEXT NOT NULL,
+                fencing_token INTEGER NOT NULL,
                 acquired_at TEXT NOT NULL,
                 expires_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS session_decision_fence_counters(
+                session_id TEXT PRIMARY KEY NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+                last_token INTEGER NOT NULL
             );
             CREATE TABLE IF NOT EXISTS session_lifecycle_receipts(
                 receipt_id TEXT PRIMARY KEY NOT NULL,
@@ -591,7 +560,7 @@ public sealed class SqliteSessionCatalog :
         while (await runReader.ReadAsync(cancellationToken).ConfigureAwait(false))
             externalOperations.Add(new ExternalOperationReference(
                 runReader.GetString(0),
-                Guid.Parse(runReader.GetString(1))));
+                runReader.GetString(1)));
         return externalOperations;
     }
 
@@ -628,7 +597,51 @@ public sealed class SqliteSessionCatalog :
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<(Guid OperationId, Guid Token, DateTimeOffset ExpiresAt)?> ReadDecisionLeaseAsync(
+    private static async Task<long> NextFencingTokenAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        SessionId sessionId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO session_decision_fence_counters(session_id, last_token)
+            VALUES($sessionId, 1)
+            ON CONFLICT(session_id) DO UPDATE SET last_token = last_token + 1
+            RETURNING last_token;
+            """;
+        command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
+        return (long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Fencing token allocation returned no value."));
+    }
+
+    private async Task AssertLeaseOwnershipAsync(
+        SessionId sessionId,
+        Guid operationId,
+        long token,
+        CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT expires_at
+            FROM session_decision_leases
+            WHERE session_id = $sessionId
+              AND operation_id = $operationId
+              AND fencing_token = $token;
+            """;
+        command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
+        command.Parameters.AddWithValue("$operationId", operationId.ToString("D"));
+        command.Parameters.AddWithValue("$token", token);
+        var raw = (string?)await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        if (raw is null || DateTimeOffset.Parse(
+                raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind) <= now)
+            throw new SessionDecisionLeaseLostException(sessionId, token);
+    }
+
+    private static async Task<(Guid OperationId, long Token, DateTimeOffset ExpiresAt)?> ReadDecisionLeaseAsync(
         SqliteConnection connection,
         SqliteTransaction transaction,
         SessionId sessionId,
@@ -643,66 +656,111 @@ public sealed class SqliteSessionCatalog :
             return null;
         return (
             Guid.Parse(reader.GetString(0)),
-            Guid.Parse(reader.GetString(1)),
+            reader.GetInt64(1),
             DateTimeOffset.Parse(reader.GetString(2), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind));
     }
 
     private sealed class SqliteDecisionLease : ISessionDecisionLease
     {
         private readonly SqliteSessionCatalog owner;
-        private readonly Guid token;
         private readonly CancellationTokenSource stop = new();
+        private readonly CancellationTokenSource lost = new();
         private readonly Task renewal;
+        private Exception? renewalFailure;
+        private long expiresAtUnixMilliseconds;
         private int disposed;
 
         public SqliteDecisionLease(
             SqliteSessionCatalog owner,
             SessionId sessionId,
             Guid operationId,
-            Guid token,
-            DateTimeOffset acquiredAt)
+            long token,
+            DateTimeOffset acquiredAt,
+            DateTimeOffset expiresAt)
         {
             this.owner = owner;
-            this.token = token;
             SessionId = sessionId;
             OperationId = operationId;
             AcquiredAt = acquiredAt;
+            FencingToken = token;
+            expiresAtUnixMilliseconds = expiresAt.ToUnixTimeMilliseconds();
             renewal = RenewLoopAsync();
         }
 
         public SessionId SessionId { get; }
         public Guid OperationId { get; }
         public DateTimeOffset AcquiredAt { get; }
+        public long FencingToken { get; }
+        public DateTimeOffset ExpiresAt => DateTimeOffset.FromUnixTimeMilliseconds(
+            Interlocked.Read(ref expiresAtUnixMilliseconds));
+        public CancellationToken LeaseLost => lost.Token;
+
+        public async Task AssertOwnershipAsync(
+            CancellationToken cancellationToken = default)
+        {
+            if (lost.IsCancellationRequested || Volatile.Read(ref disposed) != 0)
+                throw new SessionDecisionLeaseLostException(
+                    SessionId, FencingToken, renewalFailure);
+            try
+            {
+                await owner.AssertLeaseOwnershipAsync(
+                    SessionId, OperationId, FencingToken, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (SessionDecisionLeaseLostException)
+            {
+                await lost.CancelAsync().ConfigureAwait(false);
+                throw;
+            }
+        }
 
         public async ValueTask DisposeAsync()
         {
             if (Interlocked.Exchange(ref disposed, 1) != 0)
                 return;
             await stop.CancelAsync().ConfigureAwait(false);
-            Exception? renewalFailure = null;
             try { await renewal.ConfigureAwait(false); }
             catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
-            catch (Exception exception) { renewalFailure = exception; }
+            catch (Exception exception) { renewalFailure ??= exception; }
             try
             {
-                await owner.ReleaseAsync(SessionId, OperationId, token).ConfigureAwait(false);
+                await owner.ReleaseAsync(SessionId, OperationId, FencingToken).ConfigureAwait(false);
             }
             finally
             {
                 stop.Dispose();
+                lost.Dispose();
             }
             if (renewalFailure is not null)
-                throw new InvalidOperationException(
-                    $"Decision lease for session '{SessionId}' could not be renewed reliably.",
-                    renewalFailure);
+                throw new SessionDecisionLeaseLostException(
+                    SessionId, FencingToken, renewalFailure);
         }
 
         private async Task RenewLoopAsync()
         {
             while (true)
             {
-                await Task.Delay(RenewalInterval, owner.timeProvider, stop.Token).ConfigureAwait(false);
-                await owner.RenewAsync(SessionId, token, stop.Token).ConfigureAwait(false);
+                await Task.Delay(
+                    owner.leaseRenewalInterval, owner.timeProvider, stop.Token)
+                    .ConfigureAwait(false);
+                try
+                {
+                    var expiresAt = await owner.RenewAsync(
+                        SessionId, FencingToken, stop.Token).ConfigureAwait(false);
+                    Interlocked.Exchange(
+                        ref expiresAtUnixMilliseconds,
+                        expiresAt.ToUnixTimeMilliseconds());
+                }
+                catch (OperationCanceledException) when (stop.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    renewalFailure = exception;
+                    await lost.CancelAsync().ConfigureAwait(false);
+                    throw;
+                }
             }
         }
     }

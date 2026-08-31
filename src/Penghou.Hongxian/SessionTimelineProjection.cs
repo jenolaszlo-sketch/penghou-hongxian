@@ -48,6 +48,16 @@ public sealed record SessionProjectionSnapshot(
     SessionCurrentState State);
 
 /// <summary>
+/// A complete contiguous session history bound to a successfully verified
+/// authoritative ledger head. Projection providers must still validate the
+/// supplied sequence and hash links before replacing existing state.
+/// </summary>
+public sealed record VerifiedSessionHistory(
+    SessionId SessionId,
+    SessionLedgerHead VerifiedHead,
+    IReadOnlyList<SessionEvent> Events);
+
+/// <summary>
 /// Durable delivery cursor comparing the authoritative Siming ledger head with
 /// the rebuildable projection head.
 /// </summary>
@@ -98,8 +108,7 @@ public interface ISessionProjectionStore
         CancellationToken cancellationToken = default);
 
     Task<SessionProjectionSnapshot?> RebuildAsync(
-        SessionId sessionId,
-        IReadOnlyList<SessionEvent> events,
+        VerifiedSessionHistory history,
         CancellationToken cancellationToken = default);
 }
 
@@ -151,7 +160,7 @@ public static class SessionTimelineProjection
         }
 
         var revision = state?.CurrentRevision;
-        if (sessionEvent.EventType == SessionEventTypes.RevisionPromoted)
+        if (sessionEvent.EventType == SessionEventTypes.RevisionAccepted)
             revision = sessionEvent.CrossSystemRefs?.GetValueOrDefault("toRevision") ?? revision;
         var externalOperationId = state?.LastExternalOperationId;
         if (sessionEvent.EventType is SessionEventTypes.ExecutionStarted or SessionEventTypes.ExecutionCompleted or SessionEventTypes.ExecutionFailed)

@@ -72,6 +72,46 @@ public sealed class SimingSessionEventStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ConditionalAppend_RejectsStaleHeadButAllowsIdempotentRetry()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new SimingSessionEventStore(rootPath);
+        var sessionId = SessionId.New();
+        var emptyHead = (await store.ReadVerifiedHistoryAsync(sessionId, ct)).VerifiedHead;
+        var request = new SessionEventRequest(
+            sessionId,
+            "user",
+            SessionEventTypes.UserMessage,
+            DateTimeOffset.UtcNow,
+            PayloadJson: "{\"message\":\"first\"}",
+            IdempotencyKey: "message:first",
+            ExpectedHead: emptyHead);
+
+        var first = await store.AppendAsync(request, ct);
+        var second = await store.AppendAsync(new SessionEventRequest(
+            sessionId,
+            "assistant",
+            SessionEventTypes.AssistantMessage,
+            DateTimeOffset.UtcNow), ct);
+
+        var stale = () => store.AppendAsync(new SessionEventRequest(
+            sessionId,
+            "user",
+            SessionEventTypes.UserMessage,
+            DateTimeOffset.UtcNow,
+            ExpectedHead: emptyHead), ct);
+        var conflict = await stale.Should().ThrowAsync<SessionLedgerHeadConflictException>();
+        conflict.Which.ExpectedHead.Should().Be(emptyHead);
+        conflict.Which.ActualHead.Sequence.Should().Be(second.Sequence);
+        conflict.Which.ActualHead.Hash.Should().Be(second.Hash);
+
+        var replay = await store.AppendAsync(
+            request with { OccurredAt = request.OccurredAt.AddMinutes(1) }, ct);
+        replay.Should().BeEquivalentTo(first);
+        (await store.ReadAsync(sessionId, cancellationToken: ct)).Should().HaveCount(2);
+    }
+
+    [Fact]
     public async Task ReadPage_ReturnsBoundedStableCursor()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -262,8 +302,7 @@ public sealed class SimingSessionEventStoreTests : IDisposable
             Task.FromResult<IReadOnlyList<SessionProjectionSnapshot>>([]);
 
         public Task<SessionProjectionSnapshot?> RebuildAsync(
-            SessionId sessionId,
-            IReadOnlyList<SessionEvent> events,
+            VerifiedSessionHistory history,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<SessionProjectionSnapshot?>(null);
     }
@@ -292,10 +331,9 @@ public sealed class SimingSessionEventStoreTests : IDisposable
             inner.ListAsync(cancellationToken);
 
         public Task<SessionProjectionSnapshot?> RebuildAsync(
-            SessionId sessionId,
-            IReadOnlyList<SessionEvent> events,
+            VerifiedSessionHistory history,
             CancellationToken cancellationToken = default) =>
-            inner.RebuildAsync(sessionId, events, cancellationToken);
+            inner.RebuildAsync(history, cancellationToken);
 
         public Task RecordCommittedAsync(
             SessionEvent sessionEvent,

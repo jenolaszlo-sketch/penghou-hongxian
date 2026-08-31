@@ -22,6 +22,10 @@ public sealed class SessionRecoveryCoordinatorTests : IDisposable
         var incidentId = Guid.CreateVersion7();
         var planId = Guid.CreateVersion7();
         var now = DateTimeOffset.UtcNow;
+        var action = new SessionRecoveryActionReference(
+            "retry-publication",
+            "search-index",
+            "publication-7");
         var detected = await coordinator.DetectAsync(new SessionIncident(
             incidentId,
             sessionId,
@@ -33,13 +37,13 @@ public sealed class SessionRecoveryCoordinatorTests : IDisposable
             planId,
             incidentId,
             sessionId,
-            SessionRecoveryAction.RetryIdempotently,
+            action,
             "Retry the idempotent Hetu publication.",
-            "workspace-7",
             Automatic: true,
             PlannedAt: now);
         var planned = await coordinator.PlanAsync(plan, detected.EventId, ct);
-        var first = await coordinator.ExecuteAsync(
+        var executor = new SessionRecoveryExecutor(coordinator);
+        var first = await executor.ExecuteAsync(
             plan,
             planned.EventId,
             1,
@@ -53,18 +57,17 @@ public sealed class SessionRecoveryCoordinatorTests : IDisposable
         failedState.State.OpenIncidentIds.Should().ContainSingle(incidentId.ToString("D"));
 
         var receiptId = Guid.CreateVersion7();
-        var second = await coordinator.ExecuteAsync(
+        var second = await executor.ExecuteAsync(
             plan,
             planned.EventId,
             2,
             (_, _) => Task.FromResult(new SessionRecoveryActionReceipt(
                 receiptId,
-                SessionRecoveryAction.RetryIdempotently,
-                "hetu-publication",
-                "publication-7",
-                "The accepted workspace revision was indexed and can be opened by identity.",
+                action,
+                "The publication was verified and can be opened by identity.",
                 now.AddSeconds(1),
-                Verified: true)),
+                Verified: true,
+                ResultIdentity: "index-publication-7")),
             ct);
         second.Outcome.Should().Be(SessionRecoveryOutcome.Recovered);
         second.Receipt!.ReceiptId.Should().Be(receiptId);

@@ -86,7 +86,12 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
         try
         {
             var entry = await ledger.AppendAsync(
-                new LedgerAppendRequest<SessionEventPayload>(request.SessionId.ToString(), request.EventType, payload, request.IdempotencyKey),
+                new LedgerAppendRequest<SessionEventPayload>(
+                    request.SessionId.ToString(),
+                    request.EventType,
+                    payload,
+                    request.IdempotencyKey,
+                    request.ExpectedHead is null ? null : Map(request.ExpectedHead)),
                 cancellationToken).ConfigureAwait(false);
             var committed = Map(entry);
             await ApplyProjectionAsync(committed, cancellationToken).ConfigureAwait(false);
@@ -100,6 +105,13 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
             var replay = ResolveReplay(existing, request);
             await ApplyProjectionAsync(replay, cancellationToken).ConfigureAwait(false);
             return replay;
+        }
+        catch (Penghou.Siming.LedgerHeadConflictException conflict)
+        {
+            throw new SessionLedgerHeadConflictException(
+                Map(conflict.ExpectedHead),
+                Map(conflict.ActualHead),
+                conflict);
         }
     }
 
@@ -138,16 +150,48 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
     /// <inheritdoc />
     public async Task<SessionEvent?> VerifyChainAsync(SessionId sessionId, CancellationToken cancellationToken = default)
     {
+        var history = await ReadVerifiedHistoryAsync(sessionId, cancellationToken)
+            .ConfigureAwait(false);
+        return history.Events.LastOrDefault();
+    }
+
+    /// <inheritdoc />
+    public async Task<VerifiedSessionHistory> ReadVerifiedHistoryAsync(
+        SessionId sessionId,
+        CancellationToken cancellationToken = default)
+    {
         await using var ledgerLease = await AcquireLedgerAsync(
             sessionId, cancellationToken).ConfigureAwait(false);
         var ledger = ledgerLease.Ledger;
         var verification = await ledger.VerifyAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         if (!verification.IsValid)
             throw new InvalidOperationException($"Siming session ledger verification failed at sequence {verification.FailedSequence}: {verification.Failure} ({verification.Detail}).");
-        if (verification.VerifiedEntries == 0) return null;
-        var events = await ReadAsync(sessionId, Math.Max(0, verification.VerifiedHead.Sequence - 1), cancellationToken)
-            .ConfigureAwait(false);
-        return events.LastOrDefault();
+        var events = new List<SessionEvent>(checked((int)Math.Min(
+            verification.VerifiedHead.Sequence,
+            int.MaxValue)));
+        var cursor = 0L;
+        while (cursor < verification.VerifiedHead.Sequence)
+        {
+            var pageStart = cursor;
+            var remaining = verification.VerifiedHead.Sequence - cursor;
+            var limit = (int)Math.Min(remaining, LedgerReadRequest.MaximumLimit);
+            await foreach (var entry in ledger.ReadAsync(
+                new LedgerReadRequest(AfterSequence: cursor, Limit: limit),
+                cancellationToken).ConfigureAwait(false))
+            {
+                if (entry.Sequence > verification.VerifiedHead.Sequence) break;
+                events.Add(Map(entry));
+                cursor = entry.Sequence;
+            }
+            if (cursor == pageStart) break;
+        }
+        if (cursor != verification.VerifiedHead.Sequence)
+            throw new InvalidDataException(
+                $"Verified session history ended at sequence {cursor}, expected {verification.VerifiedHead.Sequence}.");
+        return new VerifiedSessionHistory(
+            sessionId,
+            Map(verification.VerifiedHead),
+            events);
     }
 
     /// <summary>Returns the deterministic ledger path for a session.</summary>
@@ -368,6 +412,23 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
             PreviousHash = entry.Sequence == 1 ? null : entry.PreviousHash.ToString(),
             Hash = entry.Hash.ToString()
         };
+    }
+
+    private static SessionLedgerHead Map(LedgerHead head) => new(
+        head.LedgerId.Value.ToString("D"),
+        head.Sequence,
+        head.Hash.ToString());
+
+    private static LedgerHead Map(SessionLedgerHead head)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(head.LedgerIdentity);
+        ArgumentException.ThrowIfNullOrWhiteSpace(head.Hash);
+        if (head.Sequence < 0) throw new ArgumentOutOfRangeException(nameof(head));
+        return new LedgerHead(
+            new LedgerId(Guid.Parse(head.LedgerIdentity)),
+            head.Sequence,
+            new LedgerHash(Convert.FromHexString(head.Hash)),
+            LedgerFormatV1.Version);
     }
 
     private static bool EquivalentRequest(SessionEvent existing, SessionEventRequest replay) =>

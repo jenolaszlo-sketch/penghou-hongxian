@@ -11,29 +11,19 @@ public sealed class CrossStoreOperationReconciliationTests : IDisposable
         Guid.NewGuid().ToString("N"));
 
     [Fact]
-    public async Task Inspect_ReportsForwardRecoveryByCommitBoundary()
+    public async Task Inspect_ReturnsProviderNeutralActionCodes()
     {
         var ct = TestContext.Current.CancellationToken;
         var store = new SqliteCrossStoreOperationStore(
             Path.Combine(rootPath, "operations.db"), pooling: false);
         var sessionId = SessionId.New();
         var prepared = await StartAsync(store, sessionId, "prepared", ct);
-        var committed = await StartAsync(store, sessionId, "committed", ct);
+        var active = await StartAsync(store, sessionId, "active", ct);
         await store.TransitionAsync(
-            committed.Id,
-            CrossStoreOperationState.RevisionCommitted,
+            active.Id,
+            CrossStoreOperationState.Active,
             DateTimeOffset.UtcNow,
-            cancellationToken: ct);
-        var published = await StartAsync(store, sessionId, "published", ct);
-        await store.TransitionAsync(
-            published.Id,
-            CrossStoreOperationState.RevisionCommitted,
-            DateTimeOffset.UtcNow,
-            cancellationToken: ct);
-        await store.TransitionAsync(
-            published.Id,
-            CrossStoreOperationState.Published,
-            DateTimeOffset.UtcNow,
+            applicationPhase: "application-phase-one",
             cancellationToken: ct);
 
         var report = await new CrossStoreOperationReconciliationService(
@@ -42,15 +32,15 @@ public sealed class CrossStoreOperationReconciliationTests : IDisposable
 
         report.IsHealthy.Should().BeFalse();
         report.Operations.Single(item => item.OperationId == prepared.Id)
-            .OperatorAction.Should().Contain("Resume the external execution");
-        report.Operations.Single(item => item.OperationId == committed.Id)
-            .OperatorAction.Should().Contain("Do not roll back");
-        report.Operations.Single(item => item.OperationId == published.Id)
-            .OperatorAction.Should().Contain("final checkpoint");
+            .SuggestedActionCodes.Should().Equal(
+                CrossStoreSuggestedActions.ResumeIncompleteParticipants);
+        report.Operations.Single(item => item.OperationId == active.Id)
+            .SuggestedActionCodes.Should().Equal(
+                CrossStoreSuggestedActions.ResumeIncompleteParticipants);
     }
 
     [Fact]
-    public async Task Inspect_UsesApplicationProvidedParticipantRecoveryInstruction()
+    public async Task Inspect_PreservesApplicationProvidedParticipantActionCode()
     {
         var ct = TestContext.Current.CancellationToken;
         var store = new SqliteCrossStoreOperationStore(
@@ -66,15 +56,15 @@ public sealed class CrossStoreOperationReconciliationTests : IDisposable
                 IdempotencyKey = operation.ParticipantIdempotencyKey(participant),
                 State = CrossStoreParticipantState.Failed,
                 RecordedAt = DateTimeOffset.UtcNow,
-                RecoveryAction = "Rebuild the index from the accepted revision."
+                SuggestedActionCode = "rebuild-search-index"
             },
             ct);
         await store.TransitionAsync(
             operation.Id,
             CrossStoreOperationState.ReconciliationRequired,
             DateTimeOffset.UtcNow,
-            "Index publication failed.",
-            ct);
+            reasonCode: "participant-publication-failed",
+            cancellationToken: ct);
 
         var report = await new CrossStoreOperationReconciliationService(
             store,
@@ -83,7 +73,7 @@ public sealed class CrossStoreOperationReconciliationTests : IDisposable
         var item = report.Operations.Should().ContainSingle().Subject;
         item.Health.Should().Be(CrossStoreOperationHealth.ReconciliationRequired);
         item.FailedParticipants.Should().Equal(participant);
-        item.OperatorAction.Should().Be("Rebuild the index from the accepted revision.");
+        item.SuggestedActionCodes.Should().Equal("rebuild-search-index");
     }
 
     private static Task<CrossStoreOperation> StartAsync(

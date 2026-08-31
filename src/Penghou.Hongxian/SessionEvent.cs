@@ -17,7 +17,6 @@ public static class SessionEventTypes
     public const string ExecutionStarted = "execution-started";
     public const string ExecutionCompleted = "execution-completed";
     public const string ExecutionFailed = "execution-failed";
-    public const string RevisionPromoted = "revision-promoted";
     public const string DecisionProposed = "decision-proposed";
     public const string ExecutionResumed = "execution-resumed";
     public const string ExecutionResumeFailed = "execution-resume-failed";

@@ -116,7 +116,7 @@ public sealed class SessionEventStoreTests : IDisposable
             sessionId, "hongxian", SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow,
             CorrelationId: workflowRun), ct);
         await store.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.RevisionPromoted, DateTimeOffset.UtcNow,
+            sessionId, "hongxian", SessionEventTypes.RevisionAccepted, DateTimeOffset.UtcNow,
             CorrelationId: workflowRun,
             CrossSystemRefs: new Dictionary<string, string>
             {

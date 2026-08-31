@@ -28,10 +28,20 @@ public readonly record struct CrossStoreOperationId
 public enum CrossStoreOperationState
 {
     Prepared,
-    RevisionCommitted,
-    Published,
+    Active,
     Completed,
     ReconciliationRequired
+}
+
+/// <summary>
+/// Well-known, provider-neutral suggestions returned by consistency inspection.
+/// Applications decide whether and how to execute them.
+/// </summary>
+public static class CrossStoreSuggestedActions
+{
+    public const string ResumeIncompleteParticipants = "resume-incomplete-participants";
+    public const string InspectFailedParticipants = "inspect-failed-participants";
+    public const string ReconcileForward = "reconcile-forward";
 }
 
 public enum CrossStoreParticipantState
@@ -46,6 +56,9 @@ public sealed record CrossStoreOperationTransition
     public required long Sequence { get; init; }
 
     public required CrossStoreOperationState State { get; init; }
+
+    /// <summary>Optional bounded application-defined phase; never interpreted by Hongxian.</summary>
+    public string? ApplicationPhase { get; init; }
 
     public required DateTimeOffset OccurredAt { get; init; }
 
@@ -68,7 +81,8 @@ public sealed record CrossStoreParticipantReceipt
 
     public string? ResultHash { get; init; }
 
-    public string? RecoveryAction { get; init; }
+    /// <summary>Optional application-defined action code; Hongxian never executes it.</summary>
+    public string? SuggestedActionCode { get; init; }
 }
 
 public sealed record CrossStoreOperation
@@ -85,6 +99,9 @@ public sealed record CrossStoreOperation
 
     public required CrossStoreOperationState State { get; init; }
 
+    /// <summary>The latest opaque application phase, if one was recorded.</summary>
+    public string? ApplicationPhase { get; init; }
+
     public required DateTimeOffset CreatedAt { get; init; }
 
     public required DateTimeOffset UpdatedAt { get; init; }
@@ -99,7 +116,7 @@ public sealed record CrossStoreOperation
     /// </summary>
     public IReadOnlyList<CrossStoreOperationTransition> Transitions { get; init; } = [];
 
-    public string? ReconciliationReason { get; init; }
+    public string? StatusReasonCode { get; init; }
 
     public string ParticipantIdempotencyKey(string participant)
     {
@@ -116,4 +133,5 @@ public sealed record StartCrossStoreOperationRequest(
     string Kind,
     string IdempotencyKey,
     DateTimeOffset StartedAt,
-    CrossStoreOperationId? OperationId = null);
+    CrossStoreOperationId? OperationId = null,
+    string? InitialApplicationPhase = null);

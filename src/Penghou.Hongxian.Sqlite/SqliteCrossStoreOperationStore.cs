@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 
 namespace Penghou.Hongxian.Sqlite;
@@ -7,7 +8,9 @@ namespace Penghou.Hongxian.Sqlite;
 /// Transactional operational saga store. Operation heads are mutable
 /// projections; participant receipts and transitions are immutable rows.
 /// </summary>
-public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
+public sealed class SqliteCrossStoreOperationStore :
+    ICrossStoreOperationStore,
+    ISessionEvidenceOutbox
 {
     private readonly string databasePath;
     private readonly bool pooling;
@@ -52,16 +55,17 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
             insert.CommandText = """
                 INSERT INTO cross_store_operations(
                     operation_id, session_id, external_system, external_operation_id, kind, idempotency_key,
-                    state, created_at, updated_at, version, reconciliation_reason)
-                VALUES($id, $sessionId, $system, $operationId, $kind, $key, $state, $created, $updated, 1, NULL);
+                    state, application_phase, created_at, updated_at, version, status_reason_code)
+                VALUES($id, $sessionId, $system, $operationId, $kind, $key, $state, $phase, $created, $updated, 1, NULL);
                 """;
             insert.Parameters.AddWithValue("$id", id.ToString());
             insert.Parameters.AddWithValue("$sessionId", request.SessionId.ToString());
             insert.Parameters.AddWithValue("$system", request.ExternalOperation.System);
-            insert.Parameters.AddWithValue("$operationId", request.ExternalOperation.Id.ToString("D"));
+            insert.Parameters.AddWithValue("$operationId", request.ExternalOperation.Id);
             insert.Parameters.AddWithValue("$kind", request.Kind);
             insert.Parameters.AddWithValue("$key", request.IdempotencyKey);
             insert.Parameters.AddWithValue("$state", (int)CrossStoreOperationState.Prepared);
+            insert.Parameters.AddWithValue("$phase", (object?)request.InitialApplicationPhase ?? DBNull.Value);
             insert.Parameters.AddWithValue("$created", Format(request.StartedAt));
             insert.Parameters.AddWithValue("$updated", Format(request.StartedAt));
             try
@@ -77,7 +81,24 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
         }
         await InsertTransitionAsync(
             connection, transaction, id, 1, CrossStoreOperationState.Prepared,
-            request.StartedAt, null, cancellationToken).ConfigureAwait(false);
+            request.InitialApplicationPhase, request.StartedAt, null, cancellationToken).ConfigureAwait(false);
+        await InsertEvidenceAsync(
+            connection,
+            transaction,
+            request.SessionId,
+            SessionEventTypes.OperationPrepared,
+            request.StartedAt,
+            $"operation:{id}:prepared",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["operationId"] = id.ToString(),
+                ["operationKind"] = request.Kind,
+                ["operationState"] = CrossStoreOperationState.Prepared.ToString(),
+                ["externalSystem"] = request.ExternalOperation.System,
+                ["externalOperationId"] = request.ExternalOperation.Id,
+                ["applicationPhase"] = request.InitialApplicationPhase ?? string.Empty
+            },
+            cancellationToken).ConfigureAwait(false);
         transaction.Commit();
         return await GetAsync(id, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Operation '{id}' disappeared after creation.");
@@ -105,7 +126,7 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
             LIMIT 1;
             """;
         command.Parameters.AddWithValue("$system", externalOperation.System);
-        command.Parameters.AddWithValue("$operationId", externalOperation.Id.ToString("D"));
+        command.Parameters.AddWithValue("$operationId", externalOperation.Id);
         command.Parameters.AddWithValue("$completed", (int)CrossStoreOperationState.Completed);
         var raw = (string?)await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return raw is null
@@ -170,7 +191,7 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
             insert.CommandText = """
                 INSERT INTO cross_store_participant_receipts(
                     operation_id, participant, idempotency_key, state, recorded_at,
-                    before_identity, after_identity, result_hash, recovery_action)
+                    before_identity, after_identity, result_hash, suggested_action_code)
                 VALUES($id, $participant, $key, $state, $recordedAt,
                     $before, $after, $hash, $recovery);
                 """;
@@ -182,12 +203,30 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
             insert.Parameters.AddWithValue("$before", (object?)receipt.BeforeIdentity ?? DBNull.Value);
             insert.Parameters.AddWithValue("$after", (object?)receipt.AfterIdentity ?? DBNull.Value);
             insert.Parameters.AddWithValue("$hash", (object?)receipt.ResultHash ?? DBNull.Value);
-            insert.Parameters.AddWithValue("$recovery", (object?)receipt.RecoveryAction ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$recovery", (object?)receipt.SuggestedActionCode ?? DBNull.Value);
             await insert.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
         await UpdateHeadAsync(
             connection, transaction, operationId, operation.Version,
-            operation.State, receipt.RecordedAt, operation.ReconciliationReason,
+            operation.State, operation.ApplicationPhase, receipt.RecordedAt, operation.StatusReasonCode,
+            cancellationToken).ConfigureAwait(false);
+        await InsertEvidenceAsync(
+            connection,
+            transaction,
+            operation.SessionId,
+            SessionEventTypes.OperationParticipantRecorded,
+            receipt.RecordedAt,
+            $"operation:{operationId}:participant:{receipt.Participant}",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["operationId"] = operationId.ToString(),
+                ["participant"] = receipt.Participant,
+                ["participantState"] = receipt.State.ToString(),
+                ["beforeIdentity"] = receipt.BeforeIdentity ?? string.Empty,
+                ["afterIdentity"] = receipt.AfterIdentity ?? string.Empty,
+                ["resultHash"] = receipt.ResultHash ?? string.Empty,
+                ["suggestedActionCode"] = receipt.SuggestedActionCode ?? string.Empty
+            },
             cancellationToken).ConfigureAwait(false);
         transaction.Commit();
         return await GetAsync(operationId, cancellationToken).ConfigureAwait(false)
@@ -198,14 +237,18 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
         CrossStoreOperationId operationId,
         CrossStoreOperationState targetState,
         DateTimeOffset occurredAt,
-        string? reconciliationReason = null,
+        string? applicationPhase = null,
+        string? reasonCode = null,
         CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
         var operation = await RequireAsync(connection, transaction, operationId, cancellationToken)
             .ConfigureAwait(false);
-        if (operation.State == targetState)
+        if (operation.State == targetState &&
+            string.Equals(operation.ApplicationPhase, applicationPhase, StringComparison.Ordinal) &&
+            (targetState != CrossStoreOperationState.ReconciliationRequired ||
+             string.Equals(operation.StatusReasonCode, reasonCode, StringComparison.Ordinal)))
         {
             transaction.Commit();
             return operation;
@@ -214,24 +257,98 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
             throw new InvalidOperationException(
                 $"Operation cannot transition from {operation.State} to {targetState}.");
         if (targetState == CrossStoreOperationState.ReconciliationRequired &&
-            string.IsNullOrWhiteSpace(reconciliationReason))
-            throw new ArgumentException("A reconciliation reason is required.", nameof(reconciliationReason));
+            string.IsNullOrWhiteSpace(reasonCode))
+            throw new ArgumentException("A reconciliation reason code is required.", nameof(reasonCode));
         if (targetState == CrossStoreOperationState.Completed &&
             operation.Participants.Any(item => item.State == CrossStoreParticipantState.Failed))
             throw new InvalidOperationException("An operation with a failed participant cannot complete.");
 
         var reason = targetState == CrossStoreOperationState.ReconciliationRequired
-            ? reconciliationReason
+            ? reasonCode
             : null;
         await InsertTransitionAsync(
             connection, transaction, operationId, operation.Transitions.Count + 1,
-            targetState, occurredAt, reason, cancellationToken).ConfigureAwait(false);
+            targetState, applicationPhase, occurredAt, reason, cancellationToken).ConfigureAwait(false);
         await UpdateHeadAsync(
             connection, transaction, operationId, operation.Version,
-            targetState, occurredAt, reason, cancellationToken).ConfigureAwait(false);
+            targetState, applicationPhase, occurredAt, reason, cancellationToken).ConfigureAwait(false);
+        var transitionSequence = operation.Transitions.Count + 1;
+        await InsertEvidenceAsync(
+            connection,
+            transaction,
+            operation.SessionId,
+            SessionEventTypes.OperationTransitioned,
+            occurredAt,
+            $"operation:{operationId}:transition:{transitionSequence}",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["operationId"] = operationId.ToString(),
+                ["operationState"] = targetState.ToString(),
+                ["applicationPhase"] = applicationPhase ?? string.Empty,
+                ["reasonCode"] = reason ?? string.Empty,
+                ["transitionSequence"] = transitionSequence.ToString(CultureInfo.InvariantCulture)
+            },
+            cancellationToken).ConfigureAwait(false);
         transaction.Commit();
         return await GetAsync(operationId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Operation '{operationId}' disappeared after transition.");
+    }
+
+    public async Task<IReadOnlyList<SessionEvidenceOutboxRecord>> ListPendingAsync(
+        int maximumCount = 100,
+        CancellationToken cancellationToken = default)
+    {
+        if (maximumCount is < 1 or > 1000)
+            throw new ArgumentOutOfRangeException(nameof(maximumCount));
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT receipt_id, session_id, event_type, occurred_at,
+                   idempotency_key, cross_system_refs_json, delivered_at
+            FROM cross_store_evidence_outbox
+            WHERE delivered_at IS NULL
+            ORDER BY occurred_at, receipt_id
+            LIMIT $limit;
+            """;
+        command.Parameters.AddWithValue("$limit", maximumCount);
+        var result = new List<SessionEvidenceOutboxRecord>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            result.Add(new SessionEvidenceOutboxRecord
+            {
+                ReceiptId = Guid.Parse(reader.GetString(0)),
+                SessionId = SessionId.Parse(reader.GetString(1)),
+                EventType = reader.GetString(2),
+                OccurredAt = Parse(reader.GetString(3)),
+                IdempotencyKey = reader.GetString(4),
+                CrossSystemRefs = JsonSerializer.Deserialize<Dictionary<string, string>>(
+                        reader.GetString(5))
+                    ?? new Dictionary<string, string>(StringComparer.Ordinal),
+                DeliveredAt = reader.IsDBNull(6) ? null : Parse(reader.GetString(6))
+            });
+        return result;
+    }
+
+    public async Task MarkDeliveredAsync(
+        Guid receiptId,
+        DateTimeOffset deliveredAt,
+        CancellationToken cancellationToken = default)
+    {
+        if (receiptId == Guid.Empty)
+            throw new ArgumentException("A non-empty receipt ID is required.", nameof(receiptId));
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE cross_store_evidence_outbox
+            SET delivered_at = COALESCE(delivered_at, $deliveredAt)
+            WHERE receipt_id = $receiptId;
+            """;
+        command.Parameters.AddWithValue("$deliveredAt", Format(deliveredAt));
+        command.Parameters.AddWithValue("$receiptId", receiptId.ToString("D"));
+        if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+            throw new KeyNotFoundException(
+                $"Evidence outbox record '{receiptId:D}' does not exist.");
     }
 
     private async Task<SqliteConnection> OpenAsync(CancellationToken cancellationToken)
@@ -257,10 +374,11 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
                 kind TEXT NOT NULL,
                 idempotency_key TEXT NOT NULL,
                 state INTEGER NOT NULL,
+                application_phase TEXT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 version INTEGER NOT NULL,
-                reconciliation_reason TEXT NULL,
+                status_reason_code TEXT NULL,
                 UNIQUE(session_id, idempotency_key)
             );
             CREATE UNIQUE INDEX IF NOT EXISTS ux_cross_store_active_external_operation
@@ -277,7 +395,7 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
                 before_identity TEXT NULL,
                 after_identity TEXT NULL,
                 result_hash TEXT NULL,
-                recovery_action TEXT NULL,
+                suggested_action_code TEXT NULL,
                 PRIMARY KEY(operation_id, participant),
                 UNIQUE(operation_id, idempotency_key)
             );
@@ -285,10 +403,22 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
                 operation_id TEXT NOT NULL REFERENCES cross_store_operations(operation_id) ON DELETE RESTRICT,
                 sequence INTEGER NOT NULL,
                 state INTEGER NOT NULL,
+                application_phase TEXT NULL,
                 occurred_at TEXT NOT NULL,
-                reason TEXT NULL,
+                reason_code TEXT NULL,
                 PRIMARY KEY(operation_id, sequence)
             );
+            CREATE TABLE IF NOT EXISTS cross_store_evidence_outbox(
+                receipt_id TEXT PRIMARY KEY NOT NULL,
+                session_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                occurred_at TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL UNIQUE,
+                cross_system_refs_json TEXT NOT NULL,
+                delivered_at TEXT NULL
+            );
+            CREATE INDEX IF NOT EXISTS ix_cross_store_evidence_pending
+                ON cross_store_evidence_outbox(delivered_at, occurred_at, receipt_id);
             """;
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         return connection;
@@ -304,7 +434,7 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
         command.Transaction = transaction;
         command.CommandText = """
             SELECT session_id, external_system, external_operation_id, kind, idempotency_key, state,
-                   created_at, updated_at, version, reconciliation_reason
+                   application_phase, created_at, updated_at, version, status_reason_code
             FROM cross_store_operations WHERE operation_id = $id;
             """;
         command.Parameters.AddWithValue("$id", operationId.ToString());
@@ -314,14 +444,15 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
         var sessionId = SessionId.Parse(reader.GetString(0));
         var externalOperation = new ExternalOperationReference(
             reader.GetString(1),
-            Guid.Parse(reader.GetString(2)));
+            reader.GetString(2));
         var kind = reader.GetString(3);
         var key = reader.GetString(4);
         var state = (CrossStoreOperationState)reader.GetInt32(5);
-        var createdAt = Parse(reader.GetString(6));
-        var updatedAt = Parse(reader.GetString(7));
-        var version = reader.GetInt64(8);
-        var reason = reader.IsDBNull(9) ? null : reader.GetString(9);
+        var applicationPhase = reader.IsDBNull(6) ? null : reader.GetString(6);
+        var createdAt = Parse(reader.GetString(7));
+        var updatedAt = Parse(reader.GetString(8));
+        var version = reader.GetInt64(9);
+        var reason = reader.IsDBNull(10) ? null : reader.GetString(10);
         await reader.DisposeAsync().ConfigureAwait(false);
         var participants = await ReadParticipantsAsync(
             connection, transaction, operationId, cancellationToken).ConfigureAwait(false);
@@ -335,10 +466,11 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
             Kind = kind,
             IdempotencyKey = key,
             State = state,
+            ApplicationPhase = applicationPhase,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt,
             Version = version,
-            ReconciliationReason = reason,
+            StatusReasonCode = reason,
             Participants = participants,
             Transitions = transitions
         };
@@ -354,7 +486,7 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
         command.Transaction = transaction;
         command.CommandText = """
             SELECT participant, idempotency_key, state, recorded_at, before_identity,
-                   after_identity, result_hash, recovery_action
+                   after_identity, result_hash, suggested_action_code
             FROM cross_store_participant_receipts
             WHERE operation_id = $id ORDER BY rowid;
             """;
@@ -371,7 +503,7 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
                 BeforeIdentity = reader.IsDBNull(4) ? null : reader.GetString(4),
                 AfterIdentity = reader.IsDBNull(5) ? null : reader.GetString(5),
                 ResultHash = reader.IsDBNull(6) ? null : reader.GetString(6),
-                RecoveryAction = reader.IsDBNull(7) ? null : reader.GetString(7)
+                SuggestedActionCode = reader.IsDBNull(7) ? null : reader.GetString(7)
             });
         return result;
     }
@@ -384,7 +516,7 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
     {
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "SELECT sequence, state, occurred_at, reason FROM cross_store_operation_transitions WHERE operation_id = $id ORDER BY sequence;";
+        command.CommandText = "SELECT sequence, state, application_phase, occurred_at, reason_code FROM cross_store_operation_transitions WHERE operation_id = $id ORDER BY sequence;";
         command.Parameters.AddWithValue("$id", operationId.ToString());
         var result = new List<CrossStoreOperationTransition>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
@@ -393,8 +525,9 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
             {
                 Sequence = reader.GetInt64(0),
                 State = (CrossStoreOperationState)reader.GetInt32(1),
-                OccurredAt = Parse(reader.GetString(2)),
-                Reason = reader.IsDBNull(3) ? null : reader.GetString(3)
+                ApplicationPhase = reader.IsDBNull(2) ? null : reader.GetString(2),
+                OccurredAt = Parse(reader.GetString(3)),
+                Reason = reader.IsDBNull(4) ? null : reader.GetString(4)
             });
         return result;
     }
@@ -423,22 +556,52 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
         return raw is null ? null : CrossStoreOperationId.Parse(raw);
     }
 
+    private static async Task InsertEvidenceAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        SessionId sessionId,
+        string eventType,
+        DateTimeOffset occurredAt,
+        string idempotencyKey,
+        IReadOnlyDictionary<string, string> references,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO cross_store_evidence_outbox(
+                receipt_id, session_id, event_type, occurred_at,
+                idempotency_key, cross_system_refs_json, delivered_at)
+            VALUES($receiptId, $sessionId, $eventType, $occurredAt, $key, $refs, NULL)
+            ON CONFLICT(idempotency_key) DO NOTHING;
+            """;
+        command.Parameters.AddWithValue("$receiptId", Guid.CreateVersion7().ToString("D"));
+        command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
+        command.Parameters.AddWithValue("$eventType", eventType);
+        command.Parameters.AddWithValue("$occurredAt", Format(occurredAt));
+        command.Parameters.AddWithValue("$key", idempotencyKey);
+        command.Parameters.AddWithValue("$refs", JsonSerializer.Serialize(references));
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private static async Task InsertTransitionAsync(
         SqliteConnection connection,
         SqliteTransaction transaction,
         CrossStoreOperationId operationId,
         long sequence,
         CrossStoreOperationState state,
+        string? applicationPhase,
         DateTimeOffset occurredAt,
         string? reason,
         CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "INSERT INTO cross_store_operation_transitions(operation_id, sequence, state, occurred_at, reason) VALUES($id, $sequence, $state, $occurredAt, $reason);";
+        command.CommandText = "INSERT INTO cross_store_operation_transitions(operation_id, sequence, state, application_phase, occurred_at, reason_code) VALUES($id, $sequence, $state, $phase, $occurredAt, $reason);";
         command.Parameters.AddWithValue("$id", operationId.ToString());
         command.Parameters.AddWithValue("$sequence", sequence);
         command.Parameters.AddWithValue("$state", (int)state);
+        command.Parameters.AddWithValue("$phase", (object?)applicationPhase ?? DBNull.Value);
         command.Parameters.AddWithValue("$occurredAt", Format(occurredAt));
         command.Parameters.AddWithValue("$reason", (object?)reason ?? DBNull.Value);
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -450,14 +613,16 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
         CrossStoreOperationId operationId,
         long expectedVersion,
         CrossStoreOperationState state,
+        string? applicationPhase,
         DateTimeOffset updatedAt,
         string? reason,
         CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "UPDATE cross_store_operations SET state = $state, updated_at = $updatedAt, version = version + 1, reconciliation_reason = $reason WHERE operation_id = $id AND version = $version;";
+        command.CommandText = "UPDATE cross_store_operations SET state = $state, application_phase = $phase, updated_at = $updatedAt, version = version + 1, status_reason_code = $reason WHERE operation_id = $id AND version = $version;";
         command.Parameters.AddWithValue("$state", (int)state);
+        command.Parameters.AddWithValue("$phase", (object?)applicationPhase ?? DBNull.Value);
         command.Parameters.AddWithValue("$updatedAt", Format(updatedAt));
         command.Parameters.AddWithValue("$reason", (object?)reason ?? DBNull.Value);
         command.Parameters.AddWithValue("$id", operationId.ToString());
@@ -475,19 +640,18 @@ public sealed class SqliteCrossStoreOperationStore : ICrossStoreOperationStore
         existing.BeforeIdentity == replay.BeforeIdentity &&
         existing.AfterIdentity == replay.AfterIdentity &&
         existing.ResultHash == replay.ResultHash &&
-        existing.RecoveryAction == replay.RecoveryAction;
+        existing.SuggestedActionCode == replay.SuggestedActionCode;
 
     private static bool CanTransition(
         CrossStoreOperationState source,
         CrossStoreOperationState target) =>
         target == CrossStoreOperationState.ReconciliationRequired ||
         (source, target) is
-            (CrossStoreOperationState.Prepared, CrossStoreOperationState.RevisionCommitted) or
-            (CrossStoreOperationState.Prepared, CrossStoreOperationState.Published) or
-            (CrossStoreOperationState.RevisionCommitted, CrossStoreOperationState.Published) or
-            (CrossStoreOperationState.Published, CrossStoreOperationState.Completed) or
-            (CrossStoreOperationState.ReconciliationRequired, CrossStoreOperationState.RevisionCommitted) or
-            (CrossStoreOperationState.ReconciliationRequired, CrossStoreOperationState.Published) or
+            (CrossStoreOperationState.Prepared, CrossStoreOperationState.Active) or
+            (CrossStoreOperationState.Prepared, CrossStoreOperationState.Completed) or
+            (CrossStoreOperationState.Active, CrossStoreOperationState.Active) or
+            (CrossStoreOperationState.Active, CrossStoreOperationState.Completed) or
+            (CrossStoreOperationState.ReconciliationRequired, CrossStoreOperationState.Active) or
             (CrossStoreOperationState.ReconciliationRequired, CrossStoreOperationState.Completed);
 
     private static string Format(DateTimeOffset value) =>

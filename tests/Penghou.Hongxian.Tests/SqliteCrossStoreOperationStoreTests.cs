@@ -66,13 +66,15 @@ public sealed class SqliteCrossStoreOperationStoreTests : IDisposable
         await store.RecordParticipantAsync(operation.Id, receipt, ct);
         await store.TransitionAsync(
             operation.Id,
-            CrossStoreOperationState.RevisionCommitted,
+            CrossStoreOperationState.Active,
             DateTimeOffset.UtcNow,
+            applicationPhase: "resource-committed",
             cancellationToken: ct);
         await store.TransitionAsync(
             operation.Id,
-            CrossStoreOperationState.Published,
+            CrossStoreOperationState.Active,
             DateTimeOffset.UtcNow,
+            applicationPhase: "participants-published",
             cancellationToken: ct);
 
         var reopened = new SqliteCrossStoreOperationStore(path, pooling: false);
@@ -81,14 +83,83 @@ public sealed class SqliteCrossStoreOperationStoreTests : IDisposable
         stored!.Participants.Should().ContainSingle().Which.Should().BeEquivalentTo(receipt);
         stored.Transitions.Select(item => item.State).Should().Equal(
             CrossStoreOperationState.Prepared,
-            CrossStoreOperationState.RevisionCommitted,
-            CrossStoreOperationState.Published);
+            CrossStoreOperationState.Active,
+            CrossStoreOperationState.Active);
+        stored.Transitions.Select(item => item.ApplicationPhase).Should().Equal(
+            null,
+            "resource-committed",
+            "participants-published");
         var conflict = () => reopened.RecordParticipantAsync(
             operation.Id,
             receipt with { ResultHash = "different" },
             ct);
         await conflict.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*different immutable receipt*");
+    }
+
+    [Fact]
+    public async Task OperationMutations_EnqueueAndDispatchImmutableLedgerEvidence()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var store = new SqliteCrossStoreOperationStore(
+            Path.Combine(rootPath, "evidence.db"), pooling: false);
+        var operation = await StartAsync(store, ct);
+        await store.RecordParticipantAsync(
+            operation.Id,
+            Receipt(operation, "search-index"),
+            ct);
+        await store.TransitionAsync(
+            operation.Id,
+            CrossStoreOperationState.Active,
+            DateTimeOffset.UtcNow,
+            applicationPhase: "published",
+            cancellationToken: ct);
+
+        var pending = await store.ListPendingAsync(cancellationToken: ct);
+        pending.Select(item => item.EventType).Should().Equal(
+            SessionEventTypes.OperationPrepared,
+            SessionEventTypes.OperationParticipantRecorded,
+            SessionEventTypes.OperationTransitioned);
+
+        await using var events = new SimingSessionEventStore(
+            Path.Combine(rootPath, "sessions"));
+        var dispatched = await new SessionEvidenceOutboxDispatcher(store, events)
+            .DispatchPendingAsync(cancellationToken: ct);
+
+        dispatched.Should().Be(new SessionEvidenceDispatchResult(3, 3));
+        (await store.ListPendingAsync(cancellationToken: ct)).Should().BeEmpty();
+        var history = await events.ReadAsync(operation.SessionId, cancellationToken: ct);
+        history.Select(item => item.EventType).Should().Equal(
+            SessionEventTypes.OperationPrepared,
+            SessionEventTypes.OperationParticipantRecorded,
+            SessionEventTypes.OperationTransitioned);
+        history.Should().OnlyHaveUniqueItems(item => item.IdempotencyKey);
+    }
+
+    [Fact]
+    public async Task EvidenceDispatch_RetryAfterAcknowledgementFailureDoesNotDuplicateLedgerEvent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var store = new SqliteCrossStoreOperationStore(
+            Path.Combine(rootPath, "retry-evidence.db"), pooling: false);
+        var operation = await StartAsync(store, ct);
+        await using var events = new SimingSessionEventStore(
+            Path.Combine(rootPath, "retry-sessions"));
+        var failOnce = new FailOnceMarkOutbox(store);
+        var dispatcher = new SessionEvidenceOutboxDispatcher(failOnce, events);
+
+        var first = () => dispatcher.DispatchPendingAsync(cancellationToken: ct);
+        await first.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*acknowledgement unavailable*");
+        (await events.ReadAsync(operation.SessionId, cancellationToken: ct))
+            .Should().ContainSingle();
+        (await store.ListPendingAsync(cancellationToken: ct)).Should().ContainSingle();
+
+        var replay = await dispatcher.DispatchPendingAsync(cancellationToken: ct);
+        replay.Delivered.Should().Be(1);
+        (await events.ReadAsync(operation.SessionId, cancellationToken: ct))
+            .Should().ContainSingle();
+        (await store.ListPendingAsync(cancellationToken: ct)).Should().BeEmpty();
     }
 
     private static Task<CrossStoreOperation> StartAsync(
@@ -121,5 +192,25 @@ public sealed class SqliteCrossStoreOperationStoreTests : IDisposable
     {
         if (Directory.Exists(rootPath))
             Directory.Delete(rootPath, recursive: true);
+    }
+
+    private sealed class FailOnceMarkOutbox(ISessionEvidenceOutbox inner) :
+        ISessionEvidenceOutbox
+    {
+        private int attempts;
+
+        public Task<IReadOnlyList<SessionEvidenceOutboxRecord>> ListPendingAsync(
+            int maximumCount = 100,
+            CancellationToken cancellationToken = default) =>
+            inner.ListPendingAsync(maximumCount, cancellationToken);
+
+        public Task MarkDeliveredAsync(
+            Guid receiptId,
+            DateTimeOffset deliveredAt,
+            CancellationToken cancellationToken = default) =>
+            Interlocked.Increment(ref attempts) == 1
+                ? Task.FromException(new InvalidOperationException(
+                    "evidence acknowledgement unavailable"))
+                : inner.MarkDeliveredAsync(receiptId, deliveredAt, cancellationToken);
     }
 }
