@@ -5,7 +5,9 @@ namespace Penghou.Hongxian;
 /// <summary>Versions the Hongxian event envelope independently of its payload.</summary>
 public static class SessionEventEnvelopeSchema
 {
-    public const int CurrentVersion = 1;
+    public const int MinimumSupportedVersion = 1;
+
+    public const int CurrentVersion = 2;
 }
 
 /// <summary>Application-owned identity and version of an event payload.</summary>
@@ -101,11 +103,15 @@ public sealed class SessionPayloadUpcasterRegistry
 public sealed class UnsupportedSessionEventSchemaException(int detectedVersion)
     : Exception(
         $"Session event envelope version {detectedVersion} is unsupported; " +
-        $"this library supports version {SessionEventEnvelopeSchema.CurrentVersion}.")
+        $"this library supports versions {SessionEventEnvelopeSchema.MinimumSupportedVersion} " +
+        $"through {SessionEventEnvelopeSchema.CurrentVersion}.")
 {
     public int DetectedVersion { get; } = detectedVersion;
 
     public int SupportedVersion { get; } = SessionEventEnvelopeSchema.CurrentVersion;
+
+    public int MinimumSupportedVersion { get; } =
+        SessionEventEnvelopeSchema.MinimumSupportedVersion;
 }
 
 /// <summary>Raised when no complete application payload upcast path exists.</summary>

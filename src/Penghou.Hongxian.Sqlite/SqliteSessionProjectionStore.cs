@@ -26,7 +26,7 @@ public sealed class SqliteSessionProjectionStore :
 
     public async Task ApplyAsync(SessionEvent sessionEvent, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(sessionEvent);
+        SessionContractValidation.Validate(sessionEvent);
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
         var current = await ReadAsync(connection, transaction, sessionEvent.SessionId, cancellationToken).ConfigureAwait(false);
@@ -64,6 +64,7 @@ public sealed class SqliteSessionProjectionStore :
 
     public async Task<SessionProjectionSnapshot?> GetAsync(SessionId sessionId, CancellationToken cancellationToken = default)
     {
+        SessionContractValidation.ValidateSessionId(sessionId, nameof(sessionId));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         return await ReadAsync(connection, null, sessionId, cancellationToken).ConfigureAwait(false);
     }
@@ -92,6 +93,8 @@ public sealed class SqliteSessionProjectionStore :
         if (history.Events.Any(item => item.SessionId != history.SessionId))
             throw new ArgumentException(
                 "Every rebuilt event must belong to the verified session.", nameof(history));
+        foreach (var sessionEvent in history.Events)
+            SessionContractValidation.Validate(sessionEvent);
         var ordered = history.Events.OrderBy(item => item.Sequence).ToArray();
         if (ordered.LongLength != history.VerifiedHead.Sequence)
             throw new SessionProjectionConsistencyException(

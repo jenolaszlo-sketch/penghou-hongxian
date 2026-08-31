@@ -20,12 +20,13 @@ public sealed record SessionRecoveryActionReference(
 {
     public void Validate()
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(Code);
+        SessionContractValidation.ValidateActionCode(Code, nameof(Code));
         if ((TargetType is null) != (TargetId is null))
             throw new ArgumentException(
                 "Recovery action target type and ID must either both be supplied or both be omitted.");
-        if (TargetType is not null) ArgumentException.ThrowIfNullOrWhiteSpace(TargetType);
-        if (TargetId is not null) ArgumentException.ThrowIfNullOrWhiteSpace(TargetId);
+        if (TargetType is not null)
+            SessionContractValidation.ValidateActionCode(TargetType, nameof(TargetType));
+        SessionContractValidation.ValidateOptionalResourceIdentity(TargetId, nameof(TargetId));
     }
 }
 
@@ -109,17 +110,17 @@ public sealed class SessionRecoveryCoordinator
     private static readonly JsonSerializerOptions SerializerOptions =
         new(JsonSerializerDefaults.Web);
     private readonly ISessionEventStore events;
-    private readonly string actor;
+    private readonly SessionParticipantAttribution participant;
     private readonly TimeProvider timeProvider;
 
     public SessionRecoveryCoordinator(
         ISessionEventStore events,
-        string actor = "hongxian",
+        SessionParticipantAttribution? participant = null,
         TimeProvider? timeProvider = null)
     {
         this.events = events ?? throw new ArgumentNullException(nameof(events));
-        ArgumentException.ThrowIfNullOrWhiteSpace(actor);
-        this.actor = actor;
+        this.participant = participant ??
+            SessionParticipantAttribution.System("recovery-coordinator", "hongxian");
         this.timeProvider = timeProvider ?? TimeProvider.System;
     }
 
@@ -128,11 +129,19 @@ public sealed class SessionRecoveryCoordinator
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(incident);
-        ArgumentException.ThrowIfNullOrWhiteSpace(incident.ReasonCode);
-        ArgumentException.ThrowIfNullOrWhiteSpace(incident.Summary);
+        if (incident.IncidentId == Guid.Empty)
+            throw new ArgumentException("A non-empty incident ID is required.", nameof(incident));
+        if (!Enum.IsDefined(incident.Severity))
+            throw new ArgumentOutOfRangeException(nameof(incident));
+        SessionContractValidation.ValidateReasonCode(
+            incident.ReasonCode,
+            nameof(incident.ReasonCode));
+        SessionContractValidation.ValidateNarrative(
+            incident.Summary,
+            nameof(incident.Summary));
         return events.AppendAsync(new SessionEventRequest(
             incident.SessionId,
-            actor,
+            participant,
             SessionEventTypes.IncidentDetected,
             incident.DetectedAt,
             CausationId: incident.CausationId,
@@ -153,11 +162,22 @@ public sealed class SessionRecoveryCoordinator
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(plan);
-        ArgumentException.ThrowIfNullOrWhiteSpace(plan.Explanation);
+        ArgumentNullException.ThrowIfNull(plan.Action);
+        if (plan.RecoveryPlanId == Guid.Empty || plan.IncidentId == Guid.Empty)
+            throw new ArgumentException(
+                "Non-empty recovery plan and incident IDs are required.",
+                nameof(plan));
+        if (detectedEventId == Guid.Empty)
+            throw new ArgumentException(
+                "A non-empty detected event ID is required.",
+                nameof(detectedEventId));
+        SessionContractValidation.ValidateNarrative(
+            plan.Explanation,
+            nameof(plan.Explanation));
         plan.Action.Validate();
         return events.AppendAsync(new SessionEventRequest(
             plan.SessionId,
-            actor,
+            participant,
             SessionEventTypes.RecoveryPlanned,
             plan.PlannedAt,
             CausationId: detectedEventId,
@@ -181,10 +201,21 @@ public sealed class SessionRecoveryCoordinator
         int attempt,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(plan.Action);
+        if (plan.RecoveryPlanId == Guid.Empty || plan.IncidentId == Guid.Empty)
+            throw new ArgumentException(
+                "Non-empty recovery plan and incident IDs are required.",
+                nameof(plan));
+        if (plannedEventId == Guid.Empty)
+            throw new ArgumentException(
+                "A non-empty planned event ID is required.",
+                nameof(plannedEventId));
+        plan.Action.Validate();
         if (attempt <= 0) throw new ArgumentOutOfRangeException(nameof(attempt));
         return events.AppendAsync(new SessionEventRequest(
             plan.SessionId,
-            actor,
+            participant,
             SessionEventTypes.RecoveryAttempted,
             timeProvider.GetUtcNow(),
             CausationId: plannedEventId,
@@ -205,6 +236,16 @@ public sealed class SessionRecoveryCoordinator
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(resolution);
+        if (resolution.RecoveryPlanId == Guid.Empty || resolution.IncidentId == Guid.Empty)
+            throw new ArgumentException(
+                "Non-empty recovery plan and incident IDs are required.",
+                nameof(resolution));
+        if (causationEventId == Guid.Empty)
+            throw new ArgumentException(
+                "A non-empty causation event ID is required.",
+                nameof(causationEventId));
+        if (!Enum.IsDefined(resolution.Outcome))
+            throw new ArgumentOutOfRangeException(nameof(resolution));
         if (resolution.Attempt < 0 ||
             resolution.Attempt == 0 &&
             resolution.Outcome != SessionRecoveryOutcome.UserActionRequired)
@@ -213,7 +254,9 @@ public sealed class SessionRecoveryCoordinator
                 nameof(resolution.Attempt),
                 "Attempt zero is reserved for recovery actions that were explicitly deferred to a user.");
         }
-        ArgumentException.ThrowIfNullOrWhiteSpace(resolution.Explanation);
+        SessionContractValidation.ValidateNarrative(
+            resolution.Explanation,
+            nameof(resolution.Explanation));
         if (resolution.Outcome == SessionRecoveryOutcome.Recovered)
         {
             var receipt = resolution.ActionReceipt ?? throw new ArgumentException(
@@ -227,8 +270,14 @@ public sealed class SessionRecoveryCoordinator
                 throw new ArgumentException("A stable recovery receipt ID is required.", nameof(resolution));
             if (receipt.ExecutedAt == default)
                 throw new ArgumentException("A recovery receipt execution time is required.", nameof(resolution));
+            ArgumentNullException.ThrowIfNull(receipt.Action);
             receipt.Action.Validate();
-            ArgumentException.ThrowIfNullOrWhiteSpace(receipt.Verification);
+            SessionContractValidation.ValidateNarrative(
+                receipt.Verification,
+                nameof(receipt.Verification));
+            SessionContractValidation.ValidateOptionalResourceIdentity(
+                receipt.ResultIdentity,
+                nameof(receipt.ResultIdentity));
         }
         var eventType = resolution.Outcome switch
         {
@@ -238,7 +287,7 @@ public sealed class SessionRecoveryCoordinator
         };
         return events.AppendAsync(new SessionEventRequest(
             resolution.SessionId,
-            actor,
+            participant,
             eventType,
             resolution.CompletedAt,
             CausationId: causationEventId,

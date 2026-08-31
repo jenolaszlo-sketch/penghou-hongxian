@@ -28,13 +28,7 @@ public sealed class SqliteCrossStoreOperationStore :
         StartCrossStoreOperationRequest request,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-        ValidateSessionId(request.SessionId, nameof(request));
-        ValidateExternalOperation(request.ExternalOperation, nameof(request));
-        if (request.StartedAt == default)
-            throw new ArgumentException("An operation start time is required.", nameof(request));
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.Kind);
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.IdempotencyKey);
+        SessionContractValidation.Validate(request);
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
         var existingId = await FindIdByIdempotencyKeyAsync(
@@ -167,14 +161,8 @@ public sealed class SqliteCrossStoreOperationStore :
         CrossStoreParticipantReceipt receipt,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(receipt);
         ValidateOperationId(operationId, nameof(operationId));
-        ArgumentException.ThrowIfNullOrWhiteSpace(receipt.Participant);
-        ArgumentException.ThrowIfNullOrWhiteSpace(receipt.IdempotencyKey);
-        if (!Enum.IsDefined(receipt.State))
-            throw new ArgumentOutOfRangeException(nameof(receipt));
-        if (receipt.RecordedAt == default)
-            throw new ArgumentException("A participant receipt time is required.", nameof(receipt));
+        SessionContractValidation.Validate(receipt);
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
         var operation = await RequireAsync(connection, transaction, operationId, cancellationToken)
@@ -259,10 +247,11 @@ public sealed class SqliteCrossStoreOperationStore :
         CancellationToken cancellationToken = default)
     {
         ValidateOperationId(operationId, nameof(operationId));
-        if (!Enum.IsDefined(targetState))
-            throw new ArgumentOutOfRangeException(nameof(targetState));
-        if (occurredAt == default)
-            throw new ArgumentException("A transition time is required.", nameof(occurredAt));
+        SessionContractValidation.ValidateOperationTransition(
+            targetState,
+            occurredAt,
+            applicationPhase,
+            reasonCode);
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
         var operation = await RequireAsync(connection, transaction, operationId, cancellationToken)
@@ -363,6 +352,8 @@ public sealed class SqliteCrossStoreOperationStore :
     {
         if (receiptId == Guid.Empty)
             throw new ArgumentException("A non-empty receipt ID is required.", nameof(receiptId));
+        if (deliveredAt == default)
+            throw new ArgumentException("A delivery time is required.", nameof(deliveredAt));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
         command.CommandText = """

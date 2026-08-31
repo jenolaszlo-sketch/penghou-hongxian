@@ -7,14 +7,14 @@ await using var sessions = new SimingSessionEventStore(root);
 var sessionId = SessionId.New();
 var started = await sessions.AppendAsync(new SessionEventRequest(
     sessionId,
-    Actor: "example-user",
+    Participant: SessionParticipantAttribution.Human("example-user", "example"),
     EventType: SessionEventTypes.SessionCreated,
     OccurredAt: DateTimeOffset.UtcNow,
     IdempotencyKey: $"session:{sessionId}:created"));
 
 await sessions.AppendAsync(new SessionEventRequest(
     sessionId,
-    Actor: "example-worker",
+    Participant: SessionParticipantAttribution.Agent("example-worker", "example"),
     EventType: SessionEventTypes.ExecutionStarted,
     OccurredAt: DateTimeOffset.UtcNow,
     CausationId: started.EventId,

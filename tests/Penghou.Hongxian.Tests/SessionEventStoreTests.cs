@@ -21,10 +21,10 @@ public sealed class SessionEventStoreTests : IDisposable
         var correlation = Guid.NewGuid();
 
         var first = await store.AppendAsync(new SessionEventRequest(
-            sessionId, "user", SessionEventTypes.UserMessage, DateTimeOffset.UtcNow,
+            sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow,
             CorrelationId: correlation, PayloadJson: "{\"prompt\":\"hello\"}"), ct);
         var second = await store.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow,
+            sessionId, Participant("hongxian"), SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow,
             CorrelationId: correlation, CausationId: first.EventId), ct);
 
         first.Sequence.Should().Be(1);
@@ -51,7 +51,7 @@ public sealed class SessionEventStoreTests : IDisposable
         var sessionId = SessionId.New();
         var request = new SessionEventRequest(
             sessionId,
-            "hongxian",
+            Participant("hongxian"),
             SessionEventTypes.OperationPrepared,
             DateTimeOffset.UtcNow,
             CorrelationId: Guid.CreateVersion7(),
@@ -83,9 +83,9 @@ public sealed class SessionEventStoreTests : IDisposable
         await using (var store = new SimingSessionEventStore(rootPath))
         {
             await store.AppendAsync(new SessionEventRequest(
-                sessionId, "user", SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
+                sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
             await store.AppendAsync(new SessionEventRequest(
-                sessionId, "hongxian", SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow), ct);
+                sessionId, Participant("hongxian"), SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow), ct);
         }
 
         await using (var connection = new SqliteConnection($"Data Source={sessionPath}"))
@@ -109,13 +109,13 @@ public sealed class SessionEventStoreTests : IDisposable
         var sessionId = SessionId.New();
         var workflowRun = Guid.NewGuid();
         var inputEvent = await store.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.InputRequested, DateTimeOffset.UtcNow,
+            sessionId, Participant("hongxian"), SessionEventTypes.InputRequested, DateTimeOffset.UtcNow,
             CorrelationId: workflowRun), ct);
         await store.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow,
+            sessionId, Participant("hongxian"), SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow,
             CorrelationId: workflowRun), ct);
         await store.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.RevisionAccepted, DateTimeOffset.UtcNow,
+            sessionId, Participant("hongxian"), SessionEventTypes.RevisionAccepted, DateTimeOffset.UtcNow,
             CorrelationId: workflowRun,
             CrossSystemRefs: new Dictionary<string, string>
             {
@@ -131,7 +131,7 @@ public sealed class SessionEventStoreTests : IDisposable
 
         // Provide the input: pending resolves
         await store.AppendAsync(new SessionEventRequest(
-            sessionId, "user", SessionEventTypes.InputProvided, DateTimeOffset.UtcNow,
+            sessionId, Participant("user"), SessionEventTypes.InputProvided, DateTimeOffset.UtcNow,
             CausationId: inputEvent.EventId, CorrelationId: workflowRun), ct);
         var projectionAfter = SessionTimelineProjection.Project(
             await store.ReadAsync(sessionId, cancellationToken: ct));
@@ -147,13 +147,13 @@ public sealed class SessionEventStoreTests : IDisposable
         var workflowRun = Guid.NewGuid();
 
         var userMessage = await store.AppendAsync(new SessionEventRequest(
-            sessionId, "user", SessionEventTypes.UserMessage, DateTimeOffset.UtcNow,
+            sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow,
             CorrelationId: workflowRun, PayloadJson: "{\"prompt\":\"add auth\"}"), ct);
         var started = await store.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow,
+            sessionId, Participant("hongxian"), SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow,
             CorrelationId: workflowRun, CausationId: userMessage.EventId), ct);
         var approval = await store.AppendAsync(new SessionEventRequest(
-            sessionId, "tester", SessionEventTypes.ApprovalGranted, DateTimeOffset.UtcNow,
+            sessionId, Participant("tester"), SessionEventTypes.ApprovalGranted, DateTimeOffset.UtcNow,
             CorrelationId: workflowRun, CausationId: started.EventId,
             CrossSystemRefs: new Dictionary<string, string>
             {
@@ -161,7 +161,7 @@ public sealed class SessionEventStoreTests : IDisposable
                 ["externalOperationId"] = workflowRun.ToString("D")
             }), ct);
         await store.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.ExecutionResumed, DateTimeOffset.UtcNow,
+            sessionId, Participant("hongxian"), SessionEventTypes.ExecutionResumed, DateTimeOffset.UtcNow,
             CorrelationId: workflowRun, CausationId: approval.EventId,
             CrossSystemRefs: new Dictionary<string, string>
             {
@@ -178,12 +178,12 @@ public sealed class SessionEventStoreTests : IDisposable
         // Why: the restart was caused by tester's approval, which was caused by workflow start, caused by user message
         var restart = events[3];
         var whyApproval = events.Single(e => e.EventId == restart.CausationId);
-        whyApproval.Actor.Should().Be("tester");
+        whyApproval.Participant.Subject.Should().Be("tester");
         whyApproval.EventType.Should().Be(SessionEventTypes.ApprovalGranted);
         var whyStart = events.Single(e => e.EventId == whyApproval.CausationId);
         whyStart.EventType.Should().Be(SessionEventTypes.ExecutionStarted);
         var whyUser = events.Single(e => e.EventId == whyStart.CausationId);
-        whyUser.Actor.Should().Be("user");
+        whyUser.Participant.Subject.Should().Be("user");
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public sealed class SessionEventStoreTests : IDisposable
                 Sequence = ++sequence,
                 EventId = eventId ?? Guid.CreateVersion7(),
                 SessionId = sessionId,
-                Actor = "test",
+                Participant = Participant("test"),
                 EventType = eventType,
                 OccurredAt = claimed.AddMinutes(sequence),
                 CommittedAt = committed.AddMinutes(sequence),
@@ -308,7 +308,7 @@ public sealed class SessionEventStoreTests : IDisposable
 
         var historical = await store.AppendAsync(new SessionEventRequest(
             sessionId,
-            "mirror",
+            Participant("mirror"),
             SessionEventTypes.ExternalEventMirrored,
             now.AddYears(-1)), ct);
         historical.OccurredAt.Should().Be(now.AddYears(-1));
@@ -316,7 +316,7 @@ public sealed class SessionEventStoreTests : IDisposable
 
         var future = () => store.AppendAsync(new SessionEventRequest(
             sessionId,
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             now.AddMinutes(3)), ct);
         await future.Should().ThrowAsync<ArgumentOutOfRangeException>()

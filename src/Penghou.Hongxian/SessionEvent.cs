@@ -69,7 +69,7 @@ public sealed record SessionEvent
 
     public required SessionId SessionId { get; init; }
 
-    public required string Actor { get; init; }
+    public required SessionParticipantAttribution Participant { get; init; }
 
     public required string EventType { get; init; }
 

@@ -76,7 +76,7 @@ responsibilities:
 | [Penghou.Zhinu](https://github.com/jenolaszlo-sketch/penghou-zhinu) | Durable workflow execution, steps, retries, fencing, signals, cancellation, and selective restart | Remains authoritative for workflow state; Hongxian correlates its runs and receipts |
 | [Penghou.Cangjie](https://github.com/jenolaszlo-sketch/penghou-cangjie) | Revisioned memory, stable logical concepts, and context snapshots | Owns retained knowledge; Hongxian records when and why it was selected or changed |
 | [Penghou.Hetu](https://github.com/jenolaszlo-sketch/penghou-hetu) | Code-graph publication, repository identity, dependency knowledge, and impact analysis | Owns code facts; Hongxian correlates the exact publication used by a session action |
-| [Penghou.Baize](https://github.com/jenolaszlo-sketch/penghou-baize) | Provider-neutral model execution, structured outputs, tools, streaming, usage, and provenance | Owns model invocation; Hongxian connects invocations to actors, context, revisions, and outcomes |
+| [Penghou.Baize](https://github.com/jenolaszlo-sketch/penghou-baize) | Provider-neutral model execution, structured outputs, tools, streaming, usage, and provenance | Owns model invocation; Hongxian connects invocations to participants, context, revisions, and outcomes |
 | [Guyabano](https://github.com/jenolaszlo-sketch/guyabano) | Auditable AI code generation, workspace staging, validation, promotion, and selective regeneration | The first dogfood application and source of Hongxian's proven session requirements |
 
 This split keeps each authority independently useful. Hongxian does not copy a
@@ -107,14 +107,14 @@ var sessionId = SessionId.New();
 
 var created = await sessions.AppendAsync(new SessionEventRequest(
     sessionId,
-    Actor: "user:laszlo",
+    Participant: SessionParticipantAttribution.Human("laszlo", "example"),
     EventType: SessionEventTypes.SessionCreated,
     OccurredAt: DateTimeOffset.UtcNow,
     IdempotencyKey: $"session:{sessionId}:created"));
 
 await sessions.AppendAsync(new SessionEventRequest(
     sessionId,
-    Actor: "worker:planner",
+    Participant: SessionParticipantAttribution.Agent("planner", "example"),
     EventType: SessionEventTypes.ExecutionStarted,
     OccurredAt: DateTimeOffset.UtcNow,
     CausationId: created.EventId,
@@ -128,7 +128,7 @@ await sessions.AppendAsync(new SessionEventRequest(
 var message = await sessions.AppendAsync(
     new SessionEventRequest(
         sessionId,
-        Actor: "user:laszlo",
+        Participant: SessionParticipantAttribution.Human("laszlo", "example"),
         EventType: SessionEventTypes.UserMessage,
         OccurredAt: DateTimeOffset.UtcNow,
         PayloadSchema: new SessionPayloadSchema("example.user-message", 1)),
@@ -160,17 +160,25 @@ immutable ledger history.
 Hongxian records facts and coordination evidence. Applications still decide
 what those facts mean and what should happen next.
 
+Participant attribution is a structured, immutable host claim: kind, provider,
+stable opaque subject, and an optional display-name snapshot. It makes events
+usefully attributable across humans, agents, models, tools, and systems without
+pretending to authenticate them. Public IDs and external-operation references
+round-trip as stable JSON strings and support `Parse`, `TryParse`, and span
+formatting. Portable bounds are exposed through `SessionContractLimits` and
+enforced before event, catalog, recovery, or cross-store persistence.
+
 Hongxian does not:
 
 - schedule or restart workflow steps;
 - choose a domain recovery action;
-- authenticate actors or authorize commands;
+- authenticate participants or authorize commands;
 - store source code, model transcripts, or large artifacts;
 - interpret code graphs or memory;
 - roll back independent external systems;
 - claim that a projection is authoritative history.
 
-Actor identity and occurrence time are host-supplied claims. The ledger's
+Participant attribution and occurrence time are host-supplied claims. The ledger's
 commit time is the authoritative audit clock. If an append commits but a
 projection update fails, the result is projection lag—not permission to append
 the event again as though nothing happened.
@@ -198,10 +206,10 @@ dotnet run --project samples/Penghou.Hongxian.Example
 
 ## Security model
 
-Hash chaining makes changes to an existing ledger detectable, but an actor with
+Hash chaining makes changes to an existing ledger detectable, but an attacker with
 full storage access could replace the entire ledger. Trusted checkpoints or
 external anchoring are required to detect rollback or wholesale replacement.
-Hongxian preserves actor claims and provenance; it does not authenticate them.
+Hongxian preserves participant claims and provenance; it does not authenticate them.
 
 Applications should keep secrets and unrestricted model transcripts out of the
 session ledger, store large content in its authoritative system, and record

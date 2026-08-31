@@ -21,7 +21,7 @@ Last reviewed: **2026-08-31**
   operation receipts, and forward reconciliation are extracted.
 - Provider-qualified external-operation identity prevents collisions between
   execution systems without introducing workflow-engine types.
-- The suite passes 56 tests; a standalone example and an isolated packed
+- The suite passes 63 tests; a standalone example and an isolated packed
   consumer both persist, project, and verify a session event.
 - A pre-integration review found no vulnerable direct or transitive packages
   and all tests pass. It also identified integrity, fencing, provider-neutral
@@ -40,7 +40,7 @@ queries, and operational-catalog abstractions.
 
 Hongxian does not own workflow scheduling, application recovery policy,
 workspace mutation, generated-file semantics, model requests, code graphs,
-memory promotion, artifact bytes, actor authentication, or authorization.
+memory promotion, artifact bytes, participant authentication, or authorization.
 Siming remains authoritative for cryptographic ledger format and verification.
 
 ## Non-goals
@@ -100,7 +100,7 @@ external capability without becoming authoritative for that capability.
 - [x] Extract durable lifecycle outbox receipts.
 - [x] Extract durable cross-store operation receipts and reconciliation status.
 - [x] Keep application-authored recovery explanations outside the kernel.
-- [ ] Define bounded handle/cache behavior for providers that keep one ledger
+- [x] Define bounded handle/cache behavior for providers that keep one ledger
   or database handle per session.
 
 ## Milestone 3 — Preview 2 integrity, neutrality, and usability hardening
@@ -138,7 +138,7 @@ Integrity and concurrency:
   projection replay and typed reads, allow applications to register payload
   upcasters, reject unsupported versions with typed results, and never rewrite
   immutable historical ledger entries during migration.
-- [ ] Validate default/empty value-type IDs, enum values, timestamps, monotonic
+- [x] Validate default/empty value-type IDs, enum values, timestamps, monotonic
   transition time, and bounded strings at every public persistence boundary.
   Use `TimeProvider` consistently for library-authored audit and cache times.
 - [ ] Define a provider-neutral consistency-audit result covering verified
@@ -168,17 +168,17 @@ Provider-neutral contract cleanup:
 
 Consumer usability:
 
-- [ ] Replace the free-form actor string with a compact immutable participant
+- [x] Replace the free-form actor string with a compact immutable participant
   attribution reference containing a small kind, provider, stable opaque
   subject, and optional display-name snapshot. These remain host-supplied
   claims; metadata or capability claims must never grant authorization.
 - [x] Add canonical `AppendAsync<T>` and `JsonElement` payload APIs plus typed
   read helpers. Keep retention and idempotency semantics independent of the
   original CLR type and document the identity behavior of omitted payloads.
-- [ ] Add typed public exceptions/results for idempotency conflict, stale
+- [x] Add typed public exceptions/results for idempotency conflict, stale
   version, lost lease, projection gap/lag, corruption, and unsupported schema;
   consumers must not parse exception messages.
-- [ ] Add `TryParse`, JSON converters, and formatting support for public IDs and
+- [x] Add `TryParse`, JSON converters, and formatting support for public IDs and
   external references.
 - [ ] Add a small SQLite composition root/options model that consistently opens
   catalog, per-session ledgers, projections, leases, operations, and evidence
@@ -189,7 +189,7 @@ Consumer usability:
   projection lag, evidence-outbox delivery, incomplete operations, failed
   participants, lease ownership/loss, schema compatibility, and required
   reconciliation. Logs and traces remain diagnostics, not the operator API.
-- [ ] Centralize bounded input limits for actors, event/application kinds,
+- [x] Centralize bounded input limits for participants, event/application kinds,
   external identities, references, metadata, reasons, and receipts across both
   ledger and operational stores.
 
@@ -214,14 +214,14 @@ application policy remain with consumers.
   correlation, causation, external reference, and external execution identity
   without scanning the authoritative ledger for routine queries.
 - [ ] Add immutable named checkpoints that bind a session ledger sequence and
-  verified head hash to application-defined kind/name, actor, causation, and
+  verified head hash to application-defined kind/name, participant, causation, and
   bounded external resource identities, revisions, and digests. Hongxian
   records checkpoints but never restores external state.
 - [ ] Add bounded as-of projection at a verified ledger sequence or named
   checkpoint. Begin with deterministic streaming replay; introduce cached
   snapshots only after measured interactive workloads justify them.
 - [ ] Add an optional indexed `SessionRelation` with source, target,
-  application-defined kind, actor, time, and causation. Relations support
+  application-defined kind, participant, time, and causation. Relations support
   discovery but do not imply lifecycle propagation, inherited authorization,
   cascading deletion, ownership, or acyclic parent/child semantics.
 - [ ] Define generic session metadata and lifecycle operations for name, rename,
@@ -281,7 +281,7 @@ Initial scope:
 
 - [ ] Reuse the preview 2 participant attribution reference for human, model,
   workflow-activity, tool, system, and external publications. Collaboration
-  must not introduce a second actor directory or identity format.
+  must not introduce a second participant directory or identity format.
 - [ ] Add immutable, application-defined session publications as typed payloads
   over the existing session event and Siming append path—not a second ledger,
   ordering model, or transaction boundary.

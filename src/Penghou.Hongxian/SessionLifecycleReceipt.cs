@@ -47,15 +47,14 @@ public sealed record SessionEvidenceDispatchResult(int Attempted, int Delivered)
 public sealed class SessionEvidenceOutboxDispatcher(
     ISessionEvidenceOutbox outbox,
     ISessionEventStore eventStore,
-    string actor = "hongxian")
+    SessionParticipantAttribution? participant = null)
 {
     private readonly ISessionEvidenceOutbox outbox =
         outbox ?? throw new ArgumentNullException(nameof(outbox));
     private readonly ISessionEventStore eventStore =
         eventStore ?? throw new ArgumentNullException(nameof(eventStore));
-    private readonly string actor = !string.IsNullOrWhiteSpace(actor)
-        ? actor
-        : throw new ArgumentException("An evidence actor is required.", nameof(actor));
+    private readonly SessionParticipantAttribution participant = participant ??
+        SessionParticipantAttribution.System("evidence-dispatcher", "hongxian");
 
     public async Task<SessionEvidenceDispatchResult> DispatchPendingAsync(
         int maximumCount = 100,
@@ -69,7 +68,7 @@ public sealed class SessionEvidenceOutboxDispatcher(
             var committed = await eventStore.AppendAsync(
                 new SessionEventRequest(
                     record.SessionId,
-                    actor,
+                    participant,
                     record.EventType,
                     record.OccurredAt,
                     CausationId: record.CausationId,

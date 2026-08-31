@@ -50,8 +50,7 @@ public sealed class SqliteSessionCatalog :
         SessionId? sessionId = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(contextId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(resourceId);
+        SessionContractValidation.ValidateSessionIdentity(contextId, resourceId);
         var id = sessionId ?? SessionId.New();
         ValidateSessionId(id, nameof(sessionId));
         var createdAt = timeProvider.GetUtcNow();
@@ -220,7 +219,8 @@ public sealed class SqliteSessionCatalog :
         CancellationToken cancellationToken = default)
     {
         ValidateSessionId(sessionId, nameof(sessionId));
-        ArgumentException.ThrowIfNullOrWhiteSpace(replacementRevision);
+        SessionContractValidation.ValidateRevision(expectedRevision, nameof(expectedRevision));
+        SessionContractValidation.ValidateRevision(replacementRevision, nameof(replacementRevision));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
         await using var command = connection.CreateCommand();
@@ -450,6 +450,8 @@ public sealed class SqliteSessionCatalog :
     {
         if (receiptId == Guid.Empty)
             throw new ArgumentException("A non-empty receipt ID is required.", nameof(receiptId));
+        if (deliveredAt == default)
+            throw new ArgumentException("A delivery time is required.", nameof(deliveredAt));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
         command.CommandText = "UPDATE session_lifecycle_receipts SET delivered_at = COALESCE(delivered_at, $deliveredAt) WHERE receipt_id = $receiptId;";

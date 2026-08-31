@@ -36,7 +36,7 @@ public interface ISessionEventStore
 
 public sealed record SessionEventRequest(
     SessionId SessionId,
-    string Actor,
+    SessionParticipantAttribution Participant,
     string EventType,
     DateTimeOffset OccurredAt,
     Guid? CausationId = null,
@@ -109,6 +109,7 @@ public sealed record SessionEventPageRequest(
 
     public void Validate()
     {
+        SessionContractValidation.ValidateSessionId(SessionId, nameof(SessionId));
         if (AfterSequence < 0) throw new ArgumentOutOfRangeException(nameof(AfterSequence));
         if (Limit is <= 0 or > MaximumLimit) throw new ArgumentOutOfRangeException(nameof(Limit));
     }

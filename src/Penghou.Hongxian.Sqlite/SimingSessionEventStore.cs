@@ -50,36 +50,13 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
     /// <inheritdoc />
     public async Task<SessionEvent> AppendAsync(SessionEventRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-        if (request.SessionId.Value == Guid.Empty)
-            throw new ArgumentException("A non-empty session ID is required.", nameof(request));
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.Actor);
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.EventType);
-        if (request.EventId == Guid.Empty)
-            throw new ArgumentException("A non-empty event ID is required when supplied.", nameof(request));
-        if (request.CausationId == Guid.Empty)
-            throw new ArgumentException("A non-empty causation ID is required when supplied.", nameof(request));
-        if (request.CorrelationId == Guid.Empty)
-            throw new ArgumentException("A non-empty correlation ID is required when supplied.", nameof(request));
-        if (request.OccurredAt == default)
-            throw new ArgumentException(
-                "A caller-supplied occurrence-time claim is required.",
-                nameof(request));
+        SessionContractValidation.Validate(request);
         var now = timeProvider.GetUtcNow();
         if (request.OccurredAt - now > timePolicy.MaximumFutureSkew)
             throw new ArgumentOutOfRangeException(
                 nameof(request),
                 request.OccurredAt,
                 $"Occurrence-time claim cannot be more than {timePolicy.MaximumFutureSkew} in the future.");
-        if (!Enum.IsDefined(request.PayloadSensitivity))
-            throw new ArgumentOutOfRangeException(nameof(request.PayloadSensitivity));
-        if (!Enum.IsDefined(request.PayloadRetention))
-            throw new ArgumentOutOfRangeException(nameof(request.PayloadRetention));
-        request.PayloadSchema?.Validate();
-        if (request.Payload is not null && request.PayloadJson is not null)
-            throw new ArgumentException(
-                "Specify either a JSON-tree payload or legacy PayloadJson, not both.",
-                nameof(request));
         await using var ledgerLease = await AcquireLedgerAsync(
             request.SessionId, cancellationToken).ConfigureAwait(false);
         var ledger = ledgerLease.Ledger;
@@ -173,6 +150,7 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
         SessionId sessionId,
         CancellationToken cancellationToken = default)
     {
+        SessionContractValidation.ValidateSessionId(sessionId, nameof(sessionId));
         await using var ledgerLease = await AcquireLedgerAsync(
             sessionId, cancellationToken).ConfigureAwait(false);
         var ledger = ledgerLease.Ledger;
@@ -411,16 +389,27 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
     {
         var payload = JsonSerializer.Deserialize<SessionEventPayload>(entry.Payload.Span, SerializerOptions)
             ?? throw new InvalidDataException($"Session event payload at ledger sequence {entry.Sequence} is empty.");
-        if (payload.SchemaVersion != SessionEventEnvelopeSchema.CurrentVersion)
+        if (payload.SchemaVersion is < SessionEventEnvelopeSchema.MinimumSupportedVersion or
+            > SessionEventEnvelopeSchema.CurrentVersion)
             throw new UnsupportedSessionEventSchemaException(payload.SchemaVersion);
         payload.PayloadSchema?.Validate();
+        var participant = payload.SchemaVersion == 1
+            ? new SessionParticipantAttribution(
+                SessionParticipantKinds.Legacy,
+                "hongxian-preview-1",
+                payload.Actor ?? throw new InvalidDataException(
+                    $"Legacy session event at sequence {entry.Sequence} has no actor."))
+            : payload.Participant ?? throw new InvalidDataException(
+                $"Session event at sequence {entry.Sequence} has no participant attribution.");
+        if (payload.SchemaVersion >= 2)
+            SessionContractValidation.Validate(participant, nameof(payload.Participant));
         return new SessionEvent
         {
             SchemaVersion = payload.SchemaVersion,
             Sequence = entry.Sequence,
             EventId = payload.EventId,
             SessionId = SessionId.Parse(entry.StreamId),
-            Actor = payload.Actor,
+            Participant = participant,
             EventType = entry.EventType,
             OccurredAt = payload.OccurredAt,
             CommittedAt = entry.CommittedAt,
@@ -457,7 +446,7 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
     }
 
     private static bool EquivalentRequest(SessionEvent existing, SessionEventRequest replay) =>
-        existing.SessionId == replay.SessionId && existing.Actor == replay.Actor &&
+        existing.SessionId == replay.SessionId && EquivalentParticipant(existing, replay.Participant) &&
         existing.EventType == replay.EventType && existing.CausationId == replay.CausationId &&
         existing.CorrelationId == replay.CorrelationId &&
         (replay.EventId is null || existing.EventId == replay.EventId) &&
@@ -466,6 +455,17 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
         existing.PayloadSchema == replay.PayloadSchema &&
         EquivalentReferences(existing.CrossSystemRefs, replay.CrossSystemRefs) &&
         EquivalentPayload(existing, replay);
+
+    private static bool EquivalentParticipant(
+        SessionEvent existing,
+        SessionParticipantAttribution replay) =>
+        existing.SchemaVersion == 1 &&
+        existing.Participant.Kind == SessionParticipantKinds.Legacy
+            ? string.Equals(
+                existing.Participant.Subject,
+                replay.Subject,
+                StringComparison.Ordinal)
+            : existing.Participant == replay;
 
     private static bool EquivalentPayload(SessionEvent existing, SessionEventRequest replay) =>
         replay.PayloadRetention switch
@@ -494,7 +494,7 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
     private sealed record SessionEventPayload(
         int SchemaVersion,
         Guid EventId,
-        string Actor,
+        string? Actor,
         DateTimeOffset OccurredAt,
         Guid? CausationId,
         Guid? CorrelationId,
@@ -505,10 +505,11 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
         SessionPayloadRetention PayloadRetention,
         string? PayloadDigest,
         SessionPayloadSchema? PayloadSchema = null,
-        JsonElement? Payload = null)
+        JsonElement? Payload = null,
+        SessionParticipantAttribution? Participant = null)
     {
         public static SessionEventPayload From(SessionEventRequest request, Guid eventId) =>
-            new(SessionEventEnvelopeSchema.CurrentVersion, eventId, request.Actor, request.OccurredAt, request.CausationId, request.CorrelationId,
+            new(SessionEventEnvelopeSchema.CurrentVersion, eventId, null, request.OccurredAt, request.CausationId, request.CorrelationId,
                 request.IdempotencyKey, request.CrossSystemRefs,
                 request.PayloadRetention == SessionPayloadRetention.Retain ? request.PayloadJson : null,
                 request.PayloadSensitivity,
@@ -519,7 +520,8 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
                 request.PayloadSchema,
                 request.PayloadRetention == SessionPayloadRetention.Retain
                     ? request.Payload?.Clone()
-                    : null);
+                    : null,
+                request.Participant);
     }
 
     private static string? ComputePayloadDigest(SessionEventRequest request)

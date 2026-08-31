@@ -2,6 +2,9 @@ using FluentAssertions;
 using Penghou.Hongxian;
 using Penghou.Hongxian.Sqlite;
 using Microsoft.Data.Sqlite;
+using Penghou.Siming;
+using Penghou.Siming.Sqlite;
+using System.Text.Json;
 
 namespace Penghou.Hongxian.Tests;
 
@@ -19,7 +22,7 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         await using (var writer = new SimingSessionEventStore(rootPath))
         {
             first = await writer.AppendAsync(new SessionEventRequest(
-                sessionId, "user", SessionEventTypes.UserMessage, DateTimeOffset.UtcNow,
+                sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow,
                 CorrelationId: correlationId, PayloadJson: "{\"prompt\":\"hello\"}",
                 PayloadSchema: new SessionPayloadSchema("guyabano.user-message", 1)), ct);
         }
@@ -27,11 +30,61 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         await using var reader = new SimingSessionEventStore(rootPath);
         var events = await reader.ReadAsync(sessionId, cancellationToken: ct);
         events.Should().ContainSingle().Which.Should().BeEquivalentTo(first);
-        first.SchemaVersion.Should().Be(1);
+        first.SchemaVersion.Should().Be(SessionEventEnvelopeSchema.CurrentVersion);
         first.PayloadSchema.Should().Be(new SessionPayloadSchema("guyabano.user-message", 1));
         first.CommittedAt.Should().NotBe(default);
         File.Exists(reader.GetLedgerPath(sessionId)).Should().BeTrue();
         (await reader.VerifyChainAsync(sessionId, ct)).Should().BeEquivalentTo(first);
+    }
+
+    [Fact]
+    public async Task Read_Preview1Envelope_UpgradesActorToLegacyAttributionWithoutRewriting()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var sessionId = SessionId.New();
+        var ledgerPath = Path.Combine(rootPath, sessionId.ToString(), "session.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(ledgerPath)!);
+        await using (var legacyLedger = new SqliteAppendOnlyLedger<CanonicalJsonPayloadSerializer>(
+            new SimingSqliteOptions { DatabasePath = ledgerPath, Pooling = false },
+            new CanonicalJsonPayloadSerializer()))
+        {
+            await legacyLedger.AppendAsync(new LedgerAppendRequest<Preview1SessionEventPayload>(
+                sessionId.ToString(),
+                SessionEventTypes.UserMessage,
+                new Preview1SessionEventPayload(
+                    1,
+                    Guid.CreateVersion7(),
+                    "legacy-user",
+                    DateTimeOffset.UtcNow,
+                    null,
+                    null,
+                    "legacy:user-message:1",
+                    null,
+                    "hello",
+                    SessionPayloadSensitivity.Internal,
+                    SessionPayloadRetention.Retain,
+                    null),
+                "legacy:user-message:1"), ct);
+        }
+
+        await using var store = new SimingSessionEventStore(rootPath);
+        var restored = (await store.ReadAsync(sessionId, cancellationToken: ct)).Single();
+
+        restored.SchemaVersion.Should().Be(1);
+        restored.Participant.Should().Be(new SessionParticipantAttribution(
+            SessionParticipantKinds.Legacy,
+            "hongxian-preview-1",
+            "legacy-user"));
+
+        var replay = await store.AppendAsync(new SessionEventRequest(
+            sessionId,
+            SessionParticipantAttribution.Human("legacy-user", "new-host"),
+            SessionEventTypes.UserMessage,
+            DateTimeOffset.UtcNow,
+            PayloadJson: "hello",
+            IdempotencyKey: "legacy:user-message:1"), ct);
+        replay.EventId.Should().Be(restored.EventId);
+        (await store.ReadAsync(sessionId, cancellationToken: ct)).Should().ContainSingle();
     }
 
     [Fact]
@@ -42,9 +95,9 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         var firstSession = SessionId.New();
         var secondSession = SessionId.New();
         var first = await store.AppendAsync(new SessionEventRequest(
-            firstSession, "user", SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
+            firstSession, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
         var second = await store.AppendAsync(new SessionEventRequest(
-            secondSession, "hongxian", SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow), ct);
+            secondSession, Participant("hongxian"), SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow), ct);
 
         first.Sequence.Should().Be(1);
         second.Sequence.Should().Be(1);
@@ -60,7 +113,7 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         await using var store = new SimingSessionEventStore(rootPath);
         var firstSession = SessionId.New();
         var secondSession = SessionId.New();
-        var request = new SessionEventRequest(firstSession, "hongxian", SessionEventTypes.OperationPrepared,
+        var request = new SessionEventRequest(firstSession, Participant("hongxian"), SessionEventTypes.OperationPrepared,
             DateTimeOffset.UtcNow, IdempotencyKey: "operation:prepared");
 
         var first = await store.AppendAsync(request, ct);
@@ -82,7 +135,7 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         var emptyHead = (await store.ReadVerifiedHistoryAsync(sessionId, ct)).VerifiedHead;
         var request = new SessionEventRequest(
             sessionId,
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow,
             PayloadJson: "{\"message\":\"first\"}",
@@ -92,13 +145,13 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         var first = await store.AppendAsync(request, ct);
         var second = await store.AppendAsync(new SessionEventRequest(
             sessionId,
-            "assistant",
+            Participant("assistant"),
             SessionEventTypes.AssistantMessage,
             DateTimeOffset.UtcNow), ct);
 
         var stale = () => store.AppendAsync(new SessionEventRequest(
             sessionId,
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow,
             ExpectedHead: emptyHead), ct);
@@ -121,7 +174,7 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         var sessionId = SessionId.New();
         for (var index = 0; index < 5; index++)
             await store.AppendAsync(new SessionEventRequest(
-                sessionId, "hongxian", $"event-{index}", DateTimeOffset.UtcNow), ct);
+                sessionId, Participant("hongxian"), $"event-{index}", DateTimeOffset.UtcNow), ct);
 
         var first = await store.ReadPageAsync(new SessionEventPageRequest(sessionId, Limit: 2), ct);
         var second = await store.ReadPageAsync(new SessionEventPageRequest(sessionId, first.NextSequence!.Value, 2), ct);
@@ -144,7 +197,7 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         var sessionId = SessionId.New();
         var request = new SessionEventRequest(
             sessionId,
-            "hongxian",
+            Participant("hongxian"),
             SessionEventTypes.ExecutionStarted,
             DateTimeOffset.UtcNow,
             IdempotencyKey: "workflow:start");
@@ -175,7 +228,7 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         var sessionId = SessionId.New();
         var request = new SessionEventRequest(
             sessionId,
-            "hongxian",
+            Participant("hongxian"),
             SessionEventTypes.ExecutionStarted,
             DateTimeOffset.UtcNow,
             IdempotencyKey: "workflow:tracked-start");
@@ -202,7 +255,7 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         var sessionId = SessionId.New();
         var request = new SessionEventRequest(
             sessionId,
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow,
             PayloadJson: "a sensitive clarification",
@@ -233,7 +286,7 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         await using var store = new SimingSessionEventStore(rootPath);
         var committed = await store.AppendAsync(new SessionEventRequest(
             SessionId.New(),
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow,
             PayloadJson: "do not persist",
@@ -256,18 +309,18 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         var secondSession = SessionId.New();
         await store.AppendAsync(new SessionEventRequest(
             firstSession,
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow), ct);
         await store.AppendAsync(new SessionEventRequest(
             secondSession,
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow), ct);
 
         var reopened = await store.AppendAsync(new SessionEventRequest(
             firstSession,
-            "hongxian",
+            Participant("hongxian"),
             SessionEventTypes.AssistantMessage,
             DateTimeOffset.UtcNow), ct);
 
@@ -284,18 +337,73 @@ public sealed class SimingSessionEventStoreTests : IDisposable
 
         var defaultSession = () => store.AppendAsync(new SessionEventRequest(
             default,
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow), ct);
         await defaultSession.Should().ThrowAsync<ArgumentException>();
 
         var defaultCorrelation = () => store.AppendAsync(new SessionEventRequest(
             SessionId.New(),
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow,
             CorrelationId: Guid.Empty), ct);
         await defaultCorrelation.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task Append_RejectsUnboundedOrIncompleteAttributionAndReferences()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new SimingSessionEventStore(rootPath);
+        var template = new SessionEventRequest(
+            SessionId.New(),
+            Participant("user"),
+            SessionEventTypes.UserMessage,
+            DateTimeOffset.UtcNow);
+
+        var missingSubject = () => store.AppendAsync(template with
+        {
+            Participant = SessionParticipantAttribution.Human(" ")
+        }, ct);
+        var longProvider = () => store.AppendAsync(template with
+        {
+            Participant = SessionParticipantAttribution.Human(
+                "user",
+                new string('p', SessionContractLimits.ParticipantProviderCharacters + 1))
+        }, ct);
+        var tooManyReferences = () => store.AppendAsync(template with
+        {
+            CrossSystemRefs = Enumerable.Range(
+                    0,
+                    SessionContractLimits.CrossSystemReferenceCount + 1)
+                .ToDictionary(index => $"ref-{index}", index => index.ToString())
+        }, ct);
+
+        await missingSubject.Should().ThrowAsync<ArgumentException>();
+        await longProvider.Should().ThrowAsync<ArgumentOutOfRangeException>();
+        await tooManyReferences.Should().ThrowAsync<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public async Task Append_IdempotencyIncludesCompleteParticipantAttribution()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new SimingSessionEventStore(rootPath);
+        var request = new SessionEventRequest(
+            SessionId.New(),
+            SessionParticipantAttribution.Agent("planner", "baize", "Planner"),
+            SessionEventTypes.AssistantMessage,
+            DateTimeOffset.UtcNow,
+            IdempotencyKey: "message:planner:1");
+
+        await store.AppendAsync(request, ct);
+        var conflict = () => store.AppendAsync(request with
+        {
+            Participant = request.Participant with { Provider = "another-provider" }
+        }, ct);
+
+        await conflict.Should().ThrowAsync<SessionEventIdempotencyConflictException>();
     }
 
     public void Dispose()
@@ -332,6 +440,22 @@ public sealed class SimingSessionEventStoreTests : IDisposable
             CancellationToken cancellationToken = default) =>
             Task.FromResult<SessionProjectionSnapshot?>(null);
     }
+
+    private sealed record Preview1SessionEventPayload(
+        int SchemaVersion,
+        Guid EventId,
+        string Actor,
+        DateTimeOffset OccurredAt,
+        Guid? CausationId,
+        Guid? CorrelationId,
+        string? IdempotencyKey,
+        IReadOnlyDictionary<string, string>? CrossSystemRefs,
+        string? PayloadJson,
+        SessionPayloadSensitivity PayloadSensitivity,
+        SessionPayloadRetention PayloadRetention,
+        string? PayloadDigest,
+        SessionPayloadSchema? PayloadSchema = null,
+        JsonElement? Payload = null);
 
     private sealed class FailOnceDeliveryProjectionStore(
         SqliteSessionProjectionStore inner) :

@@ -46,7 +46,7 @@ try
     var sessionId = SessionId.New();
     await events.AppendAsync(new SessionEventRequest(
         sessionId,
-        "packed-consumer",
+        SessionParticipantAttribution.System("packed-consumer", "package-test"),
         SessionEventTypes.SessionCreated,
         DateTimeOffset.UtcNow,
         IdempotencyKey: $"session:{sessionId}:created"));

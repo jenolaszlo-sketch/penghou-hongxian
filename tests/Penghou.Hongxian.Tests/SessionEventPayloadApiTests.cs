@@ -18,7 +18,7 @@ public sealed class SessionEventPayloadApiTests : IDisposable
         await using var store = new SimingSessionEventStore(rootPath);
         var request = new SessionEventRequest(
             SessionId.New(),
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow,
             IdempotencyKey: "message-1",
@@ -46,7 +46,7 @@ public sealed class SessionEventPayloadApiTests : IDisposable
         await using var store = new SimingSessionEventStore(rootPath);
         var request = new SessionEventRequest(
             SessionId.New(),
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow,
             PayloadRetention: SessionPayloadRetention.DigestOnly);

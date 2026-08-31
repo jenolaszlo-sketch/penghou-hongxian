@@ -233,7 +233,9 @@ public static class SessionTimelineProjection
     /// </summary>
     public static IReadOnlyList<string> RenderTimeline(IReadOnlyList<SessionEvent> events) =>
         events.Select(item =>
-            $"[{item.CommittedAt:O}] #{item.Sequence} {item.EventType} by {item.Actor}" +
+            $"[{item.CommittedAt:O}] #{item.Sequence} {item.EventType} by " +
+            $"{item.Participant.DisplayName ?? item.Participant.Subject} " +
+            $"({item.Participant.Kind}@{item.Participant.Provider})" +
             (item.OccurredAt != item.CommittedAt ? $" claimed-at {item.OccurredAt:O}" : string.Empty) +
             (item.CausationId is not null ? $" caused-by {item.CausationId:D}" : string.Empty) +
             (item.CrossSystemRefs is { Count: > 0 }

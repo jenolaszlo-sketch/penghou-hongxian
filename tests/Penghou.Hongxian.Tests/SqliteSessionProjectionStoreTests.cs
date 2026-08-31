@@ -21,14 +21,14 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
         var sessionId = SessionId.New();
         var workflowRun = Guid.CreateVersion7();
         var requested = await events.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.InputRequested,
+            sessionId, Participant("hongxian"), SessionEventTypes.InputRequested,
             DateTimeOffset.UtcNow, CorrelationId: workflowRun), ct);
         await events.AppendAsync(new SessionEventRequest(
-            sessionId, "user", SessionEventTypes.InputProvided,
+            sessionId, Participant("user"), SessionEventTypes.InputProvided,
             DateTimeOffset.UtcNow, CausationId: requested.EventId,
             CorrelationId: workflowRun), ct);
         await events.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.RevisionAccepted,
+            sessionId, Participant("hongxian"), SessionEventTypes.RevisionAccepted,
             DateTimeOffset.UtcNow, CrossSystemRefs: new Dictionary<string, string>
             {
                 ["toRevision"] = "workspace:2"
@@ -54,9 +54,9 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
         await using var events = new SimingSessionEventStore(Path.Combine(rootPath, "sessions"));
         var sessionId = SessionId.New();
         await events.AppendAsync(new SessionEventRequest(
-            sessionId, "user", SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
+            sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
         await events.AppendAsync(new SessionEventRequest(
-            sessionId, "hongxian", SessionEventTypes.ExecutionStarted,
+            sessionId, Participant("hongxian"), SessionEventTypes.ExecutionStarted,
             DateTimeOffset.UtcNow, CorrelationId: Guid.CreateVersion7()), ct);
         var history = await events.ReadVerifiedHistoryAsync(sessionId, ct);
 
@@ -78,9 +78,9 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
             Path.Combine(rootPath, "verified-sessions"));
         var sessionId = SessionId.New();
         await events.AppendAsync(new SessionEventRequest(
-            sessionId, "user", SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
+            sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
         await events.AppendAsync(new SessionEventRequest(
-            sessionId, "assistant", SessionEventTypes.AssistantMessage, DateTimeOffset.UtcNow), ct);
+            sessionId, Participant("assistant"), SessionEventTypes.AssistantMessage, DateTimeOffset.UtcNow), ct);
         var history = await events.ReadVerifiedHistoryAsync(sessionId, ct);
 
         var broken = history with
@@ -119,7 +119,7 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
         var incidentId = Guid.CreateVersion7();
         var input = await events.AppendAsync(new SessionEventRequest(
             sessionId,
-            "hongxian",
+            Participant("hongxian"),
             SessionEventTypes.InputRequested,
             DateTimeOffset.UtcNow,
             CorrelationId: workflowRun,
@@ -129,7 +129,7 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
             }), ct);
         await events.AppendAsync(new SessionEventRequest(
             sessionId,
-            "hongxian",
+            Participant("hongxian"),
             SessionEventTypes.DecisionProposed,
             DateTimeOffset.UtcNow,
             CorrelationId: workflowRun,
@@ -142,7 +142,7 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
             }), ct);
         await events.AppendAsync(new SessionEventRequest(
             sessionId,
-            "hongxian",
+            Participant("hongxian"),
             SessionEventTypes.IncidentDetected,
             DateTimeOffset.UtcNow,
             CorrelationId: workflowRun,
@@ -177,7 +177,7 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
         await using var events = new SimingSessionEventStore(Path.Combine(rootPath, "sessions"));
         var sessionId = SessionId.New();
         var committed = await events.AppendAsync(new SessionEventRequest(
-            sessionId, "user", SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
+            sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
         await projections.ApplyAsync(committed, ct);
 
         var conflict = () => projections.ApplyAsync(committed with { Hash = new string('0', 64) }, ct);
@@ -198,7 +198,7 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
         var sessionId = SessionId.New();
         var committed = await events.AppendAsync(new SessionEventRequest(
             sessionId,
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow), ct);
 
@@ -229,7 +229,7 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
             Path.Combine(rootPath, "sessions"));
         var committed = await events.AppendAsync(new SessionEventRequest(
             SessionId.New(),
-            "user",
+            Participant("user"),
             SessionEventTypes.UserMessage,
             DateTimeOffset.UtcNow), ct);
         await projections.RecordCommittedAsync(committed, ct);
