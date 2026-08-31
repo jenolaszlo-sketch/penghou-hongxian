@@ -51,8 +51,16 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
     public async Task<SessionEvent> AppendAsync(SessionEventRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        if (request.SessionId.Value == Guid.Empty)
+            throw new ArgumentException("A non-empty session ID is required.", nameof(request));
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Actor);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.EventType);
+        if (request.EventId == Guid.Empty)
+            throw new ArgumentException("A non-empty event ID is required when supplied.", nameof(request));
+        if (request.CausationId == Guid.Empty)
+            throw new ArgumentException("A non-empty causation ID is required when supplied.", nameof(request));
+        if (request.CorrelationId == Guid.Empty)
+            throw new ArgumentException("A non-empty correlation ID is required when supplied.", nameof(request));
         if (request.OccurredAt == default)
             throw new ArgumentException(
                 "A caller-supplied occurrence-time claim is required.",
@@ -67,6 +75,11 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
             throw new ArgumentOutOfRangeException(nameof(request.PayloadSensitivity));
         if (!Enum.IsDefined(request.PayloadRetention))
             throw new ArgumentOutOfRangeException(nameof(request.PayloadRetention));
+        request.PayloadSchema?.Validate();
+        if (request.Payload is not null && request.PayloadJson is not null)
+            throw new ArgumentException(
+                "Specify either a JSON-tree payload or legacy PayloadJson, not both.",
+                nameof(request));
         await using var ledgerLease = await AcquireLedgerAsync(
             request.SessionId, cancellationToken).ConfigureAwait(false);
         var ledger = ledgerLease.Ledger;
@@ -165,7 +178,11 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
         var ledger = ledgerLease.Ledger;
         var verification = await ledger.VerifyAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         if (!verification.IsValid)
-            throw new InvalidOperationException($"Siming session ledger verification failed at sequence {verification.FailedSequence}: {verification.Failure} ({verification.Detail}).");
+            throw new SessionLedgerCorruptionException(
+                sessionId,
+                verification.FailedSequence,
+                verification.Failure?.ToString() ?? "unknown",
+                verification.Detail);
         var events = new List<SessionEvent>(checked((int)Math.Min(
             verification.VerifiedHead.Sequence,
             int.MaxValue)));
@@ -247,7 +264,7 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
                 ledgers.Add(sessionId, entry);
             }
             entry.ReferenceCount++;
-            entry.LastUsed = DateTimeOffset.UtcNow;
+            entry.LastUsed = timeProvider.GetUtcNow();
             evicted = TrimUnlocked(sessionId);
             return new LedgerLease(this, sessionId, entry.Ledger.Value);
         }
@@ -269,7 +286,7 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
             if (!ledgers.TryGetValue(sessionId, out var entry))
                 return;
             entry.ReferenceCount--;
-            entry.LastUsed = DateTimeOffset.UtcNow;
+            entry.LastUsed = timeProvider.GetUtcNow();
             evicted = TrimUnlocked(default);
         }
         finally
@@ -383,7 +400,10 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
     {
         var existing = Map(entry);
         if (!EquivalentRequest(existing, request))
-            throw new InvalidOperationException($"Session event idempotency key '{request.IdempotencyKey}' is already used by a different event.");
+            throw new SessionEventIdempotencyConflictException(
+                request.SessionId,
+                request.IdempotencyKey!,
+                existing.EventId);
         return existing;
     }
 
@@ -391,6 +411,9 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
     {
         var payload = JsonSerializer.Deserialize<SessionEventPayload>(entry.Payload.Span, SerializerOptions)
             ?? throw new InvalidDataException($"Session event payload at ledger sequence {entry.Sequence} is empty.");
+        if (payload.SchemaVersion != SessionEventEnvelopeSchema.CurrentVersion)
+            throw new UnsupportedSessionEventSchemaException(payload.SchemaVersion);
+        payload.PayloadSchema?.Validate();
         return new SessionEvent
         {
             SchemaVersion = payload.SchemaVersion,
@@ -406,6 +429,8 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
             IdempotencyKey = payload.IdempotencyKey,
             CrossSystemRefs = payload.CrossSystemRefs,
             PayloadJson = payload.PayloadJson,
+            Payload = payload.Payload?.Clone(),
+            PayloadSchema = payload.PayloadSchema,
             PayloadSensitivity = payload.PayloadSensitivity,
             PayloadRetention = payload.PayloadRetention,
             PayloadDigest = payload.PayloadDigest,
@@ -438,17 +463,27 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
         (replay.EventId is null || existing.EventId == replay.EventId) &&
         existing.PayloadSensitivity == replay.PayloadSensitivity &&
         existing.PayloadRetention == replay.PayloadRetention &&
+        existing.PayloadSchema == replay.PayloadSchema &&
         EquivalentReferences(existing.CrossSystemRefs, replay.CrossSystemRefs) &&
         EquivalentPayload(existing, replay);
 
     private static bool EquivalentPayload(SessionEvent existing, SessionEventRequest replay) =>
         replay.PayloadRetention switch
         {
-            SessionPayloadRetention.Retain => existing.PayloadJson == replay.PayloadJson,
-            SessionPayloadRetention.DigestOnly => existing.PayloadDigest == ComputePayloadDigest(replay.PayloadJson),
-            SessionPayloadRetention.Omit => existing.PayloadJson is null && existing.PayloadDigest is null,
+            SessionPayloadRetention.Retain => EquivalentRetainedPayload(existing, replay),
+            SessionPayloadRetention.DigestOnly => existing.PayloadDigest == ComputePayloadDigest(replay),
+            SessionPayloadRetention.Omit => existing.PayloadJson is null && existing.Payload is null && existing.PayloadDigest is null,
             _ => false
         };
+
+    private static bool EquivalentRetainedPayload(SessionEvent existing, SessionEventRequest replay)
+    {
+        if (replay.Payload is { } payload)
+            return existing.Payload is { } stored &&
+                CanonicalJsonPayloadSerializer.Canonicalize(stored).Span.SequenceEqual(
+                    CanonicalJsonPayloadSerializer.Canonicalize(payload).Span);
+        return existing.Payload is null && existing.PayloadJson == replay.PayloadJson;
+    }
 
     private static bool EquivalentReferences(IReadOnlyDictionary<string, string>? existing, IReadOnlyDictionary<string, string>? replay)
     {
@@ -468,20 +503,33 @@ public sealed class SimingSessionEventStore : ISessionEventStore, IAsyncDisposab
         string? PayloadJson,
         SessionPayloadSensitivity PayloadSensitivity,
         SessionPayloadRetention PayloadRetention,
-        string? PayloadDigest)
+        string? PayloadDigest,
+        SessionPayloadSchema? PayloadSchema = null,
+        JsonElement? Payload = null)
     {
         public static SessionEventPayload From(SessionEventRequest request, Guid eventId) =>
-            new(1, eventId, request.Actor, request.OccurredAt, request.CausationId, request.CorrelationId,
+            new(SessionEventEnvelopeSchema.CurrentVersion, eventId, request.Actor, request.OccurredAt, request.CausationId, request.CorrelationId,
                 request.IdempotencyKey, request.CrossSystemRefs,
                 request.PayloadRetention == SessionPayloadRetention.Retain ? request.PayloadJson : null,
                 request.PayloadSensitivity,
                 request.PayloadRetention,
                 request.PayloadRetention == SessionPayloadRetention.Omit
                     ? null
-                    : ComputePayloadDigest(request.PayloadJson));
+                    : ComputePayloadDigest(request),
+                request.PayloadSchema,
+                request.PayloadRetention == SessionPayloadRetention.Retain
+                    ? request.Payload?.Clone()
+                    : null);
     }
 
-    private static string? ComputePayloadDigest(string? payload) => payload is null
-        ? null
-        : $"sha256:utf8:v1:{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(payload)))}";
+    private static string? ComputePayloadDigest(SessionEventRequest request)
+    {
+        if (request.Payload is { } payload)
+            return $"sha256:penghou-canonical-json:v1:{Convert.ToHexStringLower(
+                SHA256.HashData(CanonicalJsonPayloadSerializer.Canonicalize(payload).Span))}";
+        return request.PayloadJson is null
+            ? null
+            : $"sha256:utf8:v1:{Convert.ToHexStringLower(
+                SHA256.HashData(Encoding.UTF8.GetBytes(request.PayloadJson)))}";
+    }
 }

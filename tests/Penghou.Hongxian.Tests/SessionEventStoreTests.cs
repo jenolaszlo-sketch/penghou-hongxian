@@ -71,8 +71,7 @@ public sealed class SessionEventStoreTests : IDisposable
         var conflict = () => store.AppendAsync(
             request with { EventType = SessionEventTypes.OperationTransitioned },
             ct);
-        await conflict.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*already used by a different event*");
+        await conflict.Should().ThrowAsync<SessionEventIdempotencyConflictException>();
     }
 
     [Fact]

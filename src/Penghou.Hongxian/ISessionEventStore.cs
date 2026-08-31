@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Penghou.Hongxian;
 
 public interface ISessionEventStore
@@ -45,7 +47,9 @@ public sealed record SessionEventRequest(
     Guid? EventId = null,
     SessionPayloadSensitivity PayloadSensitivity = SessionPayloadSensitivity.Internal,
     SessionPayloadRetention PayloadRetention = SessionPayloadRetention.Retain,
-    SessionLedgerHead? ExpectedHead = null);
+    SessionLedgerHead? ExpectedHead = null,
+    SessionPayloadSchema? PayloadSchema = null,
+    JsonElement? Payload = null);
 
 /// <summary>Provider-neutral identity of an authoritative session-ledger head.</summary>
 public sealed record SessionLedgerHead(

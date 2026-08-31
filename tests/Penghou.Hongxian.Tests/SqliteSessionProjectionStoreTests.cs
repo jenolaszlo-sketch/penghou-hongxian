@@ -88,8 +88,9 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
             Events = [history.Events[0], history.Events[1] with { PreviousHash = new string('0', 64) }]
         };
         var brokenAction = () => projections.RebuildAsync(broken, ct);
-        await brokenAction.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*hash-chain continuity*");
+        (await brokenAction.Should()
+            .ThrowAsync<SessionProjectionConsistencyException>()).Which.Failure
+            .Should().Be(SessionProjectionConsistencyFailure.HashChainContinuity);
 
         await projections.RebuildAsync(history, ct);
         var conflictingHash = new string('f', 64);
@@ -99,8 +100,9 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
             Events = [history.Events[0], history.Events[1] with { Hash = conflictingHash }]
         };
         var conflictAction = () => projections.RebuildAsync(conflicting, ct);
-        await conflictAction.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*head conflict*");
+        (await conflictAction.Should()
+            .ThrowAsync<SessionProjectionConsistencyException>()).Which.Failure
+            .Should().Be(SessionProjectionConsistencyFailure.HeadConflict);
     }
 
     [Fact]
@@ -180,8 +182,9 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
 
         var conflict = () => projections.ApplyAsync(committed with { Hash = new string('0', 64) }, ct);
 
-        await conflict.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*head conflict*");
+        (await conflict.Should()
+            .ThrowAsync<SessionProjectionConsistencyException>()).Which.Failure
+            .Should().Be(SessionProjectionConsistencyFailure.HeadConflict);
     }
 
     [Fact]

@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Penghou.Hongxian;
 
 public static class SessionEventTypes
@@ -85,6 +87,18 @@ public sealed record SessionEvent
     public IReadOnlyDictionary<string, string>? CrossSystemRefs { get; init; }
 
     public string? PayloadJson { get; init; }
+
+    /// <summary>
+    /// Canonical JSON-tree payload used by new append APIs. `PayloadJson`
+    /// remains readable for events written through the preview-1 contract.
+    /// </summary>
+    public JsonElement? Payload { get; init; }
+
+    /// <summary>
+    /// Application-owned payload schema persisted with this envelope. Null
+    /// denotes an unversioned payload written by an earlier or schema-less host.
+    /// </summary>
+    public SessionPayloadSchema? PayloadSchema { get; init; }
 
     public required SessionPayloadSensitivity PayloadSensitivity { get; init; }
 

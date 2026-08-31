@@ -20,13 +20,15 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         {
             first = await writer.AppendAsync(new SessionEventRequest(
                 sessionId, "user", SessionEventTypes.UserMessage, DateTimeOffset.UtcNow,
-                CorrelationId: correlationId, PayloadJson: "{\"prompt\":\"hello\"}"), ct);
+                CorrelationId: correlationId, PayloadJson: "{\"prompt\":\"hello\"}",
+                PayloadSchema: new SessionPayloadSchema("guyabano.user-message", 1)), ct);
         }
 
         await using var reader = new SimingSessionEventStore(rootPath);
         var events = await reader.ReadAsync(sessionId, cancellationToken: ct);
         events.Should().ContainSingle().Which.Should().BeEquivalentTo(first);
         first.SchemaVersion.Should().Be(1);
+        first.PayloadSchema.Should().Be(new SessionPayloadSchema("guyabano.user-message", 1));
         first.CommittedAt.Should().NotBe(default);
         File.Exists(reader.GetLedgerPath(sessionId)).Should().BeTrue();
         (await reader.VerifyChainAsync(sessionId, ct)).Should().BeEquivalentTo(first);
@@ -218,8 +220,10 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         replay.Should().BeEquivalentTo(committed);
 
         var conflict = () => store.AppendAsync(request with { PayloadJson = "different" }, ct);
-        await conflict.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*already used by a different event*");
+        var failure = (await conflict.Should()
+            .ThrowAsync<SessionEventIdempotencyConflictException>()).Which;
+        failure.IdempotencyKey.Should().Be(request.IdempotencyKey);
+        failure.ExistingEventId.Should().Be(committed.EventId);
     }
 
     [Fact]
@@ -270,6 +274,28 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         reopened.Sequence.Should().Be(2);
         reopened.PreviousHash.Should().NotBeNull();
         (await store.VerifyChainAsync(firstSession, ct))!.Sequence.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Append_RejectsDefaultSessionAndCorrelationIds()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new SimingSessionEventStore(rootPath);
+
+        var defaultSession = () => store.AppendAsync(new SessionEventRequest(
+            default,
+            "user",
+            SessionEventTypes.UserMessage,
+            DateTimeOffset.UtcNow), ct);
+        await defaultSession.Should().ThrowAsync<ArgumentException>();
+
+        var defaultCorrelation = () => store.AppendAsync(new SessionEventRequest(
+            SessionId.New(),
+            "user",
+            SessionEventTypes.UserMessage,
+            DateTimeOffset.UtcNow,
+            CorrelationId: Guid.Empty), ct);
+        await defaultCorrelation.Should().ThrowAsync<ArgumentException>();
     }
 
     public void Dispose()

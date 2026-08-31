@@ -21,10 +21,10 @@ Last reviewed: **2026-08-31**
   operation receipts, and forward reconciliation are extracted.
 - Provider-qualified external-operation identity prevents collisions between
   execution systems without introducing workflow-engine types.
-- The suite passes 45 tests; a standalone example and an isolated packed
+- The suite passes 56 tests; a standalone example and an isolated packed
   consumer both persist, project, and verify a session event.
 - A pre-integration review found no vulnerable direct or transitive packages
-  and all 45 tests pass. It also identified integrity, fencing, provider-neutral
+  and all tests pass. It also identified integrity, fencing, provider-neutral
   contract, schema-evolution, and usability work to complete in preview 2 before
   Guyabano replaces its internal kernel.
 - A provider-neutral participant collaboration surface is accepted as
@@ -130,10 +130,10 @@ Integrity and concurrency:
   participant receipts, and transitions, plus a reusable idempotent dispatcher
   into the session ledger. Operational SQLite rows must not be the only audit
   evidence.
-- [ ] Add versioned SQLite migrations with an explicit schema version,
+- [x] Add versioned SQLite migrations with an explicit schema version,
   serialized upgrade, unsupported-newer-schema rejection, reopen/upgrade tests,
   and documented backup responsibility.
-- [ ] Define event-envelope and application-payload schema versions separately
+- [x] Define event-envelope and application-payload schema versions separately
   from the SQLite storage schema. Add a provider-neutral upcaster registry for
   projection replay and typed reads, allow applications to register payload
   upcasters, reject unsupported versions with typed results, and never rewrite
@@ -172,7 +172,7 @@ Consumer usability:
   attribution reference containing a small kind, provider, stable opaque
   subject, and optional display-name snapshot. These remain host-supplied
   claims; metadata or capability claims must never grant authorization.
-- [ ] Add canonical `AppendAsync<T>` and `JsonElement` payload APIs plus typed
+- [x] Add canonical `AppendAsync<T>` and `JsonElement` payload APIs plus typed
   read helpers. Keep retention and idempotency semantics independent of the
   original CLR type and document the identity behavior of omitted payloads.
 - [ ] Add typed public exceptions/results for idempotency conflict, stale

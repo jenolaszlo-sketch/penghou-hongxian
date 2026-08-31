@@ -53,6 +53,7 @@ public sealed class SqliteSessionCatalog :
         ArgumentException.ThrowIfNullOrWhiteSpace(contextId);
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceId);
         var id = sessionId ?? SessionId.New();
+        ValidateSessionId(id, nameof(sessionId));
         var createdAt = timeProvider.GetUtcNow();
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
@@ -105,6 +106,7 @@ public sealed class SqliteSessionCatalog :
         SessionId sessionId,
         CancellationToken cancellationToken = default)
     {
+        ValidateSessionId(sessionId, nameof(sessionId));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         return await ReadSessionAsync(connection, sessionId, cancellationToken).ConfigureAwait(false);
     }
@@ -137,6 +139,7 @@ public sealed class SqliteSessionCatalog :
         ExternalOperationReference externalOperation,
         CancellationToken cancellationToken = default)
     {
+        ValidateExternalOperation(externalOperation, nameof(externalOperation));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT session_id FROM session_external_operations WHERE external_system = $system AND external_operation_id = $operationId;";
@@ -153,6 +156,8 @@ public sealed class SqliteSessionCatalog :
         ExternalOperationReference externalOperation,
         CancellationToken cancellationToken = default)
     {
+        ValidateSessionId(sessionId, nameof(sessionId));
+        ValidateExternalOperation(externalOperation, nameof(externalOperation));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
         if (await ReadSessionAsync(connection, sessionId, cancellationToken, transaction).ConfigureAwait(false) is null)
@@ -208,12 +213,13 @@ public sealed class SqliteSessionCatalog :
             ?? throw new InvalidOperationException($"Session '{sessionId}' disappeared after external-operation attachment.");
     }
 
-    public async Task<Session?> UpdateRevisionAsync(
+    public async Task<Session> UpdateRevisionAsync(
         SessionId sessionId,
         string? expectedRevision,
         string replacementRevision,
         CancellationToken cancellationToken = default)
     {
+        ValidateSessionId(sessionId, nameof(sessionId));
         ArgumentException.ThrowIfNullOrWhiteSpace(replacementRevision);
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
@@ -245,12 +251,19 @@ public sealed class SqliteSessionCatalog :
                 },
                 cancellationToken).ConfigureAwait(false);
             transaction.Commit();
-            return await ReadSessionAsync(connection, sessionId, cancellationToken).ConfigureAwait(false);
+            return await ReadSessionAsync(connection, sessionId, cancellationToken).ConfigureAwait(false)
+                ?? throw new KeyNotFoundException($"Session '{sessionId}' does not exist.");
         }
-        if (await ReadSessionAsync(connection, sessionId, cancellationToken, transaction).ConfigureAwait(false) is null)
+        var current = await ReadSessionAsync(
+            connection, sessionId, cancellationToken, transaction).ConfigureAwait(false);
+        if (current is null)
             throw new KeyNotFoundException($"Session '{sessionId}' does not exist.");
         transaction.Commit();
-        return null;
+        throw new SessionRevisionConflictException(
+            sessionId,
+            expectedRevision,
+            current.CurrentRevision,
+            current.Version);
     }
 
     public async ValueTask<ISessionDecisionLease> AcquireAsync(
@@ -258,6 +271,7 @@ public sealed class SqliteSessionCatalog :
         Guid operationId,
         CancellationToken cancellationToken = default)
     {
+        ValidateSessionId(sessionId, nameof(sessionId));
         if (operationId == Guid.Empty)
             throw new ArgumentException("A non-empty operation ID is required.", nameof(operationId));
         while (true)
@@ -455,11 +469,40 @@ public sealed class SqliteSessionCatalog :
             Pooling = pooling,
             DefaultTimeout = 30
         }.ConnectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            PRAGMA journal_mode = WAL;
-            PRAGMA foreign_keys = ON;
+        try
+        {
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;";
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await HongxianSqliteSchema.EnsureAsync(
+                connection,
+                HongxianSqliteSchema.CatalogComponent,
+                1,
+                MigrateSchemaAsync,
+                cancellationToken).ConfigureAwait(false);
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private static async Task MigrateSchemaAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        int fromVersion,
+        CancellationToken cancellationToken)
+    {
+        if (fromVersion != 0)
+            throw new HongxianSqliteSchemaCompatibilityException(
+                HongxianSqliteSchema.CatalogComponent, fromVersion, 1);
+        await HongxianSqliteSchema.ExecuteAsync(
+            connection,
+            transaction,
+            """
             CREATE TABLE IF NOT EXISTS sessions(
                 session_id TEXT PRIMARY KEY NOT NULL,
                 context_id TEXT NOT NULL,
@@ -500,9 +543,16 @@ public sealed class SqliteSessionCatalog :
             );
             CREATE INDEX IF NOT EXISTS ix_session_lifecycle_pending
                 ON session_lifecycle_receipts(delivered_at, occurred_at, receipt_id);
-            """;
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        return connection;
+            """,
+            cancellationToken).ConfigureAwait(false);
+
+        // Preview 1 used GUID text fencing tokens. Leases are ephemeral and
+        // cannot remain authoritative across a package/schema upgrade.
+        await HongxianSqliteSchema.ExecuteAsync(
+            connection,
+            transaction,
+            "DELETE FROM session_decision_leases;",
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<Session?> ReadSessionAsync(
@@ -658,6 +708,23 @@ public sealed class SqliteSessionCatalog :
             Guid.Parse(reader.GetString(0)),
             reader.GetInt64(1),
             DateTimeOffset.Parse(reader.GetString(2), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind));
+    }
+
+    private static void ValidateSessionId(SessionId sessionId, string parameterName)
+    {
+        if (sessionId.Value == Guid.Empty)
+            throw new ArgumentException("A non-empty session ID is required.", parameterName);
+    }
+
+    private static void ValidateExternalOperation(
+        ExternalOperationReference operation,
+        string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(operation.System) ||
+            string.IsNullOrWhiteSpace(operation.Id))
+            throw new ArgumentException(
+                "A complete external operation reference is required.",
+                parameterName);
     }
 
     private sealed class SqliteDecisionLease : ISessionDecisionLease

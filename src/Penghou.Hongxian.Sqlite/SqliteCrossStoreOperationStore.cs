@@ -29,6 +29,10 @@ public sealed class SqliteCrossStoreOperationStore :
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ValidateSessionId(request.SessionId, nameof(request));
+        ValidateExternalOperation(request.ExternalOperation, nameof(request));
+        if (request.StartedAt == default)
+            throw new ArgumentException("An operation start time is required.", nameof(request));
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Kind);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.IdempotencyKey);
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -49,6 +53,7 @@ public sealed class SqliteCrossStoreOperationStore :
         }
 
         var id = request.OperationId ?? CrossStoreOperationId.New();
+        ValidateOperationId(id, nameof(request));
         await using (var insert = connection.CreateCommand())
         {
             insert.Transaction = transaction;
@@ -108,6 +113,7 @@ public sealed class SqliteCrossStoreOperationStore :
         CrossStoreOperationId operationId,
         CancellationToken cancellationToken = default)
     {
+        ValidateOperationId(operationId, nameof(operationId));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         return await ReadAsync(connection, null, operationId, cancellationToken).ConfigureAwait(false);
     }
@@ -116,6 +122,7 @@ public sealed class SqliteCrossStoreOperationStore :
         ExternalOperationReference externalOperation,
         CancellationToken cancellationToken = default)
     {
+        ValidateExternalOperation(externalOperation, nameof(externalOperation));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
         command.CommandText = """
@@ -139,6 +146,7 @@ public sealed class SqliteCrossStoreOperationStore :
         SessionId sessionId,
         CancellationToken cancellationToken = default)
     {
+        ValidateSessionId(sessionId, nameof(sessionId));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT operation_id FROM cross_store_operations WHERE session_id = $sessionId ORDER BY created_at, operation_id;";
@@ -160,8 +168,13 @@ public sealed class SqliteCrossStoreOperationStore :
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(receipt);
+        ValidateOperationId(operationId, nameof(operationId));
         ArgumentException.ThrowIfNullOrWhiteSpace(receipt.Participant);
         ArgumentException.ThrowIfNullOrWhiteSpace(receipt.IdempotencyKey);
+        if (!Enum.IsDefined(receipt.State))
+            throw new ArgumentOutOfRangeException(nameof(receipt));
+        if (receipt.RecordedAt == default)
+            throw new ArgumentException("A participant receipt time is required.", nameof(receipt));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
         var operation = await RequireAsync(connection, transaction, operationId, cancellationToken)
@@ -178,6 +191,10 @@ public sealed class SqliteCrossStoreOperationStore :
             transaction.Commit();
             return operation;
         }
+        if (receipt.RecordedAt < operation.UpdatedAt)
+            throw new ArgumentOutOfRangeException(
+                nameof(receipt),
+                "Participant receipt time cannot precede the current operation state.");
         if (!string.Equals(
                 receipt.IdempotencyKey,
                 operation.ParticipantIdempotencyKey(receipt.Participant),
@@ -241,6 +258,11 @@ public sealed class SqliteCrossStoreOperationStore :
         string? reasonCode = null,
         CancellationToken cancellationToken = default)
     {
+        ValidateOperationId(operationId, nameof(operationId));
+        if (!Enum.IsDefined(targetState))
+            throw new ArgumentOutOfRangeException(nameof(targetState));
+        if (occurredAt == default)
+            throw new ArgumentException("A transition time is required.", nameof(occurredAt));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
         var operation = await RequireAsync(connection, transaction, operationId, cancellationToken)
@@ -253,6 +275,10 @@ public sealed class SqliteCrossStoreOperationStore :
             transaction.Commit();
             return operation;
         }
+        if (occurredAt < operation.UpdatedAt)
+            throw new ArgumentOutOfRangeException(
+                nameof(occurredAt),
+                "Operation transition time cannot precede the current operation state.");
         if (!CanTransition(operation.State, targetState))
             throw new InvalidOperationException(
                 $"Operation cannot transition from {operation.State} to {targetState}.");
@@ -361,11 +387,40 @@ public sealed class SqliteCrossStoreOperationStore :
             Pooling = pooling,
             DefaultTimeout = 30
         }.ConnectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        await using var command = connection.CreateCommand();
-        command.CommandText = $$"""
-            PRAGMA journal_mode = WAL;
-            PRAGMA foreign_keys = ON;
+        try
+        {
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;";
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await HongxianSqliteSchema.EnsureAsync(
+                connection,
+                HongxianSqliteSchema.OperationComponent,
+                1,
+                MigrateSchemaAsync,
+                cancellationToken).ConfigureAwait(false);
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private static async Task MigrateSchemaAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        int fromVersion,
+        CancellationToken cancellationToken)
+    {
+        if (fromVersion != 0)
+            throw new HongxianSqliteSchemaCompatibilityException(
+                HongxianSqliteSchema.OperationComponent, fromVersion, 1);
+        await HongxianSqliteSchema.ExecuteAsync(
+            connection,
+            transaction,
+            $$"""
             CREATE TABLE IF NOT EXISTS cross_store_operations(
                 operation_id TEXT PRIMARY KEY NOT NULL,
                 session_id TEXT NOT NULL,
@@ -419,9 +474,69 @@ public sealed class SqliteCrossStoreOperationStore :
             );
             CREATE INDEX IF NOT EXISTS ix_cross_store_evidence_pending
                 ON cross_store_evidence_outbox(delivered_at, occurred_at, receipt_id);
-            """;
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        return connection;
+            """,
+            cancellationToken).ConfigureAwait(false);
+
+        await HongxianSqliteSchema.EnsureColumnAsync(
+            connection, transaction, "cross_store_operations", "application_phase",
+            "TEXT NULL", cancellationToken).ConfigureAwait(false);
+        await HongxianSqliteSchema.EnsureColumnAsync(
+            connection, transaction, "cross_store_operations", "status_reason_code",
+            "TEXT NULL", cancellationToken).ConfigureAwait(false);
+        await HongxianSqliteSchema.EnsureColumnAsync(
+            connection, transaction, "cross_store_participant_receipts", "suggested_action_code",
+            "TEXT NULL", cancellationToken).ConfigureAwait(false);
+        await HongxianSqliteSchema.EnsureColumnAsync(
+            connection, transaction, "cross_store_operation_transitions", "application_phase",
+            "TEXT NULL", cancellationToken).ConfigureAwait(false);
+        await HongxianSqliteSchema.EnsureColumnAsync(
+            connection, transaction, "cross_store_operation_transitions", "reason_code",
+            "TEXT NULL", cancellationToken).ConfigureAwait(false);
+
+        if (await HongxianSqliteSchema.ColumnExistsAsync(
+                connection, transaction, "cross_store_operations", "reconciliation_reason",
+                cancellationToken).ConfigureAwait(false))
+            await HongxianSqliteSchema.ExecuteAsync(
+                connection, transaction,
+                "UPDATE cross_store_operations SET status_reason_code = reconciliation_reason WHERE status_reason_code IS NULL;",
+                cancellationToken).ConfigureAwait(false);
+        if (await HongxianSqliteSchema.ColumnExistsAsync(
+                connection, transaction, "cross_store_participant_receipts", "recovery_action",
+                cancellationToken).ConfigureAwait(false))
+            await HongxianSqliteSchema.ExecuteAsync(
+                connection, transaction,
+                "UPDATE cross_store_participant_receipts SET suggested_action_code = recovery_action WHERE suggested_action_code IS NULL;",
+                cancellationToken).ConfigureAwait(false);
+        if (await HongxianSqliteSchema.ColumnExistsAsync(
+                connection, transaction, "cross_store_operation_transitions", "reason",
+                cancellationToken).ConfigureAwait(false))
+            await HongxianSqliteSchema.ExecuteAsync(
+                connection, transaction,
+                "UPDATE cross_store_operation_transitions SET reason_code = reason WHERE reason_code IS NULL;",
+                cancellationToken).ConfigureAwait(false);
+
+        await HongxianSqliteSchema.ExecuteAsync(
+            connection,
+            transaction,
+            """
+            UPDATE cross_store_operations
+            SET application_phase = CASE state
+                    WHEN 1 THEN 'legacy-revision-committed'
+                    WHEN 2 THEN 'legacy-published'
+                    ELSE application_phase
+                END
+            WHERE application_phase IS NULL AND state IN (1, 2);
+            UPDATE cross_store_operation_transitions
+            SET application_phase = CASE state
+                    WHEN 1 THEN 'legacy-revision-committed'
+                    WHEN 2 THEN 'legacy-published'
+                    ELSE application_phase
+                END
+            WHERE application_phase IS NULL AND state IN (1, 2);
+            UPDATE cross_store_operations SET state = 1 WHERE state = 2;
+            UPDATE cross_store_operation_transitions SET state = 1 WHERE state = 2;
+            """,
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<CrossStoreOperation?> ReadAsync(
@@ -653,6 +768,33 @@ public sealed class SqliteCrossStoreOperationStore :
             (CrossStoreOperationState.Active, CrossStoreOperationState.Completed) or
             (CrossStoreOperationState.ReconciliationRequired, CrossStoreOperationState.Active) or
             (CrossStoreOperationState.ReconciliationRequired, CrossStoreOperationState.Completed);
+
+    private static void ValidateSessionId(SessionId sessionId, string parameterName)
+    {
+        if (sessionId.Value == Guid.Empty)
+            throw new ArgumentException("A non-empty session ID is required.", parameterName);
+    }
+
+    private static void ValidateOperationId(
+        CrossStoreOperationId operationId,
+        string parameterName)
+    {
+        if (operationId.Value == Guid.Empty)
+            throw new ArgumentException(
+                "A non-empty cross-store operation ID is required.",
+                parameterName);
+    }
+
+    private static void ValidateExternalOperation(
+        ExternalOperationReference operation,
+        string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(operation.System) ||
+            string.IsNullOrWhiteSpace(operation.Id))
+            throw new ArgumentException(
+                "A complete external operation reference is required.",
+                parameterName);
+    }
 
     private static string Format(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);

@@ -31,10 +31,11 @@ public interface ISessionStore
 
     /// <summary>
     /// Compare-and-swap the accepted revision. Returns the updated
-    /// session when <paramref name="expectedRevision"/> matches the stored value,
-    /// or <c>null</c> when another promotion already advanced the revision.
+    /// session when <paramref name="expectedRevision"/> matches the stored value.
+    /// Throws <see cref="SessionRevisionConflictException"/> when another
+    /// promotion already advanced the revision.
     /// </summary>
-    Task<Session?> UpdateRevisionAsync(
+    Task<Session> UpdateRevisionAsync(
         SessionId sessionId,
         string? expectedRevision,
         string replacementRevision,

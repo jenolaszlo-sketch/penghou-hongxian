@@ -98,6 +98,7 @@ any external execution system using a provider-qualified operation reference.
 ## A small example
 
 ```csharp
+using System.Text.Json;
 using Penghou.Hongxian;
 using Penghou.Hongxian.Sqlite;
 
@@ -124,6 +125,17 @@ await sessions.AppendAsync(new SessionEventRequest(
     },
     IdempotencyKey: "planning/42:started"));
 
+var message = await sessions.AppendAsync(
+    new SessionEventRequest(
+        sessionId,
+        Actor: "user:laszlo",
+        EventType: SessionEventTypes.UserMessage,
+        OccurredAt: DateTimeOffset.UtcNow,
+        PayloadSchema: new SessionPayloadSchema("example.user-message", 1)),
+    new { text = "Please add authentication" });
+
+var payload = message.ReadPayload<JsonElement>();
+
 var page = await sessions.ReadPageAsync(
     new SessionEventPageRequest(sessionId, Limit: 100));
 var verifiedHead = await sessions.VerifyChainAsync(sessionId);
@@ -132,6 +144,16 @@ var verifiedHead = await sessions.VerifyChainAsync(sessionId);
 The same session can later attach another execution, record a failure, append a
 recovery plan and verified receipt, rebuild its projection, and prove the
 ordered ledger without rewriting the earlier history.
+
+Typed and `JsonElement` appends first become a JSON tree, then the SQLite
+provider uses Siming's canonical JSON contract. Object-property order,
+insignificant whitespace, and equivalent JSON number spelling therefore do not
+change payload identity. `DigestOnly` records the canonical JSON digest without
+content; `Omit` records neither content nor a digest, so omitted values cannot
+participate in content-based idempotency. Application payload schemas are
+versioned separately from the Hongxian envelope and SQLite schema. Registered
+upcasters transform payloads only while reading or projecting and never rewrite
+immutable ledger history.
 
 ## Architectural boundaries
 
@@ -184,6 +206,15 @@ Hongxian preserves actor claims and provenance; it does not authenticate them.
 Applications should keep secrets and unrestricted model transcripts out of the
 session ledger, store large content in its authoritative system, and record
 bounded references and digests instead.
+
+SQLite schemas are versioned independently for the catalog, projections, and
+cross-store operation store. Upgrades are serialized and transactional, and a
+library version refuses to open a component written by a newer schema. The host
+is responsible for backing up authoritative catalog, operation, outbox, and
+ledger files before upgrading. Projections are rebuildable; the other stores
+are not. Migration from the first preview discards old decision-lease rows
+because their GUID tokens cannot provide the fencing guarantee of the current
+monotonic token contract.
 
 ## License
 

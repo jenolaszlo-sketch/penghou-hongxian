@@ -177,6 +177,32 @@ public sealed class SqliteCrossStoreOperationStoreTests : IDisposable
             cancellationToken);
     }
 
+    [Fact]
+    public async Task MutationBoundaries_RejectInvalidEnumsAndNonMonotonicTimes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var store = new SqliteCrossStoreOperationStore(
+            Path.Combine(rootPath, "validation.db"), pooling: false);
+        var operation = await StartAsync(store, ct);
+
+        var invalidState = () => store.TransitionAsync(
+            operation.Id,
+            (CrossStoreOperationState)999,
+            operation.UpdatedAt,
+            cancellationToken: ct);
+        await invalidState.Should().ThrowAsync<ArgumentOutOfRangeException>();
+
+        var earlier = () => store.TransitionAsync(
+            operation.Id,
+            CrossStoreOperationState.Active,
+            operation.UpdatedAt.AddTicks(-1),
+            cancellationToken: ct);
+        await earlier.Should().ThrowAsync<ArgumentOutOfRangeException>();
+
+        var defaultId = () => store.GetAsync(default, ct);
+        await defaultId.Should().ThrowAsync<ArgumentException>();
+    }
+
     private static CrossStoreParticipantReceipt Receipt(
         CrossStoreOperation operation,
         string participant) => new()

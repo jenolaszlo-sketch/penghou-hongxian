@@ -32,8 +32,14 @@ public sealed class SqliteSessionCatalogTests : IDisposable
             ["toRevision"] = "resource-version-1"
         });
 
-        (await catalog.UpdateRevisionAsync(
-            session.Id, null, "losing-version", ct)).Should().BeNull();
+        var losing = () => catalog.UpdateRevisionAsync(
+            session.Id, null, "losing-version", ct);
+        var conflict = (await losing.Should()
+            .ThrowAsync<SessionRevisionConflictException>()).Which;
+        conflict.SessionId.Should().Be(session.Id);
+        conflict.ExpectedRevision.Should().BeNull();
+        conflict.ActualRevision.Should().Be("resource-version-1");
+        conflict.ActualVersion.Should().Be(1);
         (await catalog.ListPendingAsync(cancellationToken: ct))
             .Should().NotContain(item =>
                 item.CrossSystemRefs.GetValueOrDefault("toRevision") == "losing-version");
@@ -118,11 +124,17 @@ public sealed class SqliteSessionCatalogTests : IDisposable
         var second = new SqliteSessionCatalog(path, pooling: false);
         var session = await first.CreateAsync("repo", "resource", cancellationToken: ct);
 
+        static async Task<object> CaptureAsync(Task<Session> attempt)
+        {
+            try { return await attempt; }
+            catch (Exception exception) { return exception; }
+        }
         var results = await Task.WhenAll(
-            first.UpdateRevisionAsync(session.Id, null, "revision-a", ct),
-            second.UpdateRevisionAsync(session.Id, null, "revision-b", ct));
+            CaptureAsync(first.UpdateRevisionAsync(session.Id, null, "revision-a", ct)),
+            CaptureAsync(second.UpdateRevisionAsync(session.Id, null, "revision-b", ct)));
 
-        results.Count(item => item is not null).Should().Be(1);
+        results.Should().ContainSingle(item => item is Session);
+        results.Should().ContainSingle(item => item is SessionRevisionConflictException);
         var stored = await first.GetAsync(session.Id, ct);
         stored!.CurrentRevision.Should().BeOneOf("revision-a", "revision-b");
     }

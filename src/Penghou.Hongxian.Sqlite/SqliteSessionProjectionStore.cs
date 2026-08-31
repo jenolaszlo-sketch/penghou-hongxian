@@ -34,8 +34,13 @@ public sealed class SqliteSessionProjectionStore :
         {
             if (sessionEvent.Sequence == current.AppliedSequence &&
                 !string.Equals(sessionEvent.Hash, current.HeadHash, StringComparison.Ordinal))
-                throw new InvalidOperationException(
-                    $"Session projection head conflict for '{sessionEvent.SessionId}' at sequence {sessionEvent.Sequence}.");
+                throw new SessionProjectionConsistencyException(
+                    sessionEvent.SessionId,
+                    SessionProjectionConsistencyFailure.HeadConflict,
+                    sessionEvent.Sequence,
+                    current.AppliedSequence,
+                    sessionEvent.Hash,
+                    current.HeadHash);
             await MarkAppliedAsync(
                 connection, transaction, sessionEvent, cancellationToken).ConfigureAwait(false);
             transaction.Commit();
@@ -43,7 +48,11 @@ public sealed class SqliteSessionProjectionStore :
         }
         var expected = (current?.AppliedSequence ?? 0) + 1;
         if (sessionEvent.Sequence != expected)
-            throw new InvalidOperationException($"Session projection gap for '{sessionEvent.SessionId}': expected sequence {expected}, received {sessionEvent.Sequence}.");
+            throw new SessionProjectionConsistencyException(
+                sessionEvent.SessionId,
+                SessionProjectionConsistencyFailure.SequenceGap,
+                expected,
+                sessionEvent.Sequence);
         var state = SessionTimelineProjection.Apply(current?.State, sessionEvent);
         await WriteAsync(connection, transaction, new SessionProjectionSnapshot(
                 sessionEvent.SessionId, sessionEvent.Sequence, sessionEvent.Hash, state), cancellationToken)
@@ -85,40 +94,64 @@ public sealed class SqliteSessionProjectionStore :
                 "Every rebuilt event must belong to the verified session.", nameof(history));
         var ordered = history.Events.OrderBy(item => item.Sequence).ToArray();
         if (ordered.LongLength != history.VerifiedHead.Sequence)
-            throw new InvalidOperationException(
-                $"Cannot rebuild session '{history.SessionId}': verified head sequence " +
-                $"{history.VerifiedHead.Sequence} does not match {ordered.LongLength} supplied events.");
+            throw new SessionProjectionConsistencyException(
+                history.SessionId,
+                SessionProjectionConsistencyFailure.VerifiedHistoryLength,
+                history.VerifiedHead.Sequence,
+                ordered.LongLength);
         for (var index = 0; index < ordered.Length; index++)
         {
             if (ordered[index].Sequence != index + 1)
-                throw new InvalidOperationException(
-                    $"Cannot rebuild session '{history.SessionId}': sequence {index + 1} is missing.");
+                throw new SessionProjectionConsistencyException(
+                    history.SessionId,
+                    SessionProjectionConsistencyFailure.SequenceGap,
+                    index + 1,
+                    ordered[index].Sequence);
             var expectedPrevious = index == 0 ? null : ordered[index - 1].Hash;
             if (!string.Equals(
                     ordered[index].PreviousHash,
                     expectedPrevious,
                     StringComparison.Ordinal))
-                throw new InvalidOperationException(
-                    $"Cannot rebuild session '{history.SessionId}': hash-chain continuity failed at sequence {index + 1}.");
+                throw new SessionProjectionConsistencyException(
+                    history.SessionId,
+                    SessionProjectionConsistencyFailure.HashChainContinuity,
+                    index + 1,
+                    ordered[index].Sequence,
+                    expectedPrevious,
+                    ordered[index].PreviousHash);
         }
         if (ordered.Length > 0 && !string.Equals(
                 ordered[^1].Hash,
                 history.VerifiedHead.Hash,
                 StringComparison.Ordinal))
-            throw new InvalidOperationException(
-                $"Cannot rebuild session '{history.SessionId}': supplied history does not reach the verified head hash.");
+            throw new SessionProjectionConsistencyException(
+                history.SessionId,
+                SessionProjectionConsistencyFailure.VerifiedHeadMismatch,
+                history.VerifiedHead.Sequence,
+                ordered[^1].Sequence,
+                history.VerifiedHead.Hash,
+                ordered[^1].Hash);
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
         var current = await ReadAsync(
             connection, transaction, history.SessionId, cancellationToken).ConfigureAwait(false);
         if (current is not null && current.AppliedSequence > history.VerifiedHead.Sequence)
-            throw new InvalidOperationException(
-                $"Cannot rebuild session '{history.SessionId}' to verified sequence {history.VerifiedHead.Sequence}: " +
-                $"the projection has already reached sequence {current.AppliedSequence}.");
+            throw new SessionProjectionConsistencyException(
+                history.SessionId,
+                SessionProjectionConsistencyFailure.ProjectionAheadOfVerifiedHead,
+                history.VerifiedHead.Sequence,
+                current.AppliedSequence,
+                history.VerifiedHead.Hash,
+                current.HeadHash);
         if (current is not null && current.AppliedSequence == history.VerifiedHead.Sequence &&
             !string.Equals(current.HeadHash, history.VerifiedHead.Hash, StringComparison.Ordinal))
-            throw new InvalidOperationException(
-                $"Session projection head conflict for '{history.SessionId}' at sequence {history.VerifiedHead.Sequence}.");
+            throw new SessionProjectionConsistencyException(
+                history.SessionId,
+                SessionProjectionConsistencyFailure.HeadConflict,
+                history.VerifiedHead.Sequence,
+                current.AppliedSequence,
+                history.VerifiedHead.Hash,
+                current.HeadHash);
         await using (var delete = connection.CreateCommand())
         {
             delete.Transaction = transaction;
@@ -149,8 +182,13 @@ public sealed class SqliteSessionProjectionStore :
             connection, transaction, sessionEvent.SessionId, cancellationToken).ConfigureAwait(false);
         if (current is not null && current.CommittedSequence == sessionEvent.Sequence &&
             !string.Equals(current.CommittedHeadHash, sessionEvent.Hash, StringComparison.Ordinal))
-            throw new InvalidOperationException(
-                $"Projection delivery head conflict for '{sessionEvent.SessionId}' at sequence {sessionEvent.Sequence}.");
+            throw new SessionProjectionConsistencyException(
+                sessionEvent.SessionId,
+                SessionProjectionConsistencyFailure.HeadConflict,
+                sessionEvent.Sequence,
+                current.CommittedSequence,
+                sessionEvent.Hash,
+                current.CommittedHeadHash);
         if (current is null || sessionEvent.Sequence > current.CommittedSequence)
         {
             var applied = current ?? await StatusFromProjectionAsync(
@@ -252,10 +290,40 @@ public sealed class SqliteSessionProjectionStore :
             Pooling = pooling,
             DefaultTimeout = 30
         }.ConnectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            PRAGMA journal_mode = WAL;
+        try
+        {
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA journal_mode = WAL;";
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await HongxianSqliteSchema.EnsureAsync(
+                connection,
+                HongxianSqliteSchema.ProjectionComponent,
+                1,
+                MigrateSchemaAsync,
+                cancellationToken).ConfigureAwait(false);
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private static async Task MigrateSchemaAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        int fromVersion,
+        CancellationToken cancellationToken)
+    {
+        if (fromVersion != 0)
+            throw new HongxianSqliteSchemaCompatibilityException(
+                HongxianSqliteSchema.ProjectionComponent, fromVersion, 1);
+        await HongxianSqliteSchema.ExecuteAsync(
+            connection,
+            transaction,
+            """
             CREATE TABLE IF NOT EXISTS session_projections(
                 session_id TEXT PRIMARY KEY NOT NULL,
                 applied_sequence INTEGER NOT NULL,
@@ -274,9 +342,8 @@ public sealed class SqliteSessionProjectionStore :
             );
             CREATE INDEX IF NOT EXISTS ix_session_projection_lag
                 ON session_projection_delivery(applied_sequence, committed_sequence, updated_at);
-            """;
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        return connection;
+            """,
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<SessionProjectionSnapshot?> ReadAsync(

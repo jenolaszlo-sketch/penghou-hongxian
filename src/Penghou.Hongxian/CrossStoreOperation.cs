@@ -27,10 +27,11 @@ public readonly record struct CrossStoreOperationId
 
 public enum CrossStoreOperationState
 {
-    Prepared,
-    Active,
-    Completed,
-    ReconciliationRequired
+    Prepared = 0,
+    Active = 1,
+    // Value 2 was Published in Preview 1 and is migrated to Active.
+    Completed = 3,
+    ReconciliationRequired = 4
 }
 
 /// <summary>
