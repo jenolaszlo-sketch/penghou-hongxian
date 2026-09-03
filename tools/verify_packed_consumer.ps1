@@ -8,6 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $packageSource = (Resolve-Path $PackageDirectory).Path
 $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) "hongxian-consumer-$([Guid]::NewGuid().ToString('N'))"
+$consumerPackages = Join-Path $temporaryRoot 'packages'
 $projectPath = Join-Path $temporaryRoot 'PackedConsumer.csproj'
 $programPath = Join-Path $temporaryRoot 'Program.cs'
 try {
@@ -69,7 +70,9 @@ finally
 }
 '@ | Set-Content -Path $programPath -Encoding utf8
 
-    dotnet restore $projectPath --force --no-cache
+    # Use an isolated package folder so a locally cached, unpublished dependency
+    # cannot make the packed-consumer check pass when public restore would fail.
+    dotnet restore $projectPath --packages $consumerPackages --force --force-evaluate --no-cache
     if ($LASTEXITCODE -ne 0) { throw "Packed consumer restore failed." }
     dotnet run --project $projectPath --configuration Release --no-restore
     if ($LASTEXITCODE -ne 0) { throw "Packed consumer execution failed." }
