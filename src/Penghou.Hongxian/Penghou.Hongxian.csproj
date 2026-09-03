@@ -3,10 +3,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <!-- Existing typed/JSON overloads intentionally preserve optional caller
+         ergonomics; RS0026 is suppressed while the API baselines track them. -->
+    <NoWarn>$(NoWarn);1591;RS0026</NoWarn>
     <PackageId>Penghou.Hongxian</PackageId>
     <Title>Penghou Hongxian</Title>
     <Description>Provider-neutral durable session contracts, recovery evidence, projections, and external-operation correlation.</Description>
     <PackageTags>sessions;audit;recovery;provenance;human-ai;local-first</PackageTags>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+  </ItemGroup>
 </Project>

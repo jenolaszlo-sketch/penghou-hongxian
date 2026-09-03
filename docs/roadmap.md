@@ -12,24 +12,28 @@ tracks only its application profile and package integration.
 
 ## Current state
 
-Last reviewed: **2026-09-01**
+Last reviewed: **2026-09-03**
 
 - `Penghou.Hongxian` and `Penghou.Hongxian.Sqlite` `0.1.0-preview.1` are
   published on NuGet.
 - `0.1.0-preview.2` is the current release candidate. Its breaking consumer
-  contract, SQLite composition, projection-delivery diagnostics, and
-  consistency audit pass the local package gates.
+  contract, SQLite composition, projection-delivery diagnostics, consistency
+  audit, in-repository provider conformance reference suite, and package
+  compatibility validation pass the local release gates.
 - Immutable events, recovery evidence, current-state projections, transactional
   catalog state, decision leases, lifecycle outbox receipts, cross-store
   operation receipts, and forward reconciliation are extracted.
 - Provider-qualified external-operation identity prevents collisions between
   execution systems without introducing workflow-engine types.
-- The suite passes 68 tests; a standalone example and an isolated packed
+- The suite passes 75 tests; a standalone example and an isolated packed
   consumer both persist, project, and verify a session event.
 - A pre-integration review found no vulnerable direct or transitive packages
-  and all tests pass. It also identified integrity, fencing, provider-neutral
-  contract, schema-evolution, and usability work to complete in preview 2 before
-  Guyabano replaces its internal kernel.
+  and all tests pass. Preview 2 now records in-repository, interface-driven
+  provider contract conformance and public API compatibility against preview 1.
+  Multi-targeting .NET 8 is explicitly deferred: the package relies on
+  `Guid.CreateVersion7`,
+  and replacing it with a custom UUIDv7 implementation would add ordering and
+  identity risk without a demonstrated preview-2 consumer requirement.
 - A provider-neutral participant collaboration surface is accepted as
   post-integration work. It will reuse Hongxian's event, reference, projection,
   and idempotency foundations rather than introduce a parallel message store.
@@ -198,12 +202,17 @@ Consumer usability:
 
 Package and contract quality:
 
-- [ ] Add provider conformance suites for event, projection, catalog, lease,
-  lifecycle/outbox, and cross-store operation implementations.
-- [ ] Multi-target .NET 8 if UUIDv7 compatibility can be supplied without
-  weakening ordering or identity semantics.
-- [ ] Add public API analyzer shipped/unshipped baselines and enable package
-  compatibility validation against preview 1.
+- [x] Add an in-repository, interface-driven provider conformance reference
+  suite for event, projection, catalog, lease, lifecycle/outbox, cross-store
+  operation, and inspection contracts. An exported
+  `Penghou.Hongxian.Testing` package remains a future opportunity if another
+  provider makes that distribution useful.
+- [x] Defer .NET 8 multi-targeting for preview 2. `Guid.CreateVersion7` is
+  available in the supported net10 target; a net8 fallback would require a
+  second UUIDv7 implementation and could weaken ordering or identity semantics.
+- [x] Add public API analyzer shipped/unshipped baselines and enable package
+  compatibility validation against preview 1. Intentional preview-2 contract
+  breaks are recorded in package-validation suppression files.
 
 ## Milestone 4 — Query, lifecycle, and portability surface
 

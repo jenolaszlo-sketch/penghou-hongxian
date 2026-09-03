@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
+<Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore.TransitionAsync(Penghou.Hongxian.CrossStoreOperationId,Penghou.Hongxian.CrossStoreOperationState,System.DateTimeOffset,System.String,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Left>
+    <Right>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Penghou.Hongxian.Sqlite.SqliteSessionCatalog.#ctor(System.String,System.TimeProvider,System.Boolean)</Target>
+    <Left>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Left>
+    <Right>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Penghou.Hongxian.Sqlite.SqliteSessionCatalog.CommitRevisionPromotionAsync(Penghou.Hongxian.SessionId,System.String,System.String,System.String,System.Nullable{Penghou.Hongxian.ExternalOperationReference},System.DateTimeOffset,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Left>
+    <Right>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Penghou.Hongxian.Sqlite.SqliteSessionCatalog.ListPendingAsync(System.Int32,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Left>
+    <Right>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore.RebuildAsync(Penghou.Hongxian.SessionId,System.Collections.Generic.IReadOnlyList{Penghou.Hongxian.SessionEvent},System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Left>
+    <Right>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0008</DiagnosticId>
+    <Target>T:Penghou.Hongxian.Sqlite.SqliteSessionCatalog</Target>
+    <Left>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Left>
+    <Right>lib/net10.0/Penghou.Hongxian.Sqlite.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+</Suppressions>

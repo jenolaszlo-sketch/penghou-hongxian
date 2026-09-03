@@ -1,0 +1,889 @@
+#nullable enable
+const Penghou.Hongxian.CrossStoreSuggestedActions.InspectFailedParticipants = "inspect-failed-participants" -> string!
+const Penghou.Hongxian.CrossStoreSuggestedActions.ReconcileForward = "reconcile-forward" -> string!
+const Penghou.Hongxian.CrossStoreSuggestedActions.ResumeIncompleteParticipants = "resume-incomplete-participants" -> string!
+const Penghou.Hongxian.SessionConsistencyAuditService.MaximumOutboxScan = 1000 -> int
+const Penghou.Hongxian.SessionContractLimits.ApplicationPhaseCharacters = 200 -> int
+const Penghou.Hongxian.SessionContractLimits.ContextIdCharacters = 1024 -> int
+const Penghou.Hongxian.SessionContractLimits.CrossSystemReferenceCount = 64 -> int
+const Penghou.Hongxian.SessionContractLimits.CrossSystemReferenceNameCharacters = 200 -> int
+const Penghou.Hongxian.SessionContractLimits.CrossSystemReferenceValueCharacters = 2048 -> int
+const Penghou.Hongxian.SessionContractLimits.DigestCharacters = 256 -> int
+const Penghou.Hongxian.SessionContractLimits.EventTypeCharacters = 200 -> int
+const Penghou.Hongxian.SessionContractLimits.ExternalOperationIdCharacters = 1024 -> int
+const Penghou.Hongxian.SessionContractLimits.ExternalSystemCharacters = 128 -> int
+const Penghou.Hongxian.SessionContractLimits.IdempotencyKeyCharacters = 512 -> int
+const Penghou.Hongxian.SessionContractLimits.NarrativeCharacters = 8192 -> int
+const Penghou.Hongxian.SessionContractLimits.OperationIdentityCharacters = 2048 -> int
+const Penghou.Hongxian.SessionContractLimits.OperationKindCharacters = 200 -> int
+const Penghou.Hongxian.SessionContractLimits.OperationParticipantCharacters = 200 -> int
+const Penghou.Hongxian.SessionContractLimits.ParticipantDisplayNameCharacters = 256 -> int
+const Penghou.Hongxian.SessionContractLimits.ParticipantKindCharacters = 64 -> int
+const Penghou.Hongxian.SessionContractLimits.ParticipantProviderCharacters = 128 -> int
+const Penghou.Hongxian.SessionContractLimits.ParticipantSubjectCharacters = 1024 -> int
+const Penghou.Hongxian.SessionContractLimits.PayloadUtf8Bytes = 1048576 -> int
+const Penghou.Hongxian.SessionContractLimits.ReasonCodeCharacters = 200 -> int
+const Penghou.Hongxian.SessionContractLimits.ResourceIdCharacters = 2048 -> int
+const Penghou.Hongxian.SessionContractLimits.RevisionCharacters = 1024 -> int
+const Penghou.Hongxian.SessionContractLimits.SuggestedActionCodeCharacters = 200 -> int
+const Penghou.Hongxian.SessionEventEnvelopeSchema.CurrentVersion = 2 -> int
+const Penghou.Hongxian.SessionEventEnvelopeSchema.MinimumSupportedVersion = 1 -> int
+const Penghou.Hongxian.SessionEventPageRequest.MaximumLimit = 9999 -> int
+const Penghou.Hongxian.SessionEventTypes.ApprovalDenied = "approval-denied" -> string!
+const Penghou.Hongxian.SessionEventTypes.ApprovalGranted = "approval-granted" -> string!
+const Penghou.Hongxian.SessionEventTypes.AssistantMessage = "assistant-message" -> string!
+const Penghou.Hongxian.SessionEventTypes.DecisionLeaseAcquired = "decision-lease-acquired" -> string!
+const Penghou.Hongxian.SessionEventTypes.DecisionLeaseExpired = "decision-lease-expired" -> string!
+const Penghou.Hongxian.SessionEventTypes.DecisionLeaseReleased = "decision-lease-released" -> string!
+const Penghou.Hongxian.SessionEventTypes.DecisionProposed = "decision-proposed" -> string!
+const Penghou.Hongxian.SessionEventTypes.DecisionSuperseded = "decision-superseded" -> string!
+const Penghou.Hongxian.SessionEventTypes.ExecutionAttached = "execution-attached" -> string!
+const Penghou.Hongxian.SessionEventTypes.ExecutionCompleted = "execution-completed" -> string!
+const Penghou.Hongxian.SessionEventTypes.ExecutionFailed = "execution-failed" -> string!
+const Penghou.Hongxian.SessionEventTypes.ExecutionResumed = "execution-resumed" -> string!
+const Penghou.Hongxian.SessionEventTypes.ExecutionResumeFailed = "execution-resume-failed" -> string!
+const Penghou.Hongxian.SessionEventTypes.ExecutionStarted = "execution-started" -> string!
+const Penghou.Hongxian.SessionEventTypes.ExternalEventMirrored = "external-event-mirrored" -> string!
+const Penghou.Hongxian.SessionEventTypes.IncidentDetected = "incident-detected" -> string!
+const Penghou.Hongxian.SessionEventTypes.InputProvided = "input-provided" -> string!
+const Penghou.Hongxian.SessionEventTypes.InputRequested = "input-requested" -> string!
+const Penghou.Hongxian.SessionEventTypes.OperationParticipantRecorded = "operation-participant-recorded" -> string!
+const Penghou.Hongxian.SessionEventTypes.OperationPrepared = "operation-prepared" -> string!
+const Penghou.Hongxian.SessionEventTypes.OperationTransitioned = "operation-transitioned" -> string!
+const Penghou.Hongxian.SessionEventTypes.RecoveryAttempted = "recovery-attempted" -> string!
+const Penghou.Hongxian.SessionEventTypes.RecoveryFailed = "recovery-failed" -> string!
+const Penghou.Hongxian.SessionEventTypes.RecoveryPlanned = "recovery-planned" -> string!
+const Penghou.Hongxian.SessionEventTypes.RecoverySucceeded = "recovery-succeeded" -> string!
+const Penghou.Hongxian.SessionEventTypes.RevisionAccepted = "revision-accepted" -> string!
+const Penghou.Hongxian.SessionEventTypes.SessionCreated = "session-created" -> string!
+const Penghou.Hongxian.SessionEventTypes.UserActionRequired = "user-action-required" -> string!
+const Penghou.Hongxian.SessionEventTypes.UserMessage = "user-message" -> string!
+const Penghou.Hongxian.SessionParticipantKinds.Agent = "agent" -> string!
+const Penghou.Hongxian.SessionParticipantKinds.External = "external" -> string!
+const Penghou.Hongxian.SessionParticipantKinds.Human = "human" -> string!
+const Penghou.Hongxian.SessionParticipantKinds.Legacy = "legacy" -> string!
+const Penghou.Hongxian.SessionParticipantKinds.Model = "model" -> string!
+const Penghou.Hongxian.SessionParticipantKinds.System = "system" -> string!
+const Penghou.Hongxian.SessionParticipantKinds.Tool = "tool" -> string!
+const Penghou.Hongxian.SessionParticipantKinds.WorkflowActivity = "workflow-activity" -> string!
+override Penghou.Hongxian.CrossStoreOperationId.ToString() -> string!
+override Penghou.Hongxian.ExternalOperationReference.ToString() -> string!
+override Penghou.Hongxian.SessionId.ToString() -> string!
+override Penghou.Hongxian.SessionParticipantAttribution.ToString() -> string!
+Penghou.Hongxian.CrossStoreOperation
+Penghou.Hongxian.CrossStoreOperation.ApplicationPhase.get -> string?
+Penghou.Hongxian.CrossStoreOperation.ApplicationPhase.init -> void
+Penghou.Hongxian.CrossStoreOperation.CreatedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.CrossStoreOperation.CreatedAt.init -> void
+Penghou.Hongxian.CrossStoreOperation.ExternalOperation.get -> Penghou.Hongxian.ExternalOperationReference
+Penghou.Hongxian.CrossStoreOperation.ExternalOperation.init -> void
+Penghou.Hongxian.CrossStoreOperation.Id.get -> Penghou.Hongxian.CrossStoreOperationId
+Penghou.Hongxian.CrossStoreOperation.Id.init -> void
+Penghou.Hongxian.CrossStoreOperation.IdempotencyKey.get -> string!
+Penghou.Hongxian.CrossStoreOperation.IdempotencyKey.init -> void
+Penghou.Hongxian.CrossStoreOperation.Kind.get -> string!
+Penghou.Hongxian.CrossStoreOperation.Kind.init -> void
+Penghou.Hongxian.CrossStoreOperation.ParticipantIdempotencyKey(string! participant) -> string!
+Penghou.Hongxian.CrossStoreOperation.Participants.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.CrossStoreParticipantReceipt!>!
+Penghou.Hongxian.CrossStoreOperation.Participants.init -> void
+Penghou.Hongxian.CrossStoreOperation.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.CrossStoreOperation.SessionId.init -> void
+Penghou.Hongxian.CrossStoreOperation.State.get -> Penghou.Hongxian.CrossStoreOperationState
+Penghou.Hongxian.CrossStoreOperation.State.init -> void
+Penghou.Hongxian.CrossStoreOperation.StatusReasonCode.get -> string?
+Penghou.Hongxian.CrossStoreOperation.StatusReasonCode.init -> void
+Penghou.Hongxian.CrossStoreOperation.Transitions.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.CrossStoreOperationTransition!>!
+Penghou.Hongxian.CrossStoreOperation.Transitions.init -> void
+Penghou.Hongxian.CrossStoreOperation.UpdatedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.CrossStoreOperation.UpdatedAt.init -> void
+Penghou.Hongxian.CrossStoreOperation.Version.get -> long
+Penghou.Hongxian.CrossStoreOperation.Version.init -> void
+Penghou.Hongxian.CrossStoreOperationHealth
+Penghou.Hongxian.CrossStoreOperationHealth.Healthy = 0 -> Penghou.Hongxian.CrossStoreOperationHealth
+Penghou.Hongxian.CrossStoreOperationHealth.Incomplete = 1 -> Penghou.Hongxian.CrossStoreOperationHealth
+Penghou.Hongxian.CrossStoreOperationHealth.ReconciliationRequired = 2 -> Penghou.Hongxian.CrossStoreOperationHealth
+Penghou.Hongxian.CrossStoreOperationId
+Penghou.Hongxian.CrossStoreOperationId.CrossStoreOperationId() -> void
+Penghou.Hongxian.CrossStoreOperationId.CrossStoreOperationId(System.Guid value) -> void
+Penghou.Hongxian.CrossStoreOperationId.ToString(string? format, System.IFormatProvider? formatProvider) -> string!
+Penghou.Hongxian.CrossStoreOperationId.TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider) -> bool
+Penghou.Hongxian.CrossStoreOperationId.Value.get -> System.Guid
+Penghou.Hongxian.CrossStoreOperationReconciliationItem
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.CrossStoreOperationReconciliationItem(Penghou.Hongxian.CrossStoreOperationId OperationId, Penghou.Hongxian.CrossStoreOperationState State, Penghou.Hongxian.CrossStoreOperationHealth Health, System.Collections.Generic.IReadOnlyList<string!>! SuggestedActionCodes, System.Collections.Generic.IReadOnlyList<string!>! FailedParticipants) -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.FailedParticipants.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.FailedParticipants.init -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.Health.get -> Penghou.Hongxian.CrossStoreOperationHealth
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.Health.init -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.OperationId.get -> Penghou.Hongxian.CrossStoreOperationId
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.OperationId.init -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.State.get -> Penghou.Hongxian.CrossStoreOperationState
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.State.init -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.SuggestedActionCodes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Penghou.Hongxian.CrossStoreOperationReconciliationItem.SuggestedActionCodes.init -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationReport
+Penghou.Hongxian.CrossStoreOperationReconciliationReport.CrossStoreOperationReconciliationReport(Penghou.Hongxian.SessionId SessionId, System.DateTimeOffset InspectedAt, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.CrossStoreOperationReconciliationItem!>! Operations) -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationReport.InspectedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.CrossStoreOperationReconciliationReport.InspectedAt.init -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationReport.IsHealthy.get -> bool
+Penghou.Hongxian.CrossStoreOperationReconciliationReport.Operations.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.CrossStoreOperationReconciliationItem!>!
+Penghou.Hongxian.CrossStoreOperationReconciliationReport.Operations.init -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationReport.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.CrossStoreOperationReconciliationReport.SessionId.init -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationService
+Penghou.Hongxian.CrossStoreOperationReconciliationService.CrossStoreOperationReconciliationService(Penghou.Hongxian.ICrossStoreOperationStore! operationStore, System.TimeProvider! timeProvider) -> void
+Penghou.Hongxian.CrossStoreOperationReconciliationService.InspectAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperationReconciliationReport!>!
+Penghou.Hongxian.CrossStoreOperationState
+Penghou.Hongxian.CrossStoreOperationState.Active = 1 -> Penghou.Hongxian.CrossStoreOperationState
+Penghou.Hongxian.CrossStoreOperationState.Completed = 3 -> Penghou.Hongxian.CrossStoreOperationState
+Penghou.Hongxian.CrossStoreOperationState.Prepared = 0 -> Penghou.Hongxian.CrossStoreOperationState
+Penghou.Hongxian.CrossStoreOperationState.ReconciliationRequired = 4 -> Penghou.Hongxian.CrossStoreOperationState
+Penghou.Hongxian.CrossStoreOperationTransition
+Penghou.Hongxian.CrossStoreOperationTransition.ApplicationPhase.get -> string?
+Penghou.Hongxian.CrossStoreOperationTransition.ApplicationPhase.init -> void
+Penghou.Hongxian.CrossStoreOperationTransition.OccurredAt.get -> System.DateTimeOffset
+Penghou.Hongxian.CrossStoreOperationTransition.OccurredAt.init -> void
+Penghou.Hongxian.CrossStoreOperationTransition.Reason.get -> string?
+Penghou.Hongxian.CrossStoreOperationTransition.Reason.init -> void
+Penghou.Hongxian.CrossStoreOperationTransition.Sequence.get -> long
+Penghou.Hongxian.CrossStoreOperationTransition.Sequence.init -> void
+Penghou.Hongxian.CrossStoreOperationTransition.State.get -> Penghou.Hongxian.CrossStoreOperationState
+Penghou.Hongxian.CrossStoreOperationTransition.State.init -> void
+Penghou.Hongxian.CrossStoreParticipantReceipt
+Penghou.Hongxian.CrossStoreParticipantReceipt.AfterIdentity.get -> string?
+Penghou.Hongxian.CrossStoreParticipantReceipt.AfterIdentity.init -> void
+Penghou.Hongxian.CrossStoreParticipantReceipt.BeforeIdentity.get -> string?
+Penghou.Hongxian.CrossStoreParticipantReceipt.BeforeIdentity.init -> void
+Penghou.Hongxian.CrossStoreParticipantReceipt.IdempotencyKey.get -> string!
+Penghou.Hongxian.CrossStoreParticipantReceipt.IdempotencyKey.init -> void
+Penghou.Hongxian.CrossStoreParticipantReceipt.Participant.get -> string!
+Penghou.Hongxian.CrossStoreParticipantReceipt.Participant.init -> void
+Penghou.Hongxian.CrossStoreParticipantReceipt.RecordedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.CrossStoreParticipantReceipt.RecordedAt.init -> void
+Penghou.Hongxian.CrossStoreParticipantReceipt.ResultHash.get -> string?
+Penghou.Hongxian.CrossStoreParticipantReceipt.ResultHash.init -> void
+Penghou.Hongxian.CrossStoreParticipantReceipt.State.get -> Penghou.Hongxian.CrossStoreParticipantState
+Penghou.Hongxian.CrossStoreParticipantReceipt.State.init -> void
+Penghou.Hongxian.CrossStoreParticipantReceipt.SuggestedActionCode.get -> string?
+Penghou.Hongxian.CrossStoreParticipantReceipt.SuggestedActionCode.init -> void
+Penghou.Hongxian.CrossStoreParticipantState
+Penghou.Hongxian.CrossStoreParticipantState.Applied = 0 -> Penghou.Hongxian.CrossStoreParticipantState
+Penghou.Hongxian.CrossStoreParticipantState.Compensated = 1 -> Penghou.Hongxian.CrossStoreParticipantState
+Penghou.Hongxian.CrossStoreParticipantState.Failed = 2 -> Penghou.Hongxian.CrossStoreParticipantState
+Penghou.Hongxian.CrossStoreSuggestedActions
+Penghou.Hongxian.ExternalOperationReference
+Penghou.Hongxian.ExternalOperationReference.ExternalOperationReference() -> void
+Penghou.Hongxian.ExternalOperationReference.ExternalOperationReference(string! system, string! id) -> void
+Penghou.Hongxian.ExternalOperationReference.ExternalOperationReference(string! system, System.Guid id) -> void
+Penghou.Hongxian.ExternalOperationReference.Id.get -> string!
+Penghou.Hongxian.ExternalOperationReference.System.get -> string!
+Penghou.Hongxian.ExternalOperationReference.ToString(string? format, System.IFormatProvider? formatProvider) -> string!
+Penghou.Hongxian.ExternalOperationReference.TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider) -> bool
+Penghou.Hongxian.ICrossStoreOperationStore
+Penghou.Hongxian.ICrossStoreOperationStore.FindByExternalOperationAsync(Penghou.Hongxian.ExternalOperationReference externalOperation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperation?>!
+Penghou.Hongxian.ICrossStoreOperationStore.GetAsync(Penghou.Hongxian.CrossStoreOperationId operationId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperation?>!
+Penghou.Hongxian.ICrossStoreOperationStore.ListAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.CrossStoreOperation!>!>!
+Penghou.Hongxian.ICrossStoreOperationStore.RecordParticipantAsync(Penghou.Hongxian.CrossStoreOperationId operationId, Penghou.Hongxian.CrossStoreParticipantReceipt! receipt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperation!>!
+Penghou.Hongxian.ICrossStoreOperationStore.StartAsync(Penghou.Hongxian.StartCrossStoreOperationRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperation!>!
+Penghou.Hongxian.ICrossStoreOperationStore.TransitionAsync(Penghou.Hongxian.CrossStoreOperationId operationId, Penghou.Hongxian.CrossStoreOperationState targetState, System.DateTimeOffset occurredAt, string? applicationPhase = null, string? reasonCode = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperation!>!
+Penghou.Hongxian.ISessionDecisionLease
+Penghou.Hongxian.ISessionDecisionLease.AcquiredAt.get -> System.DateTimeOffset
+Penghou.Hongxian.ISessionDecisionLease.AssertOwnershipAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.ISessionDecisionLease.ExpiresAt.get -> System.DateTimeOffset
+Penghou.Hongxian.ISessionDecisionLease.FencingToken.get -> long
+Penghou.Hongxian.ISessionDecisionLease.LeaseLost.get -> System.Threading.CancellationToken
+Penghou.Hongxian.ISessionDecisionLease.OperationId.get -> System.Guid
+Penghou.Hongxian.ISessionDecisionLease.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.ISessionDecisionLeaseInspector
+Penghou.Hongxian.ISessionDecisionLeaseInspector.GetStatusAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionDecisionLeaseStatus?>!
+Penghou.Hongxian.ISessionDecisionLeaseProvider
+Penghou.Hongxian.ISessionDecisionLeaseProvider.AcquireAsync(Penghou.Hongxian.SessionId sessionId, System.Guid operationId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Penghou.Hongxian.ISessionDecisionLease!>
+Penghou.Hongxian.ISessionEventDeliveryStore
+Penghou.Hongxian.ISessionEventDeliveryStore.AppendWithDeliveryAsync(Penghou.Hongxian.SessionEventRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEventAppendResult!>!
+Penghou.Hongxian.ISessionEventStore
+Penghou.Hongxian.ISessionEventStore.AppendAsync(Penghou.Hongxian.SessionEventRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent!>!
+Penghou.Hongxian.ISessionEventStore.ReadAsync(Penghou.Hongxian.SessionId sessionId, long afterSequence = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvent!>!>!
+Penghou.Hongxian.ISessionEventStore.ReadPageAsync(Penghou.Hongxian.SessionEventPageRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEventPage!>!
+Penghou.Hongxian.ISessionEventStore.ReadVerifiedHistoryAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.VerifiedSessionHistory!>!
+Penghou.Hongxian.ISessionEventStore.VerifyChainAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent?>!
+Penghou.Hongxian.ISessionEvidenceOutbox
+Penghou.Hongxian.ISessionEvidenceOutbox.ListPendingAsync(int maximumCount = 100, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvidenceOutboxRecord!>!>!
+Penghou.Hongxian.ISessionEvidenceOutbox.MarkDeliveredAsync(System.Guid receiptId, System.DateTimeOffset deliveredAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.ISessionLedgerPresenceStore
+Penghou.Hongxian.ISessionLedgerPresenceStore.ExistsAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Penghou.Hongxian.ISessionPayloadUpcaster
+Penghou.Hongxian.ISessionPayloadUpcaster.SchemaName.get -> string!
+Penghou.Hongxian.ISessionPayloadUpcaster.SourceVersion.get -> int
+Penghou.Hongxian.ISessionPayloadUpcaster.TargetVersion.get -> int
+Penghou.Hongxian.ISessionPayloadUpcaster.Upcast(System.Text.Json.JsonElement payload) -> System.Text.Json.JsonElement
+Penghou.Hongxian.ISessionProjectionDeliveryStore
+Penghou.Hongxian.ISessionProjectionDeliveryStore.GetDeliveryStatusAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionProjectionDeliveryStatus?>!
+Penghou.Hongxian.ISessionProjectionDeliveryStore.ListLaggingAsync(int maximumCount = 100, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionProjectionDeliveryStatus!>!>!
+Penghou.Hongxian.ISessionProjectionDeliveryStore.RecordCommittedAsync(Penghou.Hongxian.SessionEvent! sessionEvent, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.ISessionProjectionDeliveryStore.RecordFailureAsync(Penghou.Hongxian.SessionEvent! sessionEvent, System.Exception! exception, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.ISessionProjectionStore
+Penghou.Hongxian.ISessionProjectionStore.ApplyAsync(Penghou.Hongxian.SessionEvent! sessionEvent, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.ISessionProjectionStore.GetAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionProjectionSnapshot?>!
+Penghou.Hongxian.ISessionProjectionStore.ListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionProjectionSnapshot!>!>!
+Penghou.Hongxian.ISessionProjectionStore.RebuildAsync(Penghou.Hongxian.VerifiedSessionHistory! history, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionProjectionSnapshot?>!
+Penghou.Hongxian.ISessionStore
+Penghou.Hongxian.ISessionStore.AttachExternalOperationAsync(Penghou.Hongxian.SessionId sessionId, Penghou.Hongxian.ExternalOperationReference externalOperation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.Session!>!
+Penghou.Hongxian.ISessionStore.CreateAsync(string! contextId, string! resourceId, Penghou.Hongxian.SessionId? sessionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.Session!>!
+Penghou.Hongxian.ISessionStore.FindByExternalOperationAsync(Penghou.Hongxian.ExternalOperationReference externalOperation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.Session?>!
+Penghou.Hongxian.ISessionStore.GetAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.Session?>!
+Penghou.Hongxian.ISessionStore.ListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.Session!>!>!
+Penghou.Hongxian.ISessionStore.UpdateRevisionAsync(Penghou.Hongxian.SessionId sessionId, string? expectedRevision, string! replacementRevision, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.Session!>!
+Penghou.Hongxian.Session
+Penghou.Hongxian.Session.ContextId.get -> string!
+Penghou.Hongxian.Session.ContextId.init -> void
+Penghou.Hongxian.Session.CreatedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.Session.CreatedAt.init -> void
+Penghou.Hongxian.Session.CurrentRevision.get -> string?
+Penghou.Hongxian.Session.CurrentRevision.init -> void
+Penghou.Hongxian.Session.ExternalOperations.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExternalOperationReference>!
+Penghou.Hongxian.Session.ExternalOperations.init -> void
+Penghou.Hongxian.Session.Id.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.Session.Id.init -> void
+Penghou.Hongxian.Session.ResourceId.get -> string!
+Penghou.Hongxian.Session.ResourceId.init -> void
+Penghou.Hongxian.Session.Version.get -> long
+Penghou.Hongxian.Session.Version.init -> void
+Penghou.Hongxian.SessionActiveIncident
+Penghou.Hongxian.SessionActiveIncident.ClaimedOccurredAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionActiveIncident.ClaimedOccurredAt.init -> void
+Penghou.Hongxian.SessionActiveIncident.DetectedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionActiveIncident.DetectedAt.init -> void
+Penghou.Hongxian.SessionActiveIncident.ExternalOperationId.get -> System.Guid?
+Penghou.Hongxian.SessionActiveIncident.ExternalOperationId.init -> void
+Penghou.Hongxian.SessionActiveIncident.IncidentId.get -> System.Guid
+Penghou.Hongxian.SessionActiveIncident.IncidentId.init -> void
+Penghou.Hongxian.SessionActiveIncident.Outcome.get -> Penghou.Hongxian.SessionRecoveryOutcome?
+Penghou.Hongxian.SessionActiveIncident.Outcome.init -> void
+Penghou.Hongxian.SessionActiveIncident.ReasonCode.get -> string?
+Penghou.Hongxian.SessionActiveIncident.ReasonCode.init -> void
+Penghou.Hongxian.SessionActiveIncident.SessionActiveIncident(System.Guid IncidentId, string? ReasonCode, Penghou.Hongxian.SessionIncidentSeverity Severity, System.DateTimeOffset DetectedAt, System.DateTimeOffset ClaimedOccurredAt, System.Guid? ExternalOperationId = null, Penghou.Hongxian.SessionRecoveryOutcome? Outcome = null) -> void
+Penghou.Hongxian.SessionActiveIncident.Severity.get -> Penghou.Hongxian.SessionIncidentSeverity
+Penghou.Hongxian.SessionActiveIncident.Severity.init -> void
+Penghou.Hongxian.SessionConsistencyAuditResult
+Penghou.Hongxian.SessionConsistencyAuditResult.CatalogEntryExists.get -> bool
+Penghou.Hongxian.SessionConsistencyAuditResult.CatalogVersion.get -> long?
+Penghou.Hongxian.SessionConsistencyAuditResult.CatalogVersion.init -> void
+Penghou.Hongxian.SessionConsistencyAuditResult.DecisionLease.get -> Penghou.Hongxian.SessionDecisionLeaseStatus?
+Penghou.Hongxian.SessionConsistencyAuditResult.DecisionLease.init -> void
+Penghou.Hongxian.SessionConsistencyAuditResult.EvidenceOutboxes.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvidenceOutboxAuditResult!>!
+Penghou.Hongxian.SessionConsistencyAuditResult.EvidenceOutboxes.init -> void
+Penghou.Hongxian.SessionConsistencyAuditResult.FailedParticipantCount.get -> int
+Penghou.Hongxian.SessionConsistencyAuditResult.Health.get -> Penghou.Hongxian.SessionConsistencyHealth
+Penghou.Hongxian.SessionConsistencyAuditResult.Health.init -> void
+Penghou.Hongxian.SessionConsistencyAuditResult.IncompleteOperationCount.get -> int
+Penghou.Hongxian.SessionConsistencyAuditResult.Ledger.get -> Penghou.Hongxian.SessionLedgerAuditResult!
+Penghou.Hongxian.SessionConsistencyAuditResult.Ledger.init -> void
+Penghou.Hongxian.SessionConsistencyAuditResult.ObservedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionConsistencyAuditResult.ObservedAt.init -> void
+Penghou.Hongxian.SessionConsistencyAuditResult.Operations.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionOperationAuditResult!>!
+Penghou.Hongxian.SessionConsistencyAuditResult.Operations.init -> void
+Penghou.Hongxian.SessionConsistencyAuditResult.PendingEvidenceCount.get -> int
+Penghou.Hongxian.SessionConsistencyAuditResult.Projection.get -> Penghou.Hongxian.SessionProjectionDeliveryStatus?
+Penghou.Hongxian.SessionConsistencyAuditResult.Projection.init -> void
+Penghou.Hongxian.SessionConsistencyAuditResult.ProjectionIsLagging.get -> bool
+Penghou.Hongxian.SessionConsistencyAuditResult.SessionConsistencyAuditResult(Penghou.Hongxian.SessionId SessionId, System.DateTimeOffset ObservedAt, Penghou.Hongxian.SessionConsistencyHealth Health, Penghou.Hongxian.SessionLedgerAuditResult! Ledger, long? CatalogVersion, Penghou.Hongxian.SessionProjectionDeliveryStatus? Projection, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionOperationAuditResult!>! Operations, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvidenceOutboxAuditResult!>! EvidenceOutboxes, Penghou.Hongxian.SessionDecisionLeaseStatus? DecisionLease) -> void
+Penghou.Hongxian.SessionConsistencyAuditResult.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionConsistencyAuditResult.SessionId.init -> void
+Penghou.Hongxian.SessionConsistencyAuditService
+Penghou.Hongxian.SessionConsistencyAuditService.InspectAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionConsistencyAuditResult!>!
+Penghou.Hongxian.SessionConsistencyAuditService.SessionConsistencyAuditService(Penghou.Hongxian.ISessionEventStore! events, Penghou.Hongxian.ISessionProjectionDeliveryStore! projections, Penghou.Hongxian.ISessionStore! catalog, Penghou.Hongxian.ICrossStoreOperationStore! operations, System.Collections.Generic.IEnumerable<Penghou.Hongxian.SessionEvidenceOutboxAuditSource!>? outboxes = null, Penghou.Hongxian.ISessionDecisionLeaseInspector? leases = null, System.TimeProvider? timeProvider = null) -> void
+Penghou.Hongxian.SessionConsistencyHealth
+Penghou.Hongxian.SessionConsistencyHealth.Corrupt = 4 -> Penghou.Hongxian.SessionConsistencyHealth
+Penghou.Hongxian.SessionConsistencyHealth.Healthy = 0 -> Penghou.Hongxian.SessionConsistencyHealth
+Penghou.Hongxian.SessionConsistencyHealth.Incompatible = 3 -> Penghou.Hongxian.SessionConsistencyHealth
+Penghou.Hongxian.SessionConsistencyHealth.ReconciliationRequired = 2 -> Penghou.Hongxian.SessionConsistencyHealth
+Penghou.Hongxian.SessionConsistencyHealth.Warning = 1 -> Penghou.Hongxian.SessionConsistencyHealth
+Penghou.Hongxian.SessionContractLimits
+Penghou.Hongxian.SessionContractValidation
+Penghou.Hongxian.SessionCurrentState
+Penghou.Hongxian.SessionCurrentState.ActiveIncidents.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionActiveIncident!>?
+Penghou.Hongxian.SessionCurrentState.ActiveIncidents.init -> void
+Penghou.Hongxian.SessionCurrentState.CurrentRevision.get -> string?
+Penghou.Hongxian.SessionCurrentState.CurrentRevision.init -> void
+Penghou.Hongxian.SessionCurrentState.LastCommittedAt.get -> System.DateTimeOffset?
+Penghou.Hongxian.SessionCurrentState.LastCommittedAt.init -> void
+Penghou.Hongxian.SessionCurrentState.LastEventAt.get -> System.DateTimeOffset?
+Penghou.Hongxian.SessionCurrentState.LastEventAt.init -> void
+Penghou.Hongxian.SessionCurrentState.LastEventType.get -> string?
+Penghou.Hongxian.SessionCurrentState.LastEventType.init -> void
+Penghou.Hongxian.SessionCurrentState.LastExternalOperationId.get -> System.Guid?
+Penghou.Hongxian.SessionCurrentState.LastExternalOperationId.init -> void
+Penghou.Hongxian.SessionCurrentState.LastIncidentReason.get -> string?
+Penghou.Hongxian.SessionCurrentState.LastIncidentReason.init -> void
+Penghou.Hongxian.SessionCurrentState.OpenIncidentIds.get -> System.Collections.Generic.IReadOnlyList<string!>?
+Penghou.Hongxian.SessionCurrentState.OpenIncidentIds.init -> void
+Penghou.Hongxian.SessionCurrentState.OperatorState.get -> Penghou.Hongxian.SessionOperatorState
+Penghou.Hongxian.SessionCurrentState.OperatorState.init -> void
+Penghou.Hongxian.SessionCurrentState.PendingApprovals.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionPendingApproval!>?
+Penghou.Hongxian.SessionCurrentState.PendingApprovals.init -> void
+Penghou.Hongxian.SessionCurrentState.PendingInputEventIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Penghou.Hongxian.SessionCurrentState.PendingInputEventIds.init -> void
+Penghou.Hongxian.SessionCurrentState.PendingInputs.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionPendingInput!>?
+Penghou.Hongxian.SessionCurrentState.PendingInputs.init -> void
+Penghou.Hongxian.SessionCurrentState.ResolvedIncidentCount.get -> int
+Penghou.Hongxian.SessionCurrentState.ResolvedIncidentCount.init -> void
+Penghou.Hongxian.SessionCurrentState.SessionCreatedAt.get -> System.DateTimeOffset?
+Penghou.Hongxian.SessionCurrentState.SessionCreatedAt.init -> void
+Penghou.Hongxian.SessionCurrentState.SessionCurrentState(int TotalEvents, string? LastEventType, System.DateTimeOffset? LastEventAt, System.Collections.Generic.IReadOnlyList<string!>! PendingInputEventIds, string? CurrentRevision, System.Guid? LastExternalOperationId, System.DateTimeOffset? SessionCreatedAt, System.DateTimeOffset? LastCommittedAt = null, Penghou.Hongxian.SessionOperatorState OperatorState = Penghou.Hongxian.SessionOperatorState.Ready, System.Collections.Generic.IReadOnlyList<string!>? OpenIncidentIds = null, int ResolvedIncidentCount = 0, string? LastIncidentReason = null, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionPendingInput!>? PendingInputs = null, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionPendingApproval!>? PendingApprovals = null, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionActiveIncident!>? ActiveIncidents = null) -> void
+Penghou.Hongxian.SessionCurrentState.TotalEvents.get -> int
+Penghou.Hongxian.SessionCurrentState.TotalEvents.init -> void
+Penghou.Hongxian.SessionDecisionLeaseLostException
+Penghou.Hongxian.SessionDecisionLeaseLostException.FencingToken.get -> long
+Penghou.Hongxian.SessionDecisionLeaseLostException.SessionDecisionLeaseLostException(Penghou.Hongxian.SessionId sessionId, long fencingToken, System.Exception? innerException = null) -> void
+Penghou.Hongxian.SessionDecisionLeaseLostException.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionDecisionLeaseStatus
+Penghou.Hongxian.SessionDecisionLeaseStatus.AcquiredAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionDecisionLeaseStatus.AcquiredAt.init -> void
+Penghou.Hongxian.SessionDecisionLeaseStatus.ExpiresAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionDecisionLeaseStatus.ExpiresAt.init -> void
+Penghou.Hongxian.SessionDecisionLeaseStatus.FencingToken.get -> long
+Penghou.Hongxian.SessionDecisionLeaseStatus.FencingToken.init -> void
+Penghou.Hongxian.SessionDecisionLeaseStatus.IsExpired.get -> bool
+Penghou.Hongxian.SessionDecisionLeaseStatus.ObservedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionDecisionLeaseStatus.ObservedAt.init -> void
+Penghou.Hongxian.SessionDecisionLeaseStatus.OperationId.get -> System.Guid
+Penghou.Hongxian.SessionDecisionLeaseStatus.OperationId.init -> void
+Penghou.Hongxian.SessionDecisionLeaseStatus.SessionDecisionLeaseStatus(Penghou.Hongxian.SessionId SessionId, System.Guid OperationId, long FencingToken, System.DateTimeOffset AcquiredAt, System.DateTimeOffset ExpiresAt, System.DateTimeOffset ObservedAt) -> void
+Penghou.Hongxian.SessionDecisionLeaseStatus.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionDecisionLeaseStatus.SessionId.init -> void
+Penghou.Hongxian.SessionEvent
+Penghou.Hongxian.SessionEvent.CausationId.get -> System.Guid?
+Penghou.Hongxian.SessionEvent.CausationId.init -> void
+Penghou.Hongxian.SessionEvent.CommittedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionEvent.CommittedAt.init -> void
+Penghou.Hongxian.SessionEvent.CorrelationId.get -> System.Guid?
+Penghou.Hongxian.SessionEvent.CorrelationId.init -> void
+Penghou.Hongxian.SessionEvent.CrossSystemRefs.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+Penghou.Hongxian.SessionEvent.CrossSystemRefs.init -> void
+Penghou.Hongxian.SessionEvent.EventId.get -> System.Guid
+Penghou.Hongxian.SessionEvent.EventId.init -> void
+Penghou.Hongxian.SessionEvent.EventType.get -> string!
+Penghou.Hongxian.SessionEvent.EventType.init -> void
+Penghou.Hongxian.SessionEvent.Hash.get -> string!
+Penghou.Hongxian.SessionEvent.Hash.init -> void
+Penghou.Hongxian.SessionEvent.IdempotencyKey.get -> string?
+Penghou.Hongxian.SessionEvent.IdempotencyKey.init -> void
+Penghou.Hongxian.SessionEvent.OccurredAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionEvent.OccurredAt.init -> void
+Penghou.Hongxian.SessionEvent.Participant.get -> Penghou.Hongxian.SessionParticipantAttribution!
+Penghou.Hongxian.SessionEvent.Participant.init -> void
+Penghou.Hongxian.SessionEvent.Payload.get -> System.Text.Json.JsonElement?
+Penghou.Hongxian.SessionEvent.Payload.init -> void
+Penghou.Hongxian.SessionEvent.PayloadDigest.get -> string?
+Penghou.Hongxian.SessionEvent.PayloadDigest.init -> void
+Penghou.Hongxian.SessionEvent.PayloadJson.get -> string?
+Penghou.Hongxian.SessionEvent.PayloadJson.init -> void
+Penghou.Hongxian.SessionEvent.PayloadRetention.get -> Penghou.Hongxian.SessionPayloadRetention
+Penghou.Hongxian.SessionEvent.PayloadRetention.init -> void
+Penghou.Hongxian.SessionEvent.PayloadSchema.get -> Penghou.Hongxian.SessionPayloadSchema?
+Penghou.Hongxian.SessionEvent.PayloadSchema.init -> void
+Penghou.Hongxian.SessionEvent.PayloadSensitivity.get -> Penghou.Hongxian.SessionPayloadSensitivity
+Penghou.Hongxian.SessionEvent.PayloadSensitivity.init -> void
+Penghou.Hongxian.SessionEvent.PreviousHash.get -> string?
+Penghou.Hongxian.SessionEvent.PreviousHash.init -> void
+Penghou.Hongxian.SessionEvent.SchemaVersion.get -> int
+Penghou.Hongxian.SessionEvent.SchemaVersion.init -> void
+Penghou.Hongxian.SessionEvent.Sequence.get -> long
+Penghou.Hongxian.SessionEvent.Sequence.init -> void
+Penghou.Hongxian.SessionEvent.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionEvent.SessionId.init -> void
+Penghou.Hongxian.SessionEventAppendResult
+Penghou.Hongxian.SessionEventAppendResult.Event.get -> Penghou.Hongxian.SessionEvent!
+Penghou.Hongxian.SessionEventAppendResult.Event.init -> void
+Penghou.Hongxian.SessionEventAppendResult.ProjectionDelivery.get -> Penghou.Hongxian.SessionProjectionDeliveryResult!
+Penghou.Hongxian.SessionEventAppendResult.ProjectionDelivery.init -> void
+Penghou.Hongxian.SessionEventAppendResult.SessionEventAppendResult(Penghou.Hongxian.SessionEvent! Event, Penghou.Hongxian.SessionProjectionDeliveryResult! ProjectionDelivery) -> void
+Penghou.Hongxian.SessionEventEnvelopeSchema
+Penghou.Hongxian.SessionEventIdempotencyConflictException
+Penghou.Hongxian.SessionEventIdempotencyConflictException.ExistingEventId.get -> System.Guid
+Penghou.Hongxian.SessionEventIdempotencyConflictException.IdempotencyKey.get -> string!
+Penghou.Hongxian.SessionEventIdempotencyConflictException.SessionEventIdempotencyConflictException(Penghou.Hongxian.SessionId sessionId, string! idempotencyKey, System.Guid existingEventId) -> void
+Penghou.Hongxian.SessionEventIdempotencyConflictException.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionEventPage
+Penghou.Hongxian.SessionEventPage.Events.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvent!>!
+Penghou.Hongxian.SessionEventPage.Events.init -> void
+Penghou.Hongxian.SessionEventPage.HasMore.get -> bool
+Penghou.Hongxian.SessionEventPage.HasMore.init -> void
+Penghou.Hongxian.SessionEventPage.NextSequence.get -> long?
+Penghou.Hongxian.SessionEventPage.NextSequence.init -> void
+Penghou.Hongxian.SessionEventPage.SessionEventPage(System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvent!>! Events, long? NextSequence, bool HasMore) -> void
+Penghou.Hongxian.SessionEventPageRequest
+Penghou.Hongxian.SessionEventPageRequest.AfterSequence.get -> long
+Penghou.Hongxian.SessionEventPageRequest.AfterSequence.init -> void
+Penghou.Hongxian.SessionEventPageRequest.Limit.get -> int
+Penghou.Hongxian.SessionEventPageRequest.Limit.init -> void
+Penghou.Hongxian.SessionEventPageRequest.SessionEventPageRequest(Penghou.Hongxian.SessionId SessionId, long AfterSequence = 0, int Limit = 100) -> void
+Penghou.Hongxian.SessionEventPageRequest.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionEventPageRequest.SessionId.init -> void
+Penghou.Hongxian.SessionEventPageRequest.Validate() -> void
+Penghou.Hongxian.SessionEventPayloadExtensions
+Penghou.Hongxian.SessionEventRequest
+Penghou.Hongxian.SessionEventRequest.CausationId.get -> System.Guid?
+Penghou.Hongxian.SessionEventRequest.CausationId.init -> void
+Penghou.Hongxian.SessionEventRequest.CorrelationId.get -> System.Guid?
+Penghou.Hongxian.SessionEventRequest.CorrelationId.init -> void
+Penghou.Hongxian.SessionEventRequest.CrossSystemRefs.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+Penghou.Hongxian.SessionEventRequest.CrossSystemRefs.init -> void
+Penghou.Hongxian.SessionEventRequest.EventId.get -> System.Guid?
+Penghou.Hongxian.SessionEventRequest.EventId.init -> void
+Penghou.Hongxian.SessionEventRequest.EventType.get -> string!
+Penghou.Hongxian.SessionEventRequest.EventType.init -> void
+Penghou.Hongxian.SessionEventRequest.ExpectedHead.get -> Penghou.Hongxian.SessionLedgerHead?
+Penghou.Hongxian.SessionEventRequest.ExpectedHead.init -> void
+Penghou.Hongxian.SessionEventRequest.IdempotencyKey.get -> string?
+Penghou.Hongxian.SessionEventRequest.IdempotencyKey.init -> void
+Penghou.Hongxian.SessionEventRequest.OccurredAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionEventRequest.OccurredAt.init -> void
+Penghou.Hongxian.SessionEventRequest.Participant.get -> Penghou.Hongxian.SessionParticipantAttribution!
+Penghou.Hongxian.SessionEventRequest.Participant.init -> void
+Penghou.Hongxian.SessionEventRequest.Payload.get -> System.Text.Json.JsonElement?
+Penghou.Hongxian.SessionEventRequest.Payload.init -> void
+Penghou.Hongxian.SessionEventRequest.PayloadJson.get -> string?
+Penghou.Hongxian.SessionEventRequest.PayloadJson.init -> void
+Penghou.Hongxian.SessionEventRequest.PayloadRetention.get -> Penghou.Hongxian.SessionPayloadRetention
+Penghou.Hongxian.SessionEventRequest.PayloadRetention.init -> void
+Penghou.Hongxian.SessionEventRequest.PayloadSchema.get -> Penghou.Hongxian.SessionPayloadSchema?
+Penghou.Hongxian.SessionEventRequest.PayloadSchema.init -> void
+Penghou.Hongxian.SessionEventRequest.PayloadSensitivity.get -> Penghou.Hongxian.SessionPayloadSensitivity
+Penghou.Hongxian.SessionEventRequest.PayloadSensitivity.init -> void
+Penghou.Hongxian.SessionEventRequest.SessionEventRequest(Penghou.Hongxian.SessionId SessionId, Penghou.Hongxian.SessionParticipantAttribution! Participant, string! EventType, System.DateTimeOffset OccurredAt, System.Guid? CausationId = null, System.Guid? CorrelationId = null, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? CrossSystemRefs = null, string? PayloadJson = null, string? IdempotencyKey = null, System.Guid? EventId = null, Penghou.Hongxian.SessionPayloadSensitivity PayloadSensitivity = Penghou.Hongxian.SessionPayloadSensitivity.Internal, Penghou.Hongxian.SessionPayloadRetention PayloadRetention = Penghou.Hongxian.SessionPayloadRetention.Retain, Penghou.Hongxian.SessionLedgerHead? ExpectedHead = null, Penghou.Hongxian.SessionPayloadSchema? PayloadSchema = null, System.Text.Json.JsonElement? Payload = null) -> void
+Penghou.Hongxian.SessionEventRequest.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionEventRequest.SessionId.init -> void
+Penghou.Hongxian.SessionEventTimePolicy
+Penghou.Hongxian.SessionEventTimePolicy.MaximumFutureSkew.get -> System.TimeSpan
+Penghou.Hongxian.SessionEventTimePolicy.MaximumFutureSkew.init -> void
+Penghou.Hongxian.SessionEventTimePolicy.SessionEventTimePolicy(System.TimeSpan MaximumFutureSkew) -> void
+Penghou.Hongxian.SessionEventTimePolicy.Validate() -> void
+Penghou.Hongxian.SessionEventTypes
+Penghou.Hongxian.SessionEvidenceDispatchResult
+Penghou.Hongxian.SessionEvidenceDispatchResult.Attempted.get -> int
+Penghou.Hongxian.SessionEvidenceDispatchResult.Attempted.init -> void
+Penghou.Hongxian.SessionEvidenceDispatchResult.Delivered.get -> int
+Penghou.Hongxian.SessionEvidenceDispatchResult.Delivered.init -> void
+Penghou.Hongxian.SessionEvidenceDispatchResult.SessionEvidenceDispatchResult(int Attempted, int Delivered) -> void
+Penghou.Hongxian.SessionEvidenceOutboxAuditResult
+Penghou.Hongxian.SessionEvidenceOutboxAuditResult.PendingCount.get -> int
+Penghou.Hongxian.SessionEvidenceOutboxAuditResult.PendingCount.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxAuditResult.ScanComplete.get -> bool
+Penghou.Hongxian.SessionEvidenceOutboxAuditResult.ScanComplete.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxAuditResult.SessionEvidenceOutboxAuditResult(string! Source, int PendingCount, bool ScanComplete) -> void
+Penghou.Hongxian.SessionEvidenceOutboxAuditResult.Source.get -> string!
+Penghou.Hongxian.SessionEvidenceOutboxAuditResult.Source.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxAuditSource
+Penghou.Hongxian.SessionEvidenceOutboxAuditSource.Name.get -> string!
+Penghou.Hongxian.SessionEvidenceOutboxAuditSource.Name.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxAuditSource.Outbox.get -> Penghou.Hongxian.ISessionEvidenceOutbox!
+Penghou.Hongxian.SessionEvidenceOutboxAuditSource.Outbox.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxAuditSource.SessionEvidenceOutboxAuditSource(string! Name, Penghou.Hongxian.ISessionEvidenceOutbox! Outbox) -> void
+Penghou.Hongxian.SessionEvidenceOutboxDispatcher
+Penghou.Hongxian.SessionEvidenceOutboxDispatcher.DispatchPendingAsync(int maximumCount = 100, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvidenceDispatchResult!>!
+Penghou.Hongxian.SessionEvidenceOutboxDispatcher.SessionEvidenceOutboxDispatcher(Penghou.Hongxian.ISessionEvidenceOutbox! outbox, Penghou.Hongxian.ISessionEventStore! eventStore, Penghou.Hongxian.SessionParticipantAttribution? participant = null) -> void
+Penghou.Hongxian.SessionEvidenceOutboxRecord
+Penghou.Hongxian.SessionEvidenceOutboxRecord.CausationId.get -> System.Guid?
+Penghou.Hongxian.SessionEvidenceOutboxRecord.CausationId.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxRecord.CorrelationId.get -> System.Guid?
+Penghou.Hongxian.SessionEvidenceOutboxRecord.CorrelationId.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxRecord.CrossSystemRefs.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Penghou.Hongxian.SessionEvidenceOutboxRecord.CrossSystemRefs.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxRecord.DeliveredAt.get -> System.DateTimeOffset?
+Penghou.Hongxian.SessionEvidenceOutboxRecord.DeliveredAt.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxRecord.EventType.get -> string!
+Penghou.Hongxian.SessionEvidenceOutboxRecord.EventType.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxRecord.IdempotencyKey.get -> string!
+Penghou.Hongxian.SessionEvidenceOutboxRecord.IdempotencyKey.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxRecord.OccurredAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionEvidenceOutboxRecord.OccurredAt.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxRecord.ReceiptId.get -> System.Guid
+Penghou.Hongxian.SessionEvidenceOutboxRecord.ReceiptId.init -> void
+Penghou.Hongxian.SessionEvidenceOutboxRecord.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionEvidenceOutboxRecord.SessionId.init -> void
+Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionId.SessionId() -> void
+Penghou.Hongxian.SessionId.SessionId(System.Guid value) -> void
+Penghou.Hongxian.SessionId.ToString(string? format, System.IFormatProvider? formatProvider) -> string!
+Penghou.Hongxian.SessionId.TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider) -> bool
+Penghou.Hongxian.SessionId.Value.get -> System.Guid
+Penghou.Hongxian.SessionIncident
+Penghou.Hongxian.SessionIncident.CausationId.get -> System.Guid?
+Penghou.Hongxian.SessionIncident.CausationId.init -> void
+Penghou.Hongxian.SessionIncident.CorrelationId.get -> System.Guid?
+Penghou.Hongxian.SessionIncident.CorrelationId.init -> void
+Penghou.Hongxian.SessionIncident.CrossSystemRefs.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+Penghou.Hongxian.SessionIncident.CrossSystemRefs.init -> void
+Penghou.Hongxian.SessionIncident.DetectedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionIncident.DetectedAt.init -> void
+Penghou.Hongxian.SessionIncident.IncidentId.get -> System.Guid
+Penghou.Hongxian.SessionIncident.IncidentId.init -> void
+Penghou.Hongxian.SessionIncident.ReasonCode.get -> string!
+Penghou.Hongxian.SessionIncident.ReasonCode.init -> void
+Penghou.Hongxian.SessionIncident.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionIncident.SessionId.init -> void
+Penghou.Hongxian.SessionIncident.SessionIncident(System.Guid IncidentId, Penghou.Hongxian.SessionId SessionId, string! ReasonCode, Penghou.Hongxian.SessionIncidentSeverity Severity, string! Summary, System.DateTimeOffset DetectedAt, System.Guid? CorrelationId = null, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? CrossSystemRefs = null, System.Guid? CausationId = null) -> void
+Penghou.Hongxian.SessionIncident.Severity.get -> Penghou.Hongxian.SessionIncidentSeverity
+Penghou.Hongxian.SessionIncident.Severity.init -> void
+Penghou.Hongxian.SessionIncident.Summary.get -> string!
+Penghou.Hongxian.SessionIncident.Summary.init -> void
+Penghou.Hongxian.SessionIncidentSeverity
+Penghou.Hongxian.SessionIncidentSeverity.Critical = 2 -> Penghou.Hongxian.SessionIncidentSeverity
+Penghou.Hongxian.SessionIncidentSeverity.Error = 1 -> Penghou.Hongxian.SessionIncidentSeverity
+Penghou.Hongxian.SessionIncidentSeverity.Warning = 0 -> Penghou.Hongxian.SessionIncidentSeverity
+Penghou.Hongxian.SessionLedgerAuditHealth
+Penghou.Hongxian.SessionLedgerAuditHealth.Corrupt = 3 -> Penghou.Hongxian.SessionLedgerAuditHealth
+Penghou.Hongxian.SessionLedgerAuditHealth.Missing = 0 -> Penghou.Hongxian.SessionLedgerAuditHealth
+Penghou.Hongxian.SessionLedgerAuditHealth.UnsupportedSchema = 2 -> Penghou.Hongxian.SessionLedgerAuditHealth
+Penghou.Hongxian.SessionLedgerAuditHealth.Verified = 1 -> Penghou.Hongxian.SessionLedgerAuditHealth
+Penghou.Hongxian.SessionLedgerAuditResult
+Penghou.Hongxian.SessionLedgerAuditResult.Detail.get -> string?
+Penghou.Hongxian.SessionLedgerAuditResult.Detail.init -> void
+Penghou.Hongxian.SessionLedgerAuditResult.FailedSequence.get -> long?
+Penghou.Hongxian.SessionLedgerAuditResult.FailedSequence.init -> void
+Penghou.Hongxian.SessionLedgerAuditResult.Failure.get -> string?
+Penghou.Hongxian.SessionLedgerAuditResult.Failure.init -> void
+Penghou.Hongxian.SessionLedgerAuditResult.Health.get -> Penghou.Hongxian.SessionLedgerAuditHealth
+Penghou.Hongxian.SessionLedgerAuditResult.Health.init -> void
+Penghou.Hongxian.SessionLedgerAuditResult.SessionLedgerAuditResult(Penghou.Hongxian.SessionLedgerAuditHealth Health, Penghou.Hongxian.SessionLedgerHead? VerifiedHead, long? FailedSequence = null, string? Failure = null, string? Detail = null) -> void
+Penghou.Hongxian.SessionLedgerAuditResult.VerifiedHead.get -> Penghou.Hongxian.SessionLedgerHead?
+Penghou.Hongxian.SessionLedgerAuditResult.VerifiedHead.init -> void
+Penghou.Hongxian.SessionLedgerCorruptionException
+Penghou.Hongxian.SessionLedgerCorruptionException.Detail.get -> string?
+Penghou.Hongxian.SessionLedgerCorruptionException.FailedSequence.get -> long?
+Penghou.Hongxian.SessionLedgerCorruptionException.Failure.get -> string!
+Penghou.Hongxian.SessionLedgerCorruptionException.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionLedgerCorruptionException.SessionLedgerCorruptionException(Penghou.Hongxian.SessionId sessionId, long? failedSequence, string! failure, string? detail) -> void
+Penghou.Hongxian.SessionLedgerHead
+Penghou.Hongxian.SessionLedgerHead.Hash.get -> string!
+Penghou.Hongxian.SessionLedgerHead.Hash.init -> void
+Penghou.Hongxian.SessionLedgerHead.LedgerIdentity.get -> string!
+Penghou.Hongxian.SessionLedgerHead.LedgerIdentity.init -> void
+Penghou.Hongxian.SessionLedgerHead.Sequence.get -> long
+Penghou.Hongxian.SessionLedgerHead.Sequence.init -> void
+Penghou.Hongxian.SessionLedgerHead.SessionLedgerHead(string! LedgerIdentity, long Sequence, string! Hash) -> void
+Penghou.Hongxian.SessionLedgerHeadConflictException
+Penghou.Hongxian.SessionLedgerHeadConflictException.ActualHead.get -> Penghou.Hongxian.SessionLedgerHead!
+Penghou.Hongxian.SessionLedgerHeadConflictException.ExpectedHead.get -> Penghou.Hongxian.SessionLedgerHead!
+Penghou.Hongxian.SessionLedgerHeadConflictException.SessionLedgerHeadConflictException(Penghou.Hongxian.SessionLedgerHead! expectedHead, Penghou.Hongxian.SessionLedgerHead! actualHead, System.Exception? innerException = null) -> void
+Penghou.Hongxian.SessionOperationAuditResult
+Penghou.Hongxian.SessionOperationAuditResult.FailedParticipantCount.get -> int
+Penghou.Hongxian.SessionOperationAuditResult.FailedParticipantCount.init -> void
+Penghou.Hongxian.SessionOperationAuditResult.OperationId.get -> Penghou.Hongxian.CrossStoreOperationId
+Penghou.Hongxian.SessionOperationAuditResult.OperationId.init -> void
+Penghou.Hongxian.SessionOperationAuditResult.ParticipantCount.get -> int
+Penghou.Hongxian.SessionOperationAuditResult.ParticipantCount.init -> void
+Penghou.Hongxian.SessionOperationAuditResult.SessionOperationAuditResult(Penghou.Hongxian.CrossStoreOperationId OperationId, Penghou.Hongxian.CrossStoreOperationState State, long Version, int ParticipantCount, int FailedParticipantCount, string? StatusReasonCode) -> void
+Penghou.Hongxian.SessionOperationAuditResult.State.get -> Penghou.Hongxian.CrossStoreOperationState
+Penghou.Hongxian.SessionOperationAuditResult.State.init -> void
+Penghou.Hongxian.SessionOperationAuditResult.StatusReasonCode.get -> string?
+Penghou.Hongxian.SessionOperationAuditResult.StatusReasonCode.init -> void
+Penghou.Hongxian.SessionOperationAuditResult.Version.get -> long
+Penghou.Hongxian.SessionOperationAuditResult.Version.init -> void
+Penghou.Hongxian.SessionOperatorState
+Penghou.Hongxian.SessionOperatorState.AwaitingApproval = 2 -> Penghou.Hongxian.SessionOperatorState
+Penghou.Hongxian.SessionOperatorState.AwaitingInput = 1 -> Penghou.Hongxian.SessionOperatorState
+Penghou.Hongxian.SessionOperatorState.Corrupt = 5 -> Penghou.Hongxian.SessionOperatorState
+Penghou.Hongxian.SessionOperatorState.Ready = 0 -> Penghou.Hongxian.SessionOperatorState
+Penghou.Hongxian.SessionOperatorState.ReconciliationRequired = 4 -> Penghou.Hongxian.SessionOperatorState
+Penghou.Hongxian.SessionOperatorState.Recovering = 3 -> Penghou.Hongxian.SessionOperatorState
+Penghou.Hongxian.SessionParticipantAttribution
+Penghou.Hongxian.SessionParticipantAttribution.DisplayName.get -> string?
+Penghou.Hongxian.SessionParticipantAttribution.DisplayName.init -> void
+Penghou.Hongxian.SessionParticipantAttribution.Kind.get -> string!
+Penghou.Hongxian.SessionParticipantAttribution.Kind.init -> void
+Penghou.Hongxian.SessionParticipantAttribution.Provider.get -> string!
+Penghou.Hongxian.SessionParticipantAttribution.Provider.init -> void
+Penghou.Hongxian.SessionParticipantAttribution.SessionParticipantAttribution(string! Kind, string! Provider, string! Subject, string? DisplayName = null) -> void
+Penghou.Hongxian.SessionParticipantAttribution.Subject.get -> string!
+Penghou.Hongxian.SessionParticipantAttribution.Subject.init -> void
+Penghou.Hongxian.SessionParticipantKinds
+Penghou.Hongxian.SessionPayloadFormatException
+Penghou.Hongxian.SessionPayloadFormatException.EventId.get -> System.Guid
+Penghou.Hongxian.SessionPayloadFormatException.SessionPayloadFormatException(System.Guid eventId, System.Exception? innerException = null) -> void
+Penghou.Hongxian.SessionPayloadRetention
+Penghou.Hongxian.SessionPayloadRetention.DigestOnly = 1 -> Penghou.Hongxian.SessionPayloadRetention
+Penghou.Hongxian.SessionPayloadRetention.Omit = 2 -> Penghou.Hongxian.SessionPayloadRetention
+Penghou.Hongxian.SessionPayloadRetention.Retain = 0 -> Penghou.Hongxian.SessionPayloadRetention
+Penghou.Hongxian.SessionPayloadSchema
+Penghou.Hongxian.SessionPayloadSchema.Name.get -> string!
+Penghou.Hongxian.SessionPayloadSchema.Name.init -> void
+Penghou.Hongxian.SessionPayloadSchema.SessionPayloadSchema(string! Name, int Version) -> void
+Penghou.Hongxian.SessionPayloadSchema.Validate() -> void
+Penghou.Hongxian.SessionPayloadSchema.Version.get -> int
+Penghou.Hongxian.SessionPayloadSchema.Version.init -> void
+Penghou.Hongxian.SessionPayloadSensitivity
+Penghou.Hongxian.SessionPayloadSensitivity.Confidential = 2 -> Penghou.Hongxian.SessionPayloadSensitivity
+Penghou.Hongxian.SessionPayloadSensitivity.Internal = 1 -> Penghou.Hongxian.SessionPayloadSensitivity
+Penghou.Hongxian.SessionPayloadSensitivity.Public = 0 -> Penghou.Hongxian.SessionPayloadSensitivity
+Penghou.Hongxian.SessionPayloadSensitivity.Restricted = 3 -> Penghou.Hongxian.SessionPayloadSensitivity
+Penghou.Hongxian.SessionPayloadUnavailableException
+Penghou.Hongxian.SessionPayloadUnavailableException.Retention.get -> Penghou.Hongxian.SessionPayloadRetention
+Penghou.Hongxian.SessionPayloadUnavailableException.SessionPayloadUnavailableException(Penghou.Hongxian.SessionPayloadRetention retention) -> void
+Penghou.Hongxian.SessionPayloadUpcasterRegistry
+Penghou.Hongxian.SessionPayloadUpcasterRegistry.SessionPayloadUpcasterRegistry(System.Collections.Generic.IEnumerable<Penghou.Hongxian.ISessionPayloadUpcaster!>? upcasters = null) -> void
+Penghou.Hongxian.SessionPayloadUpcasterRegistry.Upcast(Penghou.Hongxian.SessionPayloadSchema! sourceSchema, System.Text.Json.JsonElement payload, int targetVersion) -> Penghou.Hongxian.UpcastedSessionPayload!
+Penghou.Hongxian.SessionPendingApproval
+Penghou.Hongxian.SessionPendingApproval.ClaimedOccurredAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionPendingApproval.ClaimedOccurredAt.init -> void
+Penghou.Hongxian.SessionPendingApproval.ExternalOperationId.get -> System.Guid?
+Penghou.Hongxian.SessionPendingApproval.ExternalOperationId.init -> void
+Penghou.Hongxian.SessionPendingApproval.ProposalId.get -> System.Guid
+Penghou.Hongxian.SessionPendingApproval.ProposalId.init -> void
+Penghou.Hongxian.SessionPendingApproval.ProposedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionPendingApproval.ProposedAt.init -> void
+Penghou.Hongxian.SessionPendingApproval.Revision.get -> string?
+Penghou.Hongxian.SessionPendingApproval.Revision.init -> void
+Penghou.Hongxian.SessionPendingApproval.SessionPendingApproval(System.Guid ProposalId, System.Guid? ExternalOperationId, string? TargetId, string? Revision, System.DateTimeOffset ProposedAt, System.DateTimeOffset ClaimedOccurredAt) -> void
+Penghou.Hongxian.SessionPendingApproval.TargetId.get -> string?
+Penghou.Hongxian.SessionPendingApproval.TargetId.init -> void
+Penghou.Hongxian.SessionPendingInput
+Penghou.Hongxian.SessionPendingInput.ClaimedOccurredAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionPendingInput.ClaimedOccurredAt.init -> void
+Penghou.Hongxian.SessionPendingInput.ExternalOperationId.get -> System.Guid?
+Penghou.Hongxian.SessionPendingInput.ExternalOperationId.init -> void
+Penghou.Hongxian.SessionPendingInput.RequestedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionPendingInput.RequestedAt.init -> void
+Penghou.Hongxian.SessionPendingInput.RequestEventId.get -> System.Guid
+Penghou.Hongxian.SessionPendingInput.RequestEventId.init -> void
+Penghou.Hongxian.SessionPendingInput.SessionPendingInput(System.Guid RequestEventId, System.Guid? ExternalOperationId, string? SignalName, System.DateTimeOffset RequestedAt, System.DateTimeOffset ClaimedOccurredAt) -> void
+Penghou.Hongxian.SessionPendingInput.SignalName.get -> string?
+Penghou.Hongxian.SessionPendingInput.SignalName.init -> void
+Penghou.Hongxian.SessionProjectionConsistencyException
+Penghou.Hongxian.SessionProjectionConsistencyException.ActualHash.get -> string?
+Penghou.Hongxian.SessionProjectionConsistencyException.ActualSequence.get -> long
+Penghou.Hongxian.SessionProjectionConsistencyException.ExpectedHash.get -> string?
+Penghou.Hongxian.SessionProjectionConsistencyException.ExpectedSequence.get -> long
+Penghou.Hongxian.SessionProjectionConsistencyException.Failure.get -> Penghou.Hongxian.SessionProjectionConsistencyFailure
+Penghou.Hongxian.SessionProjectionConsistencyException.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionProjectionConsistencyException.SessionProjectionConsistencyException(Penghou.Hongxian.SessionId sessionId, Penghou.Hongxian.SessionProjectionConsistencyFailure failure, long expectedSequence, long actualSequence, string? expectedHash = null, string? actualHash = null) -> void
+Penghou.Hongxian.SessionProjectionConsistencyFailure
+Penghou.Hongxian.SessionProjectionConsistencyFailure.HashChainContinuity = 3 -> Penghou.Hongxian.SessionProjectionConsistencyFailure
+Penghou.Hongxian.SessionProjectionConsistencyFailure.HeadConflict = 1 -> Penghou.Hongxian.SessionProjectionConsistencyFailure
+Penghou.Hongxian.SessionProjectionConsistencyFailure.ProjectionAheadOfVerifiedHead = 5 -> Penghou.Hongxian.SessionProjectionConsistencyFailure
+Penghou.Hongxian.SessionProjectionConsistencyFailure.SequenceGap = 0 -> Penghou.Hongxian.SessionProjectionConsistencyFailure
+Penghou.Hongxian.SessionProjectionConsistencyFailure.VerifiedHeadMismatch = 4 -> Penghou.Hongxian.SessionProjectionConsistencyFailure
+Penghou.Hongxian.SessionProjectionConsistencyFailure.VerifiedHistoryLength = 2 -> Penghou.Hongxian.SessionProjectionConsistencyFailure
+Penghou.Hongxian.SessionProjectionDeliveryOutcome
+Penghou.Hongxian.SessionProjectionDeliveryOutcome.Applied = 1 -> Penghou.Hongxian.SessionProjectionDeliveryOutcome
+Penghou.Hongxian.SessionProjectionDeliveryOutcome.Lagging = 2 -> Penghou.Hongxian.SessionProjectionDeliveryOutcome
+Penghou.Hongxian.SessionProjectionDeliveryOutcome.NotConfigured = 0 -> Penghou.Hongxian.SessionProjectionDeliveryOutcome
+Penghou.Hongxian.SessionProjectionDeliveryResult
+Penghou.Hongxian.SessionProjectionDeliveryResult.DeliveryStatusRecorded.get -> bool
+Penghou.Hongxian.SessionProjectionDeliveryResult.DeliveryStatusRecorded.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryResult.Outcome.get -> Penghou.Hongxian.SessionProjectionDeliveryOutcome
+Penghou.Hongxian.SessionProjectionDeliveryResult.Outcome.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryResult.ProjectionFailureDetail.get -> string?
+Penghou.Hongxian.SessionProjectionDeliveryResult.ProjectionFailureDetail.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryResult.ProjectionFailureType.get -> string?
+Penghou.Hongxian.SessionProjectionDeliveryResult.ProjectionFailureType.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryResult.SessionProjectionDeliveryResult(Penghou.Hongxian.SessionProjectionDeliveryOutcome Outcome, bool DeliveryStatusRecorded, string? ProjectionFailureType = null, string? ProjectionFailureDetail = null, string? TrackingFailureType = null, string? TrackingFailureDetail = null) -> void
+Penghou.Hongxian.SessionProjectionDeliveryResult.TrackingFailureDetail.get -> string?
+Penghou.Hongxian.SessionProjectionDeliveryResult.TrackingFailureDetail.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryResult.TrackingFailureType.get -> string?
+Penghou.Hongxian.SessionProjectionDeliveryResult.TrackingFailureType.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryStatus
+Penghou.Hongxian.SessionProjectionDeliveryStatus.AppliedHeadHash.get -> string?
+Penghou.Hongxian.SessionProjectionDeliveryStatus.AppliedHeadHash.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryStatus.AppliedSequence.get -> long
+Penghou.Hongxian.SessionProjectionDeliveryStatus.AppliedSequence.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryStatus.CommittedHeadHash.get -> string?
+Penghou.Hongxian.SessionProjectionDeliveryStatus.CommittedHeadHash.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryStatus.CommittedSequence.get -> long
+Penghou.Hongxian.SessionProjectionDeliveryStatus.CommittedSequence.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryStatus.IsLagging.get -> bool
+Penghou.Hongxian.SessionProjectionDeliveryStatus.LastFailureDetail.get -> string?
+Penghou.Hongxian.SessionProjectionDeliveryStatus.LastFailureDetail.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryStatus.LastFailureType.get -> string?
+Penghou.Hongxian.SessionProjectionDeliveryStatus.LastFailureType.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryStatus.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionProjectionDeliveryStatus.SessionId.init -> void
+Penghou.Hongxian.SessionProjectionDeliveryStatus.SessionProjectionDeliveryStatus(Penghou.Hongxian.SessionId SessionId, long CommittedSequence, string? CommittedHeadHash, long AppliedSequence, string? AppliedHeadHash, System.DateTimeOffset UpdatedAt, string? LastFailureType = null, string? LastFailureDetail = null) -> void
+Penghou.Hongxian.SessionProjectionDeliveryStatus.UpdatedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionProjectionDeliveryStatus.UpdatedAt.init -> void
+Penghou.Hongxian.SessionProjectionSnapshot
+Penghou.Hongxian.SessionProjectionSnapshot.AppliedSequence.get -> long
+Penghou.Hongxian.SessionProjectionSnapshot.AppliedSequence.init -> void
+Penghou.Hongxian.SessionProjectionSnapshot.HeadHash.get -> string!
+Penghou.Hongxian.SessionProjectionSnapshot.HeadHash.init -> void
+Penghou.Hongxian.SessionProjectionSnapshot.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionProjectionSnapshot.SessionId.init -> void
+Penghou.Hongxian.SessionProjectionSnapshot.SessionProjectionSnapshot(Penghou.Hongxian.SessionId SessionId, long AppliedSequence, string! HeadHash, Penghou.Hongxian.SessionCurrentState! State) -> void
+Penghou.Hongxian.SessionProjectionSnapshot.State.get -> Penghou.Hongxian.SessionCurrentState!
+Penghou.Hongxian.SessionProjectionSnapshot.State.init -> void
+Penghou.Hongxian.SessionRecoveryActionReceipt
+Penghou.Hongxian.SessionRecoveryActionReceipt.Action.get -> Penghou.Hongxian.SessionRecoveryActionReference!
+Penghou.Hongxian.SessionRecoveryActionReceipt.Action.init -> void
+Penghou.Hongxian.SessionRecoveryActionReceipt.CrossSystemRefs.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+Penghou.Hongxian.SessionRecoveryActionReceipt.CrossSystemRefs.init -> void
+Penghou.Hongxian.SessionRecoveryActionReceipt.ExecutedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionRecoveryActionReceipt.ExecutedAt.init -> void
+Penghou.Hongxian.SessionRecoveryActionReceipt.ReceiptId.get -> System.Guid
+Penghou.Hongxian.SessionRecoveryActionReceipt.ReceiptId.init -> void
+Penghou.Hongxian.SessionRecoveryActionReceipt.ResultIdentity.get -> string?
+Penghou.Hongxian.SessionRecoveryActionReceipt.ResultIdentity.init -> void
+Penghou.Hongxian.SessionRecoveryActionReceipt.SessionRecoveryActionReceipt(System.Guid ReceiptId, Penghou.Hongxian.SessionRecoveryActionReference! Action, string! Verification, System.DateTimeOffset ExecutedAt, bool Verified, string? ResultIdentity = null, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? CrossSystemRefs = null) -> void
+Penghou.Hongxian.SessionRecoveryActionReceipt.Verification.get -> string!
+Penghou.Hongxian.SessionRecoveryActionReceipt.Verification.init -> void
+Penghou.Hongxian.SessionRecoveryActionReceipt.Verified.get -> bool
+Penghou.Hongxian.SessionRecoveryActionReceipt.Verified.init -> void
+Penghou.Hongxian.SessionRecoveryActionReference
+Penghou.Hongxian.SessionRecoveryActionReference.Code.get -> string!
+Penghou.Hongxian.SessionRecoveryActionReference.Code.init -> void
+Penghou.Hongxian.SessionRecoveryActionReference.SessionRecoveryActionReference(string! Code, string? TargetType = null, string? TargetId = null) -> void
+Penghou.Hongxian.SessionRecoveryActionReference.TargetId.get -> string?
+Penghou.Hongxian.SessionRecoveryActionReference.TargetId.init -> void
+Penghou.Hongxian.SessionRecoveryActionReference.TargetType.get -> string?
+Penghou.Hongxian.SessionRecoveryActionReference.TargetType.init -> void
+Penghou.Hongxian.SessionRecoveryActionReference.Validate() -> void
+Penghou.Hongxian.SessionRecoveryCoordinator
+Penghou.Hongxian.SessionRecoveryCoordinator.CompleteAsync(Penghou.Hongxian.SessionRecoveryResolution! resolution, System.Guid causationEventId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent!>!
+Penghou.Hongxian.SessionRecoveryCoordinator.DetectAsync(Penghou.Hongxian.SessionIncident! incident, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent!>!
+Penghou.Hongxian.SessionRecoveryCoordinator.PlanAsync(Penghou.Hongxian.SessionRecoveryPlan! plan, System.Guid detectedEventId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent!>!
+Penghou.Hongxian.SessionRecoveryCoordinator.RecordAttemptAsync(Penghou.Hongxian.SessionRecoveryPlan! plan, System.Guid plannedEventId, int attempt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent!>!
+Penghou.Hongxian.SessionRecoveryCoordinator.SessionRecoveryCoordinator(Penghou.Hongxian.ISessionEventStore! events, Penghou.Hongxian.SessionParticipantAttribution? participant = null, System.TimeProvider? timeProvider = null) -> void
+Penghou.Hongxian.SessionRecoveryExecutionResult
+Penghou.Hongxian.SessionRecoveryExecutionResult.Explanation.get -> string!
+Penghou.Hongxian.SessionRecoveryExecutionResult.Explanation.init -> void
+Penghou.Hongxian.SessionRecoveryExecutionResult.Outcome.get -> Penghou.Hongxian.SessionRecoveryOutcome
+Penghou.Hongxian.SessionRecoveryExecutionResult.Outcome.init -> void
+Penghou.Hongxian.SessionRecoveryExecutionResult.Receipt.get -> Penghou.Hongxian.SessionRecoveryActionReceipt?
+Penghou.Hongxian.SessionRecoveryExecutionResult.Receipt.init -> void
+Penghou.Hongxian.SessionRecoveryExecutionResult.SessionRecoveryExecutionResult(Penghou.Hongxian.SessionRecoveryOutcome Outcome, Penghou.Hongxian.SessionEvent! TerminalEvent, Penghou.Hongxian.SessionRecoveryActionReceipt? Receipt, string! Explanation) -> void
+Penghou.Hongxian.SessionRecoveryExecutionResult.TerminalEvent.get -> Penghou.Hongxian.SessionEvent!
+Penghou.Hongxian.SessionRecoveryExecutionResult.TerminalEvent.init -> void
+Penghou.Hongxian.SessionRecoveryExecutor
+Penghou.Hongxian.SessionRecoveryExecutor.ExecuteAsync(Penghou.Hongxian.SessionRecoveryPlan! plan, System.Guid plannedEventId, int attempt, System.Func<Penghou.Hongxian.SessionEvent!, System.Threading.CancellationToken, System.Threading.Tasks.Task<Penghou.Hongxian.SessionRecoveryActionReceipt!>!>! execute, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionRecoveryExecutionResult!>!
+Penghou.Hongxian.SessionRecoveryExecutor.SessionRecoveryExecutor(Penghou.Hongxian.SessionRecoveryCoordinator! coordinator, System.TimeProvider? timeProvider = null) -> void
+Penghou.Hongxian.SessionRecoveryOutcome
+Penghou.Hongxian.SessionRecoveryOutcome.Corrupt = 3 -> Penghou.Hongxian.SessionRecoveryOutcome
+Penghou.Hongxian.SessionRecoveryOutcome.ReconciliationRequired = 2 -> Penghou.Hongxian.SessionRecoveryOutcome
+Penghou.Hongxian.SessionRecoveryOutcome.Recovered = 0 -> Penghou.Hongxian.SessionRecoveryOutcome
+Penghou.Hongxian.SessionRecoveryOutcome.UserActionRequired = 1 -> Penghou.Hongxian.SessionRecoveryOutcome
+Penghou.Hongxian.SessionRecoveryPlan
+Penghou.Hongxian.SessionRecoveryPlan.Action.get -> Penghou.Hongxian.SessionRecoveryActionReference!
+Penghou.Hongxian.SessionRecoveryPlan.Action.init -> void
+Penghou.Hongxian.SessionRecoveryPlan.Automatic.get -> bool
+Penghou.Hongxian.SessionRecoveryPlan.Automatic.init -> void
+Penghou.Hongxian.SessionRecoveryPlan.CorrelationId.get -> System.Guid?
+Penghou.Hongxian.SessionRecoveryPlan.CorrelationId.init -> void
+Penghou.Hongxian.SessionRecoveryPlan.CrossSystemRefs.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+Penghou.Hongxian.SessionRecoveryPlan.CrossSystemRefs.init -> void
+Penghou.Hongxian.SessionRecoveryPlan.Explanation.get -> string!
+Penghou.Hongxian.SessionRecoveryPlan.Explanation.init -> void
+Penghou.Hongxian.SessionRecoveryPlan.IncidentId.get -> System.Guid
+Penghou.Hongxian.SessionRecoveryPlan.IncidentId.init -> void
+Penghou.Hongxian.SessionRecoveryPlan.PlannedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionRecoveryPlan.PlannedAt.init -> void
+Penghou.Hongxian.SessionRecoveryPlan.RecoveryPlanId.get -> System.Guid
+Penghou.Hongxian.SessionRecoveryPlan.RecoveryPlanId.init -> void
+Penghou.Hongxian.SessionRecoveryPlan.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionRecoveryPlan.SessionId.init -> void
+Penghou.Hongxian.SessionRecoveryPlan.SessionRecoveryPlan(System.Guid RecoveryPlanId, System.Guid IncidentId, Penghou.Hongxian.SessionId SessionId, Penghou.Hongxian.SessionRecoveryActionReference! Action, string! Explanation, bool Automatic, System.DateTimeOffset PlannedAt, System.Guid? CorrelationId = null, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? CrossSystemRefs = null) -> void
+Penghou.Hongxian.SessionRecoveryResolution
+Penghou.Hongxian.SessionRecoveryResolution.ActionReceipt.get -> Penghou.Hongxian.SessionRecoveryActionReceipt?
+Penghou.Hongxian.SessionRecoveryResolution.ActionReceipt.init -> void
+Penghou.Hongxian.SessionRecoveryResolution.Attempt.get -> int
+Penghou.Hongxian.SessionRecoveryResolution.Attempt.init -> void
+Penghou.Hongxian.SessionRecoveryResolution.CompletedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.SessionRecoveryResolution.CompletedAt.init -> void
+Penghou.Hongxian.SessionRecoveryResolution.CorrelationId.get -> System.Guid?
+Penghou.Hongxian.SessionRecoveryResolution.CorrelationId.init -> void
+Penghou.Hongxian.SessionRecoveryResolution.CrossSystemRefs.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+Penghou.Hongxian.SessionRecoveryResolution.CrossSystemRefs.init -> void
+Penghou.Hongxian.SessionRecoveryResolution.Explanation.get -> string!
+Penghou.Hongxian.SessionRecoveryResolution.Explanation.init -> void
+Penghou.Hongxian.SessionRecoveryResolution.IncidentId.get -> System.Guid
+Penghou.Hongxian.SessionRecoveryResolution.IncidentId.init -> void
+Penghou.Hongxian.SessionRecoveryResolution.Outcome.get -> Penghou.Hongxian.SessionRecoveryOutcome
+Penghou.Hongxian.SessionRecoveryResolution.Outcome.init -> void
+Penghou.Hongxian.SessionRecoveryResolution.RecoveryPlanId.get -> System.Guid
+Penghou.Hongxian.SessionRecoveryResolution.RecoveryPlanId.init -> void
+Penghou.Hongxian.SessionRecoveryResolution.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionRecoveryResolution.SessionId.init -> void
+Penghou.Hongxian.SessionRecoveryResolution.SessionRecoveryResolution(System.Guid RecoveryPlanId, System.Guid IncidentId, Penghou.Hongxian.SessionId SessionId, Penghou.Hongxian.SessionRecoveryOutcome Outcome, int Attempt, string! Explanation, System.DateTimeOffset CompletedAt, System.Guid? CorrelationId = null, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? CrossSystemRefs = null, Penghou.Hongxian.SessionRecoveryActionReceipt? ActionReceipt = null) -> void
+Penghou.Hongxian.SessionRevisionConflictException
+Penghou.Hongxian.SessionRevisionConflictException.ActualRevision.get -> string?
+Penghou.Hongxian.SessionRevisionConflictException.ActualVersion.get -> long
+Penghou.Hongxian.SessionRevisionConflictException.ExpectedRevision.get -> string?
+Penghou.Hongxian.SessionRevisionConflictException.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionRevisionConflictException.SessionRevisionConflictException(Penghou.Hongxian.SessionId sessionId, string? expectedRevision, string? actualRevision, long actualVersion) -> void
+Penghou.Hongxian.SessionTimelineProjection
+Penghou.Hongxian.StartCrossStoreOperationRequest
+Penghou.Hongxian.StartCrossStoreOperationRequest.ExternalOperation.get -> Penghou.Hongxian.ExternalOperationReference
+Penghou.Hongxian.StartCrossStoreOperationRequest.ExternalOperation.init -> void
+Penghou.Hongxian.StartCrossStoreOperationRequest.IdempotencyKey.get -> string!
+Penghou.Hongxian.StartCrossStoreOperationRequest.IdempotencyKey.init -> void
+Penghou.Hongxian.StartCrossStoreOperationRequest.InitialApplicationPhase.get -> string?
+Penghou.Hongxian.StartCrossStoreOperationRequest.InitialApplicationPhase.init -> void
+Penghou.Hongxian.StartCrossStoreOperationRequest.Kind.get -> string!
+Penghou.Hongxian.StartCrossStoreOperationRequest.Kind.init -> void
+Penghou.Hongxian.StartCrossStoreOperationRequest.OperationId.get -> Penghou.Hongxian.CrossStoreOperationId?
+Penghou.Hongxian.StartCrossStoreOperationRequest.OperationId.init -> void
+Penghou.Hongxian.StartCrossStoreOperationRequest.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.StartCrossStoreOperationRequest.SessionId.init -> void
+Penghou.Hongxian.StartCrossStoreOperationRequest.StartCrossStoreOperationRequest(Penghou.Hongxian.SessionId SessionId, Penghou.Hongxian.ExternalOperationReference ExternalOperation, string! Kind, string! IdempotencyKey, System.DateTimeOffset StartedAt, Penghou.Hongxian.CrossStoreOperationId? OperationId = null, string? InitialApplicationPhase = null) -> void
+Penghou.Hongxian.StartCrossStoreOperationRequest.StartedAt.get -> System.DateTimeOffset
+Penghou.Hongxian.StartCrossStoreOperationRequest.StartedAt.init -> void
+Penghou.Hongxian.UnsupportedSessionEventSchemaException
+Penghou.Hongxian.UnsupportedSessionEventSchemaException.DetectedVersion.get -> int
+Penghou.Hongxian.UnsupportedSessionEventSchemaException.MinimumSupportedVersion.get -> int
+Penghou.Hongxian.UnsupportedSessionEventSchemaException.SupportedVersion.get -> int
+Penghou.Hongxian.UnsupportedSessionEventSchemaException.UnsupportedSessionEventSchemaException(int detectedVersion) -> void
+Penghou.Hongxian.UnsupportedSessionPayloadSchemaException
+Penghou.Hongxian.UnsupportedSessionPayloadSchemaException.MissingSourceVersion.get -> int
+Penghou.Hongxian.UnsupportedSessionPayloadSchemaException.RequestedVersion.get -> int
+Penghou.Hongxian.UnsupportedSessionPayloadSchemaException.SourceSchema.get -> Penghou.Hongxian.SessionPayloadSchema!
+Penghou.Hongxian.UnsupportedSessionPayloadSchemaException.UnsupportedSessionPayloadSchemaException(Penghou.Hongxian.SessionPayloadSchema! sourceSchema, int requestedVersion, int missingSourceVersion) -> void
+Penghou.Hongxian.UpcastedSessionPayload
+Penghou.Hongxian.UpcastedSessionPayload.Payload.get -> System.Text.Json.JsonElement
+Penghou.Hongxian.UpcastedSessionPayload.Payload.init -> void
+Penghou.Hongxian.UpcastedSessionPayload.Schema.get -> Penghou.Hongxian.SessionPayloadSchema!
+Penghou.Hongxian.UpcastedSessionPayload.Schema.init -> void
+Penghou.Hongxian.UpcastedSessionPayload.UpcastedSessionPayload(Penghou.Hongxian.SessionPayloadSchema! Schema, System.Text.Json.JsonElement Payload) -> void
+Penghou.Hongxian.VerifiedSessionHistory
+Penghou.Hongxian.VerifiedSessionHistory.Events.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvent!>!
+Penghou.Hongxian.VerifiedSessionHistory.Events.init -> void
+Penghou.Hongxian.VerifiedSessionHistory.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.VerifiedSessionHistory.SessionId.init -> void
+Penghou.Hongxian.VerifiedSessionHistory.VerifiedHead.get -> Penghou.Hongxian.SessionLedgerHead!
+Penghou.Hongxian.VerifiedSessionHistory.VerifiedHead.init -> void
+Penghou.Hongxian.VerifiedSessionHistory.VerifiedSessionHistory(Penghou.Hongxian.SessionId SessionId, Penghou.Hongxian.SessionLedgerHead! VerifiedHead, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvent!>! Events) -> void
+static Penghou.Hongxian.CrossStoreOperationId.New() -> Penghou.Hongxian.CrossStoreOperationId
+static Penghou.Hongxian.CrossStoreOperationId.Parse(string! value) -> Penghou.Hongxian.CrossStoreOperationId
+static Penghou.Hongxian.CrossStoreOperationId.Parse(string! value, System.IFormatProvider? provider) -> Penghou.Hongxian.CrossStoreOperationId
+static Penghou.Hongxian.CrossStoreOperationId.TryParse(string? value, out Penghou.Hongxian.CrossStoreOperationId result) -> bool
+static Penghou.Hongxian.CrossStoreOperationId.TryParse(string? value, System.IFormatProvider? provider, out Penghou.Hongxian.CrossStoreOperationId result) -> bool
+static Penghou.Hongxian.ExternalOperationReference.Parse(string! value) -> Penghou.Hongxian.ExternalOperationReference
+static Penghou.Hongxian.ExternalOperationReference.Parse(string! value, System.IFormatProvider? provider) -> Penghou.Hongxian.ExternalOperationReference
+static Penghou.Hongxian.ExternalOperationReference.TryParse(string? value, out Penghou.Hongxian.ExternalOperationReference result) -> bool
+static Penghou.Hongxian.ExternalOperationReference.TryParse(string? value, System.IFormatProvider? provider, out Penghou.Hongxian.ExternalOperationReference result) -> bool
+static Penghou.Hongxian.SessionContractValidation.Validate(Penghou.Hongxian.CrossStoreParticipantReceipt! receipt) -> void
+static Penghou.Hongxian.SessionContractValidation.Validate(Penghou.Hongxian.SessionEvent! sessionEvent) -> void
+static Penghou.Hongxian.SessionContractValidation.Validate(Penghou.Hongxian.SessionEventRequest! request) -> void
+static Penghou.Hongxian.SessionContractValidation.Validate(Penghou.Hongxian.SessionParticipantAttribution! participant, string! parameterName) -> void
+static Penghou.Hongxian.SessionContractValidation.Validate(Penghou.Hongxian.StartCrossStoreOperationRequest! request) -> void
+static Penghou.Hongxian.SessionContractValidation.ValidateOperationTransition(Penghou.Hongxian.CrossStoreOperationState targetState, System.DateTimeOffset occurredAt, string? applicationPhase, string? reasonCode) -> void
+static Penghou.Hongxian.SessionContractValidation.ValidateRevision(string? revision, string! parameterName) -> void
+static Penghou.Hongxian.SessionContractValidation.ValidateSessionId(Penghou.Hongxian.SessionId sessionId, string! parameterName) -> void
+static Penghou.Hongxian.SessionContractValidation.ValidateSessionIdentity(string! contextId, string! resourceId) -> void
+static Penghou.Hongxian.SessionEventPayloadExtensions.AppendAsync(this Penghou.Hongxian.ISessionEventStore! store, Penghou.Hongxian.SessionEventRequest! request, System.Text.Json.JsonElement payload, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent!>!
+static Penghou.Hongxian.SessionEventPayloadExtensions.AppendAsync<T>(this Penghou.Hongxian.ISessionEventStore! store, Penghou.Hongxian.SessionEventRequest! request, T payload, System.Text.Json.JsonSerializerOptions? serializerOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent!>!
+static Penghou.Hongxian.SessionEventPayloadExtensions.AppendWithDeliveryAsync(this Penghou.Hongxian.ISessionEventDeliveryStore! store, Penghou.Hongxian.SessionEventRequest! request, System.Text.Json.JsonElement payload, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEventAppendResult!>!
+static Penghou.Hongxian.SessionEventPayloadExtensions.AppendWithDeliveryAsync<T>(this Penghou.Hongxian.ISessionEventDeliveryStore! store, Penghou.Hongxian.SessionEventRequest! request, T payload, System.Text.Json.JsonSerializerOptions? serializerOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEventAppendResult!>!
+static Penghou.Hongxian.SessionEventPayloadExtensions.ReadPayload(this Penghou.Hongxian.SessionEvent! sessionEvent) -> System.Text.Json.JsonElement
+static Penghou.Hongxian.SessionEventPayloadExtensions.ReadPayload<T>(this Penghou.Hongxian.SessionEvent! sessionEvent, Penghou.Hongxian.SessionPayloadSchema! targetSchema, Penghou.Hongxian.SessionPayloadUpcasterRegistry! upcasters, System.Text.Json.JsonSerializerOptions? serializerOptions = null) -> T
+static Penghou.Hongxian.SessionEventPayloadExtensions.ReadPayload<T>(this Penghou.Hongxian.SessionEvent! sessionEvent, System.Text.Json.JsonSerializerOptions? serializerOptions = null) -> T
+static Penghou.Hongxian.SessionEventTimePolicy.Default.get -> Penghou.Hongxian.SessionEventTimePolicy!
+static Penghou.Hongxian.SessionId.New() -> Penghou.Hongxian.SessionId
+static Penghou.Hongxian.SessionId.Parse(string! value) -> Penghou.Hongxian.SessionId
+static Penghou.Hongxian.SessionId.Parse(string! value, System.IFormatProvider? provider) -> Penghou.Hongxian.SessionId
+static Penghou.Hongxian.SessionId.TryParse(string? value, out Penghou.Hongxian.SessionId result) -> bool
+static Penghou.Hongxian.SessionId.TryParse(string? value, System.IFormatProvider? provider, out Penghou.Hongxian.SessionId result) -> bool
+static Penghou.Hongxian.SessionParticipantAttribution.Agent(string! subject, string! provider = "host", string? displayName = null) -> Penghou.Hongxian.SessionParticipantAttribution!
+static Penghou.Hongxian.SessionParticipantAttribution.Human(string! subject, string! provider = "host", string? displayName = null) -> Penghou.Hongxian.SessionParticipantAttribution!
+static Penghou.Hongxian.SessionParticipantAttribution.System(string! subject, string! provider = "host", string? displayName = null) -> Penghou.Hongxian.SessionParticipantAttribution!
+static Penghou.Hongxian.SessionParticipantAttribution.Tool(string! subject, string! provider = "host", string? displayName = null) -> Penghou.Hongxian.SessionParticipantAttribution!
+static Penghou.Hongxian.SessionTimelineProjection.Apply(Penghou.Hongxian.SessionCurrentState? state, Penghou.Hongxian.SessionEvent! sessionEvent) -> Penghou.Hongxian.SessionCurrentState!
+static Penghou.Hongxian.SessionTimelineProjection.Project(System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvent!>! events) -> Penghou.Hongxian.SessionCurrentState!
+static Penghou.Hongxian.SessionTimelineProjection.RenderTimeline(System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvent!>! events) -> System.Collections.Generic.IReadOnlyList<string!>!

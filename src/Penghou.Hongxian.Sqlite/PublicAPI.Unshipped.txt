@@ -1,0 +1,91 @@
+#nullable enable
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.DecisionLeaseDuration.get -> System.TimeSpan
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.DecisionLeaseDuration.init -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.DecisionLeaseRenewalInterval.get -> System.TimeSpan
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.DecisionLeaseRenewalInterval.init -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.DecisionLeaseRetryDelay.get -> System.TimeSpan
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.DecisionLeaseRetryDelay.init -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.EventTimePolicy.get -> Penghou.Hongxian.SessionEventTimePolicy!
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.EventTimePolicy.init -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.EvidenceParticipant.get -> Penghou.Hongxian.SessionParticipantAttribution!
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.EvidenceParticipant.init -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.LedgerInputLimits.get -> Penghou.Siming.LedgerInputLimits!
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.LedgerInputLimits.init -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.MaximumCachedLedgers.get -> int
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.MaximumCachedLedgers.init -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.Pooling.get -> bool
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.Pooling.init -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.RootPath.get -> string!
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.RootPath.init -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.TimeProvider.get -> System.TimeProvider!
+Penghou.Hongxian.Sqlite.HongxianSqliteOptions.TimeProvider.init -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteSchemaCompatibilityException
+Penghou.Hongxian.Sqlite.HongxianSqliteSchemaCompatibilityException.Component.get -> string!
+Penghou.Hongxian.Sqlite.HongxianSqliteSchemaCompatibilityException.DetectedVersion.get -> int
+Penghou.Hongxian.Sqlite.HongxianSqliteSchemaCompatibilityException.HongxianSqliteSchemaCompatibilityException(string! component, int detectedVersion, int supportedVersion) -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteSchemaCompatibilityException.SupportedVersion.get -> int
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.Catalog.get -> Penghou.Hongxian.Sqlite.SqliteSessionCatalog!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.CatalogEvidence.get -> Penghou.Hongxian.SessionEvidenceOutboxDispatcher!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.ConsistencyAudit.get -> Penghou.Hongxian.SessionConsistencyAuditService!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.DecisionLeaseInspector.get -> Penghou.Hongxian.ISessionDecisionLeaseInspector!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.DecisionLeases.get -> Penghou.Hongxian.ISessionDecisionLeaseProvider!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.Dispose() -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.EventDeliveryStore.get -> Penghou.Hongxian.ISessionEventDeliveryStore!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.Events.get -> Penghou.Hongxian.Sqlite.SimingSessionEventStore!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.EventStore.get -> Penghou.Hongxian.ISessionEventStore!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.HongxianSqliteStoreSet(Penghou.Hongxian.Sqlite.HongxianSqliteOptions! options) -> void
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.OperationEvidence.get -> Penghou.Hongxian.SessionEvidenceOutboxDispatcher!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.Operations.get -> Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.OperationStore.get -> Penghou.Hongxian.ICrossStoreOperationStore!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.ProjectionDelivery.get -> Penghou.Hongxian.ISessionProjectionDeliveryStore!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.Projections.get -> Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.ProjectionStore.get -> Penghou.Hongxian.ISessionProjectionStore!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.RootPath.get -> string!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.SessionStore.get -> Penghou.Hongxian.ISessionStore!
+Penghou.Hongxian.Sqlite.SimingSessionEventStore
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.AppendAsync(Penghou.Hongxian.SessionEventRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent!>!
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.AppendWithDeliveryAsync(Penghou.Hongxian.SessionEventRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEventAppendResult!>!
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.Dispose() -> void
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.ExistsAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.GetLedgerPath(Penghou.Hongxian.SessionId sessionId) -> string!
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.ReadAsync(Penghou.Hongxian.SessionId sessionId, long afterSequence = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvent!>!>!
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.ReadPageAsync(Penghou.Hongxian.SessionEventPageRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEventPage!>!
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.ReadVerifiedHistoryAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.VerifiedSessionHistory!>!
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.SimingSessionEventStore(string! rootPath, Penghou.Siming.LedgerInputLimits? inputLimits = null, Penghou.Hongxian.ISessionProjectionStore? projectionStore = null, int maximumCachedLedgers = 32, Penghou.Hongxian.SessionEventTimePolicy? timePolicy = null, System.TimeProvider? timeProvider = null) -> void
+Penghou.Hongxian.Sqlite.SimingSessionEventStore.VerifyChainAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent?>!
+Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore
+Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore.FindByExternalOperationAsync(Penghou.Hongxian.ExternalOperationReference externalOperation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperation?>!
+Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore.GetAsync(Penghou.Hongxian.CrossStoreOperationId operationId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperation?>!
+Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore.ListAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.CrossStoreOperation!>!>!
+Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore.ListPendingAsync(int maximumCount = 100, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvidenceOutboxRecord!>!>!
+Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore.MarkDeliveredAsync(System.Guid receiptId, System.DateTimeOffset deliveredAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore.RecordParticipantAsync(Penghou.Hongxian.CrossStoreOperationId operationId, Penghou.Hongxian.CrossStoreParticipantReceipt! receipt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperation!>!
+Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore.SqliteCrossStoreOperationStore(string! databasePath, bool pooling = true) -> void
+Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore.StartAsync(Penghou.Hongxian.StartCrossStoreOperationRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperation!>!
+Penghou.Hongxian.Sqlite.SqliteCrossStoreOperationStore.TransitionAsync(Penghou.Hongxian.CrossStoreOperationId operationId, Penghou.Hongxian.CrossStoreOperationState targetState, System.DateTimeOffset occurredAt, string? applicationPhase = null, string? reasonCode = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.CrossStoreOperation!>!
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.AcquireAsync(Penghou.Hongxian.SessionId sessionId, System.Guid operationId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Penghou.Hongxian.ISessionDecisionLease!>
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.AttachExternalOperationAsync(Penghou.Hongxian.SessionId sessionId, Penghou.Hongxian.ExternalOperationReference externalOperation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.Session!>!
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.CreateAsync(string! contextId, string! resourceId, Penghou.Hongxian.SessionId? sessionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.Session!>!
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.FindByExternalOperationAsync(Penghou.Hongxian.ExternalOperationReference externalOperation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.Session?>!
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.GetAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.Session?>!
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.GetStatusAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionDecisionLeaseStatus?>!
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.ListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.Session!>!>!
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.ListPendingAsync(int maximumCount = 100, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvidenceOutboxRecord!>!>!
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.MarkDeliveredAsync(System.Guid receiptId, System.DateTimeOffset deliveredAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.SqliteSessionCatalog(string! databasePath, System.TimeProvider? timeProvider = null, bool pooling = true, System.TimeSpan? decisionLeaseDuration = null, System.TimeSpan? decisionLeaseRenewalInterval = null, System.TimeSpan? decisionLeaseRetryDelay = null) -> void
+Penghou.Hongxian.Sqlite.SqliteSessionCatalog.UpdateRevisionAsync(Penghou.Hongxian.SessionId sessionId, string? expectedRevision, string! replacementRevision, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.Session!>!
+Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore
+Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore.ApplyAsync(Penghou.Hongxian.SessionEvent! sessionEvent, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore.GetAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionProjectionSnapshot?>!
+Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore.GetDeliveryStatusAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionProjectionDeliveryStatus?>!
+Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore.ListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionProjectionSnapshot!>!>!
+Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore.ListLaggingAsync(int maximumCount = 100, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionProjectionDeliveryStatus!>!>!
+Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore.RebuildAsync(Penghou.Hongxian.VerifiedSessionHistory! history, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionProjectionSnapshot?>!
+Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore.RecordCommittedAsync(Penghou.Hongxian.SessionEvent! sessionEvent, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore.RecordFailureAsync(Penghou.Hongxian.SessionEvent! sessionEvent, System.Exception! exception, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore.SqliteSessionProjectionStore(string! databasePath, System.TimeProvider? timeProvider = null, bool pooling = true) -> void
