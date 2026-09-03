@@ -20,20 +20,27 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Restore from public NuGet
+        run: >
+          dotnet restore Penghou.Hongxian.slnx
+          --source https://api.nuget.org/v3/index.json
+          --packages "${{ runner.temp }}/hongxian-nuget-packages"
+          --force --force-evaluate --no-cache
+
       - name: Build
-        run: dotnet build Penghou.Hongxian.slnx --configuration Release
+        run: dotnet build Penghou.Hongxian.slnx --configuration Release --no-restore
 
       - name: Verify formatting
         run: dotnet format Penghou.Hongxian.slnx --verify-no-changes --no-restore
 
       - name: Test
-        run: dotnet test Penghou.Hongxian.slnx --configuration Release --no-build
+        run: dotnet test Penghou.Hongxian.slnx --configuration Release --no-build --no-restore
 
       - name: Run standalone example
-        run: dotnet run --project samples/Penghou.Hongxian.Example --configuration Release
+        run: dotnet run --project samples/Penghou.Hongxian.Example --configuration Release --no-restore
 
       - name: Pack
-        run: dotnet pack Penghou.Hongxian.slnx --configuration Release --no-build --output artifacts --property:PackageVersion=0.0.0-ci.${{ github.run_id }}
+        run: dotnet pack Penghou.Hongxian.slnx --configuration Release --no-build --no-restore --output artifacts --property:PackageVersion=0.0.0-ci.${{ github.run_id }}
 
       - name: Restore and audit packed consumer
         shell: pwsh

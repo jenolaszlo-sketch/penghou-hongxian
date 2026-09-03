@@ -24,6 +24,13 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Restore from public NuGet
+        run: >
+          dotnet restore Penghou.Hongxian.slnx
+          --source https://api.nuget.org/v3/index.json
+          --packages "${{ runner.temp }}/hongxian-nuget-packages"
+          --force --force-evaluate --no-cache
+
       - name: Pack
         shell: bash
         run: |
@@ -37,6 +44,7 @@ jobs:
             src/Penghou.Hongxian.Sqlite/Penghou.Hongxian.Sqlite.csproj; do
             dotnet pack "$csproj" \
               --configuration Release \
+              --no-restore \
               --output ./artifacts \
               --property:PackageVersion="$version"
           done
