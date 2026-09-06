@@ -12,14 +12,14 @@ tracks only its application profile and package integration.
 
 ## Current state
 
-Last reviewed: **2026-09-03**
+Last reviewed: **2026-09-07**
 
-- `Penghou.Hongxian` and `Penghou.Hongxian.Sqlite` `0.1.0-preview.1` are
+- `Penghou.Hongxian` and `Penghou.Hongxian.Sqlite` `0.1.0-preview.2` are
   published on NuGet.
-- `0.1.0-preview.2` is the current release candidate. Its breaking consumer
-  contract, SQLite composition, projection-delivery diagnostics, consistency
-  audit, in-repository provider conformance reference suite, and package
-  compatibility validation pass the local release gates.
+- Preview 2's breaking consumer contract, SQLite composition,
+  projection-delivery diagnostics, consistency audit, in-repository provider
+  conformance reference suite, and package compatibility validation passed the
+  release gates.
 - Immutable events, recovery evidence, current-state projections, transactional
   catalog state, decision leases, lifecycle outbox receipts, cross-store
   operation receipts, and forward reconciliation are extracted.
@@ -49,6 +49,37 @@ Hongxian does not own workflow scheduling, application recovery policy,
 workspace mutation, generated-file semantics, model requests, code graphs,
 memory promotion, artifact bytes, participant authentication, or authorization.
 Siming remains authoritative for cryptographic ledger format and verification.
+
+## Marang Gate 0.5 audit
+
+Last reviewed: **2026-09-07**
+
+The current preview-2 contracts are usable for Marang's durable session and
+correlation slice. Marang can use the existing `SessionId`, immutable participant
+attribution, event IDs with causation/correlation, provider-qualified opaque
+external-operation references, append-only verified events, `ExpectedHead`
+conditional appends, idempotency keys, rebuildable projections, decision and
+recovery evidence, session decision leases, and the evidence outbox plus
+forward-reconciliation contracts.
+
+Marang remains responsible for typed `SupervisedWork`, workflow run/epoch,
+structural node/generation, supervisor checkpoint, and intervention semantics.
+Its adapter should map those identities to Hongxian's opaque references and
+application-defined events. Hongxian must not become an execution provider,
+choose intervention policy, or treat attribution metadata as authorization.
+
+Hongxian's outbox and `CrossStoreOperation` contracts coordinate evidence across
+independent stores; they do not transactionally commit Zhinu's separate
+database. Any Zhinu-to-Hongxian integration must preserve Zhinu as the
+authority for workflow state and fencing, use idempotent saga/outbox delivery,
+and reconcile forward after partial success. It must never claim a distributed
+transaction or allow a Hongxian lease to override Zhinu fencing.
+
+The only reusable follow-ups identified by this audit are the existing Milestone
+4 bounded indexed correlation/as-of/re-entry query work and the conditional
+Milestone 7 cross-authority evidence seam. A Marang adapter should consume the
+current generic outbox/operation contracts first; add an upstream seam only if
+Zhinu receipts/events cannot be represented without provider-specific leakage.
 
 ## Non-goals
 
@@ -219,19 +250,21 @@ Package and contract quality:
 These reusable APIs moved from Guyabano's interactive-session backlog. UI and
 application policy remain with consumers.
 
-- [ ] Add bounded, projection-backed query APIs for session catalog lookup,
-  paged timeline, projection delivery status, pending inputs, pending
+- [ ] Add bounded, projection-backed, indexed query APIs for session catalog
+  lookup, paged timeline, projection delivery status, pending inputs, pending
   decisions, active incidents, and incomplete operations. Support reusable
   envelope filters such as event type, participant, committed/occurrence time,
   correlation, causation, external reference, and external execution identity
-  without scanning the authoritative ledger for routine queries.
+  without scanning the authoritative ledger for routine queries or demand-driven
+  re-entry context.
 - [ ] Add immutable named checkpoints that bind a session ledger sequence and
   verified head hash to application-defined kind/name, participant, causation, and
   bounded external resource identities, revisions, and digests. Hongxian
   records checkpoints but never restores external state.
 - [ ] Add bounded as-of projection at a verified ledger sequence or named
-  checkpoint. Begin with deterministic streaming replay; introduce cached
-  snapshots only after measured interactive workloads justify them.
+  checkpoint for demand-driven re-entry context. Begin with deterministic
+  streaming replay; introduce cached snapshots only after measured interactive
+  workloads justify them.
 - [ ] Add an optional indexed `SessionRelation` with source, target,
   application-defined kind, participant, time, and causation. Relations support
   discovery but do not imply lifecycle propagation, inherited authorization,
@@ -329,10 +362,78 @@ Later, driven by concrete consumers:
   records that something was contributed; deliberate promotion determines what
   becomes retained context.
 
-## Milestone 7 — Optional execution adapters
+## Milestone 7 — Optional external-capability adapters
 
-- [ ] Extract a provider-neutral external-event delivery cursor from Guyabano's
-  current Zhinu-to-Siming mirror implementation.
+Hongxian remains complete with zero optional adapters. It owns session
+continuity, immutable evidence, and opaque correlation; an external system owns
+the derived state it publishes. Adding or removing an adapter must not change
+ordinary session semantics.
+
+### Session-resource adapter design gate
+
+- [x] Confirm by source dependency audit that `Penghou.Hongxian` and
+  `Penghou.Hongxian.Sqlite` have no Hetu, parser, graph-store, or Roslyn runtime
+  dependency. `Microsoft.CodeAnalysis.PublicApiAnalyzers` is build-only with
+  `PrivateAssets=all`; the packed-consumer gate must prove it does not flow to
+  consumers. The remaining risk is future transitive package composition, not
+  a current code-memory dependency in Hongxian core.
+- [ ] First test whether the existing evidence outbox, cross-store operation,
+  participant-health, and opaque external-reference contracts can support
+  resource synchronization from application composition. Introduce
+  `Penghou.Hongxian.Hosting` only when repeated consumers prove that adapter
+  lifecycle and DI composition are reusable package responsibilities.
+- [ ] If a reusable seam is required, keep it resource-neutral: an adapter may
+  receive an opaque resource identity and immutable revision and return bounded
+  provider, external identity/revision, digest, and synchronization evidence.
+  Do not add code, repository, parser, graph, workspace, Git, or Hetu types to
+  Hongxian core contracts.
+- [ ] Define synchronization triggers and ordering before freezing an API:
+  committed revision, outbox delivery, explicit refresh, superseding revision,
+  concurrent synchronization, late completion, cancellation, and stale-result
+  handling must be deterministic and idempotent.
+- [ ] Treat zero registered adapters as the ordinary absence of a capability,
+  not as a `NotConfigured` synchronization result and not as degraded session
+  health. A host may explicitly require a capability for one application or
+  resource, but that is host admission policy rather than a global Hongxian
+  requirement.
+- [ ] Reuse forward reconciliation for partial cross-store success. An adapter
+  failure may produce immutable incident/participant evidence and mark the
+  derived state lagging, but it must not roll back, rewrite, or invalidate the
+  authoritative session revision.
+- [ ] Keep adapter registration host-authorized. Session payloads and opaque
+  resource identifiers must never select implementations, grant filesystem or
+  network authority, or supply unbounded metadata. Apply existing bounds,
+  redaction, and sensitive-path/credential rules to adapter inputs and results.
+- [ ] Add isolated packed-consumer tests proving Hongxian, Hongxian.Sqlite, and
+  any generic hosting package have no transitive `Penghou.Hetu*`, Roslyn,
+  ANTLR, or LadybugDB dependency. Add a zero-adapter recovery test.
+- [ ] Consider `Penghou.Hongxian.Hetu` only after this boundary is proven. It
+  may depend on Hongxian hosting and Hetu, correlate an exact session resource
+  revision with an exact Hetu publication, and expose capability/freshness
+  evidence without exporting Hetu domain types through Hongxian contracts.
+- [ ] Prove the optional Hetu path with R1 -> H1 and R2 -> H2 correlation,
+  failure plus forward reconciliation, and removal of the package/registration
+  while the same generic session lifecycle continues to work.
+
+This boundary is a prerequisite for the planned Marang/Hetu shared-workspace
+and structural-catch-up experiment, but it is not the implementation of that
+experiment. Workspace composition, graph deltas, code-specific synchronization
+policy, and MCP presentation remain Hetu and Marang responsibilities.
+
+Do not implement dynamic assembly discovery, MEF, runtime NuGet loading,
+generic `ICodeMemory`/`ICodeGraph`/`IGraph` abstractions, copied graph content,
+or parser-specific contracts as part of this milestone. NuGet references plus
+explicit host registration are the extension model until real demand proves a
+need for more.
+
+### Workflow execution adapters
+
+- [ ] If the generic evidence-outbox and cross-store-operation contracts cannot
+  consume Zhinu receipts/events without provider-specific leakage, define a
+  provider-neutral cross-authority evidence seam with an idempotent delivery
+  cursor and forward reconciliation. Guyabano's current Zhinu-to-Siming mirror
+  is the reference integration; this seam must not claim an atomic Zhinu plus
+  Hongxian transaction.
 - [ ] Consider `Penghou.Hongxian.Zhinu` only if it can map authoritative Zhinu
   receipts/events without importing Guyabano statuses or policy.
 - [ ] Document that Zhinu's persisted run, step, result, restart, signal, and
