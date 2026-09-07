@@ -50,6 +50,12 @@ workspace mutation, generated-file semantics, model requests, code graphs,
 memory promotion, artifact bytes, participant authentication, or authorization.
 Siming remains authoritative for cryptographic ledger format and verification.
 
+For adaptive workflows, Fuwen owns immutable plan revisions and comparison;
+Zhinu owns workflow instances, execution generations, fencing, activation, and
+artifact reuse decisions. Hongxian records opaque references to those facts and
+the causal evidence around them. It never decides whether a plan or artifact is
+valid and never becomes the cutover authority.
+
 ## Marang Gate 0.5 audit
 
 Last reviewed: **2026-09-07**
@@ -80,6 +86,46 @@ The only reusable follow-ups identified by this audit are the existing Milestone
 Milestone 7 cross-authority evidence seam. A Marang adapter should consume the
 current generic outbox/operation contracts first; add an upstream seam only if
 Zhinu receipts/events cannot be represented without provider-specific leakage.
+
+## Adaptive workflow-evolution evidence
+
+Hongxian should make an adaptive workflow understandable after the original UI,
+process, or chat context is gone. Application-defined events and opaque external
+references should be sufficient to preserve a timeline such as:
+
+```text
+plan revision proposed -> replan requested -> transition preview evaluated
+-> approved/rejected -> old generation quiesced/superseded
+-> new generation activated -> artifacts reused/revalidated/invalidated
+```
+
+Roadmap requirements:
+
+- [ ] Define a bounded provider-neutral reference profile for logical workflow
+  instance, Fuwen plan revision/execution fingerprint, Zhinu run, execution
+  generation, structural/runtime node, attempt, and transition operation.
+- [ ] Record who requested replanning, why, the evidence that caused it, the
+  candidate revision, policy/approval decision, and authoritative Zhinu
+  transition receipt without storing chain-of-thought.
+- [ ] Record artifact dispositions (`produced`, `reused`, `revalidated`,
+  `invalidated`, `superseded`, `ignored`) as evidence referencing both original
+  producer and current consumer; never rewrite provenance.
+- [ ] Preserve pause, quiescence, resume, supersession, late completion,
+  ignored-for-progression, transition failure, and recovery evidence with
+  correlation/causation and idempotent delivery.
+- [ ] Add projection/query support for current referenced plan/generation,
+  replan history, pending transition approval, transition outcome, and unusual
+  late completions after Milestone 4's generic bounded query surface exists.
+- [ ] Use the existing evidence outbox and forward reconciliation for Zhinu
+  delivery. Hongxian records only committed authority results and must not claim
+  a distributed transaction with Zhinu.
+- [ ] Prove projection rebuild from a verified ledger preserves the same
+  generation/transition timeline and never attempts to reconstruct Zhinu's
+  authoritative workflow state.
+
+Branching remains a correlation concern here, not a Hongxian lifecycle model.
+Different plan-lineage branches may be referenced, but choosing or activating a
+branch belongs to Fuwen/host policy and Zhinu.
 
 ## Non-goals
 
@@ -494,5 +540,7 @@ Do not graduate from preview until:
 - Is a trusted checkpoint reference sufficient for the core, with signature and
   anchoring policy left to hosts?
 - What branching semantics remain useful outside code-generation workflows?
+- Which minimal opaque transition receipt fields are required for useful
+  workflow-evolution queries without copying Fuwen or Zhinu state models?
 - Which publication kinds need generic projection support beyond application
   queries, without making Hongxian interpret their domain meaning?
