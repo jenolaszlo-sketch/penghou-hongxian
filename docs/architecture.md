@@ -3,8 +3,14 @@
 ## Responsibility
 
 Hongxian models continuity across evolving human and automated work. A session
-is the correlation boundary; its event ledger is authoritative history and its
-projections are disposable read models.
+is an evidence-stream and consistency boundary; its event ledger is the
+authoritative record of accepted assertions and its projections are disposable
+read models.
+
+The accepted target architecture is recorded in the
+[architecture decision records](decisions/README.md). In particular, a ledger
+is authoritative for the integrity and ordering of accepted evidence, not proof
+that every source assertion is factually correct.
 
 ```text
 application policy
@@ -14,7 +20,7 @@ Penghou.Hongxian contracts
         |
         +--- immutable event port ---> Penghou.Siming
         |
-        +--- projection port --------> SQLite read models
+        +--- projection port --------> replaceable experience/read providers
         |
         +--- optional adapters ------> workflow or execution systems
 ```
@@ -26,8 +32,8 @@ may define their own vocabulary without changing the kernel.
 ## Authoritative and derived state
 
 - Siming event ledgers are authoritative, ordered, append-only evidence.
-- SQLite projections are derived state and can be rebuilt from an intact
-  ledger.
+- SQLite and future LatticeDB, Neo4j, or remote projections are derived state
+  and can be rebuilt from intact verified evidence.
 - `OccurredAt` is a caller claim; ledger `CommittedAt` is the authoritative
   audit clock.
 - Idempotency keys make ambiguous append retries safe within one session.
@@ -64,6 +70,10 @@ Reusable indexed correlation queries and verified as-of/re-entry projections
 remain planned portability work; until those APIs exist, consumers should use
 bounded event pages and rebuildable projections rather than scan the ledger as
 an implicit query contract.
+
+The portable boundary describes evidence, projection position, capabilities,
+and bounded recall—not a generic graph database API. Provider-specific query
+languages and administration remain on provider-specific surfaces.
 
 ## Failure model
 

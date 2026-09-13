@@ -2,9 +2,11 @@
 
 ## Goal
 
-Provide a reusable durable-session kernel for long-running human and automated
-work without importing application policy, workspace layout, artifact meaning,
-or dependencies on a particular execution engine.
+Provide the temporal evidence and experience layer for long-running human and
+automated work. Hongxian preserves what happened in verifiable session streams,
+projects disposable experience views, and offers bounded evidence-bound recall
+without importing application policy or becoming a workflow, planning, model,
+artifact, or database engine.
 
 This is the source of truth for reusable session identity, lifecycle, event,
 projection, decision, recovery, reconciliation, and persistence work. Guyabano
@@ -12,7 +14,7 @@ tracks only its application profile and package integration.
 
 ## Current state
 
-Last reviewed: **2026-09-07**
+Last reviewed: **2026-09-13**
 
 - `Penghou.Hongxian` and `Penghou.Hongxian.Sqlite` `0.1.0-preview.2` are
   published on NuGet.
@@ -37,18 +39,80 @@ Last reviewed: **2026-09-07**
 - A provider-neutral participant collaboration surface is accepted as
   post-integration work. It will reuse Hongxian's event, reference, projection,
   and idempotency foundations rather than introduce a parallel message store.
+- The experience-graph pivot is accepted. Siming session streams remain the
+  authority for recorded evidence; experience graphs, lexical/vector indexes,
+  summaries, timelines, and current state are disposable projections.
+- LatticeDB is the planned first experience projection provider, not a core
+  storage identity. Neo4j, another graph store, or a remote provider must be
+  addable without changing evidence envelopes or portable recall consumers.
+
+## Accepted architectural direction
+
+The decision records are the authority for the target boundary:
+
+- [ADR-0001](decisions/0001-siming-evidence-streams-are-authoritative.md):
+  sessions are append-only Siming evidence streams and consistency boundaries;
+  lifecycle and current state are projections.
+- [ADR-0002](decisions/0002-provider-neutral-experience-projections.md):
+  Hongxian owns logical experience projection and recall contracts; LatticeDB,
+  Neo4j, and remote implementations remain replaceable providers with explicit
+  capabilities.
+- [ADR-0003](decisions/0003-evidence-bound-recall.md): recall is bounded,
+  provenance-carrying, versioned, and reproducible enough to explain the
+  context supplied to Fuwen, Baize, or another consumer.
+
+The intended stack is:
+
+```text
+sources (people, Baize, Fuwen, Zhinu, tools, artifact systems)
+                              |
+                              v
+                 Siming session evidence streams
+                              |
+                       verified projectors
+                              |
+          LatticeDB / Neo4j / remote experience provider
+                              |
+                       bounded recall API
+                              |
+                planning, routing, and user context
+```
+
+Cryptographic integrity proves the order and integrity of accepted assertions;
+it does not prove that every assertion is factually correct. Source,
+observation and commit time, schema, verification status, measurement kind, and
+optional domain confidence remain explicit.
+
+## Delivery order for the experience layer
+
+1. Freeze the versioned evidence envelope and assertion/source semantics.
+2. Confirm sessions as expected-head Siming streams with derived lifecycle.
+3. Define verified projector checkpoints, replay, and cross-ledger references.
+4. Define portable experience projection and provider-capability contracts.
+5. Implement the first LatticeDB graph plus lexical-search provider.
+6. Add bounded `AsOf` recall with evidence references and recall receipts.
+7. Add optional embeddings and summaries as provenance-linked derived data.
+8. Integrate recall into Fuwen planning and record the exact supplied context.
+9. Feed contextual outcome statistics to Baize; defer adaptive routing until
+   enough representative evidence exists to evaluate bias and usefulness.
+
+Each stage must update this roadmap when completed. Guyabano integration may
+exercise an earlier stage, but must not freeze provider-specific types into the
+portable contracts.
 
 ## Ownership boundary
 
-Hongxian owns continuity and correlation: session identity and lifecycle,
-opaque revision lineage, external-operation references, decision coordination,
-incidents and recovery records, projections, reconciliation contracts, audit
-queries, and operational-catalog abstractions.
+Hongxian owns temporal continuity and experience semantics: session evidence
+identity and lifecycle, opaque revision lineage, external-operation references,
+decision coordination, incidents and recovery records, verified projection
+positions, bounded recall contracts, reconciliation, audit queries, and
+operational-catalog abstractions.
 
-Hongxian does not own workflow scheduling, application recovery policy,
-workspace mutation, generated-file semantics, model requests, code graphs,
-memory promotion, artifact bytes, participant authentication, or authorization.
-Siming remains authoritative for cryptographic ledger format and verification.
+Hongxian does not own workflow scheduling, planning policy, application
+recovery policy, workspace mutation, generated-file semantics, model requests
+or routing, code facts, memory promotion, artifact bytes, database query
+languages, participant authentication, or authorization. Siming remains
+authoritative for cryptographic ledger format and verification.
 
 For adaptive workflows, Fuwen owns immutable plan revisions and comparison;
 Zhinu owns workflow instances, execution generations, fencing, activation, and
@@ -291,10 +355,59 @@ Package and contract quality:
   compatibility validation against preview 1. Intentional preview-2 contract
   breaks are recorded in package-validation suppression files.
 
-## Milestone 4 — Query, lifecycle, and portability surface
+## Milestone 4 — Experience projection, recall, query, and portability
 
 These reusable APIs moved from Guyabano's interactive-session backlog. UI and
 application policy remain with consumers.
+
+Evidence and projection contract:
+
+- [ ] Inventory current event, catalog, projection, and operation fields and
+  classify each as authoritative evidence, rebuildable derived state, or
+  ephemeral coordination. Do not remove the current SQLite implementation until
+  parity and verified rebuild tests exist.
+- [ ] Freeze a versioned provider-neutral evidence envelope vocabulary for
+  assertion/measurement kind, source, observed and committed time, verification
+  status, and optional domain confidence without breaking application-defined
+  payloads.
+- [ ] Define projector identity and version, verified source head, projection
+  checkpoint, replay idempotency, gap/corruption behavior, and safe rebuild from
+  one or more session ledgers.
+- [ ] Define bounded cross-ledger evidence references and discovery. A project
+  experience view may span sessions, but no projection may silently merge or
+  rewrite their authoritative histories.
+- [ ] Define provider-neutral logical projection and recall ports. Keep storage
+  schemas, SQL, Cypher, LatticeDB types, embedding types, and transport clients
+  out of `Penghou.Hongxian` public contracts.
+- [ ] Define an explicit provider capability descriptor for graph traversal,
+  lexical, vector, hybrid ranking, `AsOf`, checkpoint consistency, and remote
+  operation. Missing capability returns a typed result or uses a declared,
+  deterministic fallback.
+- [ ] Add a provider conformance suite covering checkpoint monotonicity,
+  idempotent replay, evidence provenance, deletion/rebuild, bounds, truncation,
+  unsupported capabilities, and projection-lag reporting.
+
+First provider and recall slice:
+
+- [ ] Implement LatticeDB as the first disposable experience provider, starting
+  with evidence-backed entities/relations and lexical search. Keep the package
+  boundary provisional until dependency and deployment needs justify a split.
+- [ ] Prove a projection can be deleted, rebuilt from verified Siming streams,
+  and produce equivalent portable results at the same checkpoint.
+- [ ] Add bounded recall requests with scope, `AsOf`, item/byte/token budgets,
+  evidence-strength and freshness requirements, revision filters, and a
+  versioned retrieval policy.
+- [ ] Return evidence identities, projection/provider identity and checkpoint,
+  derivation/policy versions, score semantics, truncation, freshness, and
+  unsupported-capability diagnostics.
+- [ ] Define a compact recall receipt containing query fingerprint, selected
+  evidence, checkpoint, policy version, and supplied-context digest so a
+  consequential consumer can append what influenced it.
+- [ ] Add summaries and embeddings only as rebuildable derivations with source
+  evidence, model/provider/version, creation time, access classification, and
+  invalidation rules. Similarity must not be presented as factual confidence.
+
+Portable session and operator queries:
 
 - [ ] Add bounded, projection-backed, indexed query APIs for session catalog
   lookup, paged timeline, projection delivery status, pending inputs, pending
@@ -344,12 +457,25 @@ application policy remain with consumers.
 - [ ] Decide whether session branching belongs in the generic kernel only after
   selective rerun and a second consumer establish useful semantics.
 
+Provider evolution gates:
+
+- [ ] Validate a second provider shape before declaring the portable interface
+  stable. A thin in-memory reference provider is sufficient for conformance;
+  Neo4j or a remote provider should be implemented only when a real consumer
+  needs its deployment or traversal characteristics.
+- [ ] For remote providers, define authentication/configuration ownership,
+  timeout and cancellation, retry/idempotency, consistency/freshness reporting,
+  disclosure classification, tenant isolation, and safe degraded behavior.
+- [ ] Permit provider-native administration and advanced queries on
+  provider-specific APIs, while keeping Fuwen, Baize, and ordinary Hongxian
+  consumers on the portable evidence/recall surface.
+
 ## Milestone 5 — Package and Guyabano integration
 
 - [x] Publish `Penghou.Hongxian` and `Penghou.Hongxian.Sqlite`
   `0.1.0-preview.1` after CI and packed-consumer validation pass on GitHub.
-- [ ] Publish preview 2 only after the Milestone 3 integrity and contract gates
-  pass locally, in CI, and through the isolated packed consumer.
+- [x] Publish preview 2 after the Milestone 3 integrity and contract gates pass
+  locally, in CI, and through the isolated packed consumer.
 - [ ] Replace Guyabano's internal session projects with package references.
 - [ ] Keep Guyabano event vocabulary, workspace policy, product recovery
   handlers, and Penghou-provider adapters in Guyabano.
@@ -359,6 +485,11 @@ application policy remain with consumers.
 - [ ] Prove restart and projection reconstruction after process loss.
 - [ ] Remove Guyabano's temporary duplicate kernel implementation only after
   package-backed parity is proven.
+- [ ] After the portable recall slice is stable, let Guyabano query experience
+  through Hongxian rather than LatticeDB-specific APIs and append a recall
+  receipt whenever retrieved experience influences planning or recovery.
+- [ ] Treat Hongxian experience as advisory context. Fuwen owns plan revisions,
+  Zhinu owns deterministic execution, and Guyabano owns application policy.
 
 ## Milestone 6 — Participant collaboration surface
 
@@ -544,3 +675,15 @@ Do not graduate from preview until:
   workflow-evolution queries without copying Fuwen or Zhinu state models?
 - Which publication kinds need generic projection support beyond application
   queries, without making Hongxian interpret their domain meaning?
+- What is the smallest useful portable experience model: evidence entities and
+  typed relations only, or a small set of derived observation/outcome concepts?
+- Should a project-wide projector consume a catalog of independently verified
+  session heads, or should cross-session composition be a separate projection
+  layer?
+- Which score semantics can be portable across lexical, vector, graph, and
+  hybrid providers without inventing misleading normalized confidence?
+- What minimum capabilities must every experience provider implement, and which
+  remain optional with explicit degradation?
+- When does splitting `Penghou.Hongxian.Sqlite` into evidence composition and
+  projection-provider packages materially improve deployment or dependency
+  clarity?
