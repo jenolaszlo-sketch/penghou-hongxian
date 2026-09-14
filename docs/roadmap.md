@@ -14,7 +14,7 @@ tracks only its application profile and package integration.
 
 ## Current state
 
-Last reviewed: **2026-09-13**
+Last reviewed: **2026-09-14**
 
 - `Penghou.Hongxian` and `Penghou.Hongxian.Sqlite` `0.1.0-preview.2` are
   published on NuGet.
@@ -27,7 +27,7 @@ Last reviewed: **2026-09-13**
   operation receipts, and forward reconciliation are extracted.
 - Provider-qualified external-operation identity prevents collisions between
   execution systems without introducing workflow-engine types.
-- The suite passes 75 tests; a standalone example and an isolated packed
+- The current experience checkpoint passes 123 tests; a standalone example and an isolated packed
   consumer both persist, project, and verify a session event.
 - A pre-integration review found no vulnerable direct or transitive packages
   and all tests pass. Preview 2 now records in-repository, interface-driven
@@ -53,6 +53,15 @@ Last reviewed: **2026-09-13**
   bounded evidence nature, capture basis, and capture-time disposition; v1/v2
   remain readable without reinterpretation; authority outbox events are marked
   as receipts; build, format, pack, and all 82 tests pass.
+- Experience implementation Phases 2 and 3 are complete: verified projector
+  positions/checkpoints, replay-safe execution, the portable evidence-bound
+  entity/relation model, provider capabilities, in-memory reference provider,
+  and remote-shaped contract fixture are implemented.
+- Experience implementation Phase 4 is in progress: the optional
+  `Penghou.Hongxian.LatticeDb` provider implements exact lookup, bounded
+  traversal, projection-scoped BM25 recall, checkpoints, typed diagnostics,
+  and delete/replay equivalence. Packed-consumer isolation and confirmation of
+  the three-platform CI matrix remain open.
 
 ## Accepted architectural direction
 
@@ -500,6 +509,41 @@ Provider evolution gates:
 - [ ] Permit provider-native administration and advanced queries on
   provider-specific APIs, while keeping Fuwen, Baize, and ordinary Hongxian
   consumers on the portable evidence/recall surface.
+
+### Historical execution and retrospective projections
+
+Hongxian is episodic execution evidence, not a truth engine. It can prove that
+an attributed claim or receipt was committed and verify its history; only an
+authoritative source receipt establishes the execution fact it describes.
+Model assertions remain assertions even when they appear in a successful run.
+
+- [ ] Define a portable historical-execution graph profile spanning immutable
+  plan revisions, workflow generations, activities/attempts, actors,
+  model/provider/profile identities, tools, artifacts, validation, retries,
+  corrections, context additions, mutations, checkpoints, compensation,
+  timing, usage/cost, and outcomes.
+- [ ] Add a deterministic mechanical-retrospective projector comparing the
+  original plan, activated revisions, actual execution, mutations, retries,
+  substitutions, validation failures, recoveries, unresolved issues, and final
+  outcome. Its outputs are rebuildable views, not new evidence authority.
+- [ ] Add contextual aggregates by task class, model/version, provider, role,
+  prompt/profile, tool requirements, and reasoning mode. Expose sample size,
+  observation window, recency, and supporting evidence.
+- [ ] Keep model reputation and usage guidance as versioned advisory
+  projections. Add recency decay and model/profile boundaries before routing
+  consumes them; controlled exploration and feedback-loop evaluation are later
+  policy work.
+- [ ] Add bounded similar-run and workflow-mutation-pattern retrieval only
+  after the mechanical retrospective supplies stable comparable features.
+- [ ] Permit optional reasoned retrospectives to append attributed candidate
+  lessons linked to their mechanical inputs. Normal successful runs require no
+  model call, and no candidate becomes long-term knowledge automatically.
+- [ ] Define retention and compression tiers for derived experience while
+  preserving immutable source evidence and every published recall receipt.
+
+Non-goals for this slice are a global model score, automatic routing, mandatory
+LLM retrospectives, workflow interpretation inside Hongxian, and silent
+promotion of an observation into truth or reusable knowledge.
 
 ## Milestone 5 — Package and Guyabano integration
 
