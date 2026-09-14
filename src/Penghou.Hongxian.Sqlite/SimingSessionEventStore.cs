@@ -441,6 +441,10 @@ public sealed class SimingSessionEventStore :
             > SessionEventEnvelopeSchema.CurrentVersion)
             throw new UnsupportedSessionEventSchemaException(payload.SchemaVersion);
         payload.PayloadSchema?.Validate();
+        if (payload.SchemaVersion >= 3 && payload.Evidence is null)
+            throw new InvalidDataException(
+                $"Session event at sequence {entry.Sequence} has no evidence descriptor.");
+        payload.Evidence?.Validate();
         var participant = payload.SchemaVersion == 1
             ? new SessionParticipantAttribution(
                 SessionParticipantKinds.Legacy,
@@ -470,6 +474,7 @@ public sealed class SimingSessionEventStore :
             PayloadSchema = payload.PayloadSchema,
             PayloadSensitivity = payload.PayloadSensitivity,
             PayloadRetention = payload.PayloadRetention,
+            Evidence = payload.Evidence,
             PayloadDigest = payload.PayloadDigest,
             PreviousHash = entry.Sequence == 1 ? null : entry.PreviousHash.ToString(),
             Hash = entry.Hash.ToString()
@@ -501,8 +506,14 @@ public sealed class SimingSessionEventStore :
         existing.PayloadSensitivity == replay.PayloadSensitivity &&
         existing.PayloadRetention == replay.PayloadRetention &&
         existing.PayloadSchema == replay.PayloadSchema &&
+        EquivalentEvidence(existing, replay) &&
         EquivalentReferences(existing.CrossSystemRefs, replay.CrossSystemRefs) &&
         EquivalentPayload(existing, replay);
+
+    private static bool EquivalentEvidence(SessionEvent existing, SessionEventRequest replay) =>
+        existing.SchemaVersion < 3
+            ? replay.Evidence is null
+            : existing.Evidence == (replay.Evidence ?? SessionEvidenceDescriptor.Unspecified);
 
     private static bool EquivalentParticipant(
         SessionEvent existing,
@@ -554,7 +565,8 @@ public sealed class SimingSessionEventStore :
         string? PayloadDigest,
         SessionPayloadSchema? PayloadSchema = null,
         JsonElement? Payload = null,
-        SessionParticipantAttribution? Participant = null)
+        SessionParticipantAttribution? Participant = null,
+        SessionEvidenceDescriptor? Evidence = null)
     {
         public static SessionEventPayload From(SessionEventRequest request, Guid eventId) =>
             new(SessionEventEnvelopeSchema.CurrentVersion, eventId, null, request.OccurredAt, request.CausationId, request.CorrelationId,
@@ -569,7 +581,8 @@ public sealed class SimingSessionEventStore :
                 request.PayloadRetention == SessionPayloadRetention.Retain
                     ? request.Payload?.Clone()
                     : null,
-                request.Participant);
+                request.Participant,
+                request.Evidence ?? SessionEvidenceDescriptor.Unspecified);
     }
 
     private static string? ComputePayloadDigest(SessionEventRequest request)

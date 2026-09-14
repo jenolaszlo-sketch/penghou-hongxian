@@ -123,8 +123,13 @@ public sealed class ProviderConformanceTests
         var dispatch = await fixture.CatalogDispatcher.DispatchPendingAsync(cancellationToken: ct);
         dispatch.Should().Be(new SessionEvidenceDispatchResult(1, 1));
         (await fixture.CatalogOutbox.ListPendingAsync(cancellationToken: ct)).Should().BeEmpty();
-        (await fixture.Events.ReadAsync(session.Id, cancellationToken: ct)).Should().ContainSingle()
-            .Which.EventType.Should().Be(SessionEventTypes.SessionCreated);
+        var delivered = (await fixture.Events.ReadAsync(session.Id, cancellationToken: ct))
+            .Should().ContainSingle().Which;
+        delivered.EventType.Should().Be(SessionEventTypes.SessionCreated);
+        delivered.Evidence.Should().Be(new SessionEvidenceDescriptor(
+            SessionEvidenceNatures.Receipt,
+            SessionEvidenceBases.AuthorityReceipt,
+            SessionEvidenceDispositions.Unassessed));
         (await fixture.CatalogDispatcher.DispatchPendingAsync(cancellationToken: ct))
             .Should().Be(new SessionEvidenceDispatchResult(0, 0));
     }

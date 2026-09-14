@@ -1,4 +1,134 @@
 #nullable enable
+Penghou.Hongxian.ExperienceProjectionEffect
+Penghou.Hongxian.ExperienceProjectionEffect.ExperienceProjectionEffect(Penghou.Hongxian.ExperienceProjectionId ProjectionId, Penghou.Hongxian.SessionId SessionId, long Sequence, System.Guid EventId, string! Hash, string! EventType) -> void
+Penghou.Hongxian.ExperienceProjectionEffect.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
+Penghou.Hongxian.ExperienceProjectionEffect.ProjectionId.init -> void
+Penghou.Hongxian.ExperienceProjectionEffect.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.ExperienceProjectionEffect.SessionId.init -> void
+Penghou.Hongxian.ExperienceProjectionEffect.Sequence.get -> long
+Penghou.Hongxian.ExperienceProjectionEffect.Sequence.init -> void
+Penghou.Hongxian.ExperienceProjectionEffect.EventId.get -> System.Guid
+Penghou.Hongxian.ExperienceProjectionEffect.EventId.init -> void
+Penghou.Hongxian.ExperienceProjectionEffect.Hash.get -> string!
+Penghou.Hongxian.ExperienceProjectionEffect.Hash.init -> void
+Penghou.Hongxian.ExperienceProjectionEffect.EventType.get -> string!
+Penghou.Hongxian.ExperienceProjectionEffect.EventType.init -> void
+Penghou.Hongxian.IExperienceProjectionWriter
+Penghou.Hongxian.IExperienceProjectionWriter.ApplyAsync(Penghou.Hongxian.ExperienceProjectionDescriptor! descriptor, Penghou.Hongxian.SessionEvent! sessionEvent, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceProjectionWriteOutcome>!
+Penghou.Hongxian.IExperienceProjectionWriter.DeleteAsync(Penghou.Hongxian.ExperienceProjectionDescriptor! descriptor, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.ExperienceProjectionWriteOutcome
+Penghou.Hongxian.ExperienceProjectionWriteOutcome.AlreadyPresent = 1 -> Penghou.Hongxian.ExperienceProjectionWriteOutcome
+Penghou.Hongxian.ExperienceProjectionWriteOutcome.Applied = 0 -> Penghou.Hongxian.ExperienceProjectionWriteOutcome
+Penghou.Hongxian.ExperienceProjectionEffectConflictException
+Penghou.Hongxian.ExperienceProjectionEffectConflictException.Attempted.get -> Penghou.Hongxian.ExperienceProjectionEffect!
+Penghou.Hongxian.ExperienceProjectionEffectConflictException.Existing.get -> Penghou.Hongxian.ExperienceProjectionEffect!
+Penghou.Hongxian.ExperienceProjectionEffectConflictException.ExperienceProjectionEffectConflictException(Penghou.Hongxian.ExperienceProjectionEffect! existing, Penghou.Hongxian.ExperienceProjectionEffect! attempted) -> void
+Penghou.Hongxian.IExperienceProjectionCheckpointResetStore
+Penghou.Hongxian.IExperienceProjectionCheckpointResetStore.ResetAsync(Penghou.Hongxian.ExperienceProjectionId projectionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.ExperienceProjectionExecutionFailure
+Penghou.Hongxian.ExperienceProjectionExecutionFailure.CheckpointCommit = 3 -> Penghou.Hongxian.ExperienceProjectionExecutionFailure
+Penghou.Hongxian.ExperienceProjectionExecutionFailure.CheckpointReset = 4 -> Penghou.Hongxian.ExperienceProjectionExecutionFailure
+Penghou.Hongxian.ExperienceProjectionExecutionFailure.InvalidHistory = 0 -> Penghou.Hongxian.ExperienceProjectionExecutionFailure
+Penghou.Hongxian.ExperienceProjectionExecutionFailure.ProjectionWrite = 2 -> Penghou.Hongxian.ExperienceProjectionExecutionFailure
+Penghou.Hongxian.ExperienceProjectionExecutionFailure.UnsupportedHistory = 1 -> Penghou.Hongxian.ExperienceProjectionExecutionFailure
+Penghou.Hongxian.ExperienceProjectionExecutionException
+Penghou.Hongxian.ExperienceProjectionExecutionException.ExperienceProjectionExecutionException(Penghou.Hongxian.ExperienceProjectionExecutionFailure failure, string! message, System.Exception? innerException = null) -> void
+Penghou.Hongxian.ExperienceProjectionExecutionException.Failure.get -> Penghou.Hongxian.ExperienceProjectionExecutionFailure
+Penghou.Hongxian.ExperienceProjectionExecutionException.ProjectionWritesMayHaveCommitted.get -> bool
+Penghou.Hongxian.ExperienceProjectionExecutionException.ProjectionWritesMayHaveCommitted.init -> void
+Penghou.Hongxian.ExperienceProjectionExecutionException.IntendedPosition.get -> Penghou.Hongxian.ExperienceProjectionPosition?
+Penghou.Hongxian.ExperienceProjectionExecutionException.IntendedPosition.init -> void
+Penghou.Hongxian.ExperienceProjectionExecutionResult
+Penghou.Hongxian.ExperienceProjectionExecutionResult.ExperienceProjectionExecutionResult(Penghou.Hongxian.ExperienceProjectionCheckpoint! Checkpoint, int AppliedEventCount, int AlreadyPresentEventCount, int CheckpointCoveredEventCount, bool CheckpointAdvanced) -> void
+Penghou.Hongxian.ExperienceProjectionExecutionResult.Checkpoint.get -> Penghou.Hongxian.ExperienceProjectionCheckpoint!
+Penghou.Hongxian.ExperienceProjectionExecutionResult.Checkpoint.init -> void
+Penghou.Hongxian.ExperienceProjectionExecutionResult.AppliedEventCount.get -> int
+Penghou.Hongxian.ExperienceProjectionExecutionResult.AppliedEventCount.init -> void
+Penghou.Hongxian.ExperienceProjectionExecutionResult.AlreadyPresentEventCount.get -> int
+Penghou.Hongxian.ExperienceProjectionExecutionResult.AlreadyPresentEventCount.init -> void
+Penghou.Hongxian.ExperienceProjectionExecutionResult.CheckpointCoveredEventCount.get -> int
+Penghou.Hongxian.ExperienceProjectionExecutionResult.CheckpointCoveredEventCount.init -> void
+Penghou.Hongxian.ExperienceProjectionExecutionResult.CheckpointAdvanced.get -> bool
+Penghou.Hongxian.ExperienceProjectionExecutionResult.CheckpointAdvanced.init -> void
+Penghou.Hongxian.ExperienceProjectionExecutionResult.EventCount.get -> int
+Penghou.Hongxian.ExperienceProjectionProjector
+Penghou.Hongxian.ExperienceProjectionProjector.ExperienceProjectionProjector(Penghou.Hongxian.ExperienceProjectionDescriptor! descriptor, Penghou.Hongxian.IExperienceProjectionWriter! writer, Penghou.Hongxian.IExperienceProjectionCheckpointStore! checkpoints) -> void
+Penghou.Hongxian.ExperienceProjectionProjector.Descriptor.get -> Penghou.Hongxian.ExperienceProjectionDescriptor!
+Penghou.Hongxian.ExperienceProjectionProjector.ProjectAsync(Penghou.Hongxian.VerifiedSessionHistory! history, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceProjectionExecutionResult!>!
+Penghou.Hongxian.ExperienceProjectionProjector.ProjectAsync(System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.VerifiedSessionHistory!>! histories, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceProjectionExecutionResult!>!
+Penghou.Hongxian.ExperienceProjectionProjector.RebuildAsync(System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.VerifiedSessionHistory!>! histories, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceProjectionExecutionResult!>!
+Penghou.Hongxian.InMemoryExperienceProjectionWriter
+Penghou.Hongxian.InMemoryExperienceProjectionWriter.InMemoryExperienceProjectionWriter() -> void
+Penghou.Hongxian.InMemoryExperienceProjectionWriter.ApplyAsync(Penghou.Hongxian.ExperienceProjectionDescriptor! descriptor, Penghou.Hongxian.SessionEvent! sessionEvent, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceProjectionWriteOutcome>!
+Penghou.Hongxian.InMemoryExperienceProjectionWriter.DeleteAsync(Penghou.Hongxian.ExperienceProjectionDescriptor! descriptor, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.InMemoryExperienceProjectionWriter.ListAsync(Penghou.Hongxian.ExperienceProjectionId projectionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceProjectionEffect!>!>!
+Penghou.Hongxian.ExperienceProjectionId
+Penghou.Hongxian.ExperienceProjectionId.ExperienceProjectionId() -> void
+Penghou.Hongxian.ExperienceProjectionId.ExperienceProjectionId(System.Guid value) -> void
+Penghou.Hongxian.ExperienceProjectionId.Value.get -> System.Guid
+static Penghou.Hongxian.ExperienceProjectionId.New() -> Penghou.Hongxian.ExperienceProjectionId
+static Penghou.Hongxian.ExperienceProjectionId.Parse(string! value) -> Penghou.Hongxian.ExperienceProjectionId
+static Penghou.Hongxian.ExperienceProjectionId.Parse(string! value, System.IFormatProvider? provider) -> Penghou.Hongxian.ExperienceProjectionId
+static Penghou.Hongxian.ExperienceProjectionId.TryParse(string? value, out Penghou.Hongxian.ExperienceProjectionId result) -> bool
+static Penghou.Hongxian.ExperienceProjectionId.TryParse(string? value, System.IFormatProvider? provider, out Penghou.Hongxian.ExperienceProjectionId result) -> bool
+override Penghou.Hongxian.ExperienceProjectionId.ToString() -> string!
+Penghou.Hongxian.ExperienceProjectionId.ToString(string? format, System.IFormatProvider? formatProvider) -> string!
+Penghou.Hongxian.ExperienceProjectionId.TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider) -> bool
+const Penghou.Hongxian.SessionContractLimits.LedgerIdentityCharacters = 200 -> int
+const Penghou.Hongxian.SessionContractLimits.PolicyVersionCharacters = 128 -> int
+const Penghou.Hongxian.SessionContractLimits.ProjectorNameCharacters = 256 -> int
+const Penghou.Hongxian.SessionContractLimits.ProjectionProviderCharacters = 128 -> int
+const Penghou.Hongxian.SessionContractLimits.ProjectionStreamCount = 256 -> int
+Penghou.Hongxian.AdvanceExperienceProjectionRequest
+Penghou.Hongxian.AdvanceExperienceProjectionRequest.AdvanceExperienceProjectionRequest(Penghou.Hongxian.ExperienceProjectionDescriptor! Descriptor, Penghou.Hongxian.ExperienceProjectionPosition! Position, long ExpectedVersion) -> void
+Penghou.Hongxian.AdvanceExperienceProjectionRequest.Descriptor.get -> Penghou.Hongxian.ExperienceProjectionDescriptor!
+Penghou.Hongxian.AdvanceExperienceProjectionRequest.Descriptor.init -> void
+Penghou.Hongxian.AdvanceExperienceProjectionRequest.Position.get -> Penghou.Hongxian.ExperienceProjectionPosition!
+Penghou.Hongxian.AdvanceExperienceProjectionRequest.Position.init -> void
+Penghou.Hongxian.AdvanceExperienceProjectionRequest.ExpectedVersion.get -> long
+Penghou.Hongxian.AdvanceExperienceProjectionRequest.ExpectedVersion.init -> void
+Penghou.Hongxian.ExperienceProjectionCheckpoint
+Penghou.Hongxian.ExperienceProjectionCheckpoint.ExperienceProjectionCheckpoint(Penghou.Hongxian.ExperienceProjectionDescriptor! descriptor, Penghou.Hongxian.ExperienceProjectionPosition! position, long version) -> void
+Penghou.Hongxian.ExperienceProjectionCheckpoint.Descriptor.get -> Penghou.Hongxian.ExperienceProjectionDescriptor!
+Penghou.Hongxian.ExperienceProjectionCheckpoint.Position.get -> Penghou.Hongxian.ExperienceProjectionPosition!
+Penghou.Hongxian.ExperienceProjectionCheckpoint.Version.get -> long
+Penghou.Hongxian.ExperienceProjectionCheckpointFailure
+Penghou.Hongxian.ExperienceProjectionCheckpointFailure.DescriptorMismatch = 1 -> Penghou.Hongxian.ExperienceProjectionCheckpointFailure
+Penghou.Hongxian.ExperienceProjectionCheckpointFailure.InvalidRequest = 6 -> Penghou.Hongxian.ExperienceProjectionCheckpointFailure
+Penghou.Hongxian.ExperienceProjectionCheckpointFailure.LedgerIdentityConflict = 4 -> Penghou.Hongxian.ExperienceProjectionCheckpointFailure
+Penghou.Hongxian.ExperienceProjectionCheckpointFailure.PositionRegression = 2 -> Penghou.Hongxian.ExperienceProjectionCheckpointFailure
+Penghou.Hongxian.ExperienceProjectionCheckpointFailure.SameSequenceDifferentHash = 5 -> Penghou.Hongxian.ExperienceProjectionCheckpointFailure
+Penghou.Hongxian.ExperienceProjectionCheckpointFailure.StreamRegression = 3 -> Penghou.Hongxian.ExperienceProjectionCheckpointFailure
+Penghou.Hongxian.ExperienceProjectionCheckpointFailure.VersionConflict = 0 -> Penghou.Hongxian.ExperienceProjectionCheckpointFailure
+Penghou.Hongxian.ExperienceProjectionCheckpointFailure.VersionExhausted = 7 -> Penghou.Hongxian.ExperienceProjectionCheckpointFailure
+Penghou.Hongxian.ExperienceProjectionCheckpointException
+Penghou.Hongxian.ExperienceProjectionCheckpointException.ExperienceProjectionCheckpointException(Penghou.Hongxian.ExperienceProjectionCheckpointFailure failure, string! message) -> void
+Penghou.Hongxian.ExperienceProjectionCheckpointException.Failure.get -> Penghou.Hongxian.ExperienceProjectionCheckpointFailure
+Penghou.Hongxian.ExperienceProjectionDescriptor
+Penghou.Hongxian.ExperienceProjectionDescriptor.ExperienceProjectionDescriptor(Penghou.Hongxian.ExperienceProjectionId projectionId, string! provider, string! projectorName, int schemaVersion, string! policyVersion) -> void
+Penghou.Hongxian.ExperienceProjectionDescriptor.PolicyVersion.get -> string!
+Penghou.Hongxian.ExperienceProjectionDescriptor.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
+Penghou.Hongxian.ExperienceProjectionDescriptor.ProjectorName.get -> string!
+Penghou.Hongxian.ExperienceProjectionDescriptor.Provider.get -> string!
+Penghou.Hongxian.ExperienceProjectionDescriptor.SchemaVersion.get -> int
+Penghou.Hongxian.ExperienceProjectionPosition
+const Penghou.Hongxian.ExperienceProjectionPosition.HashContractVersion = "sha256:penghou-hongxian-experience-position:v1" -> string!
+Penghou.Hongxian.ExperienceProjectionPosition.ExperienceProjectionPosition(System.Collections.Generic.IEnumerable<Penghou.Hongxian.SessionEvidencePosition!>! streams) -> void
+Penghou.Hongxian.ExperienceProjectionPosition.ExperienceProjectionPosition(System.Collections.Generic.IEnumerable<Penghou.Hongxian.SessionEvidencePosition!>! streams, string! digest) -> void
+Penghou.Hongxian.ExperienceProjectionPosition.Digest.get -> string!
+Penghou.Hongxian.ExperienceProjectionPosition.Streams.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvidencePosition!>!
+static Penghou.Hongxian.ExperienceProjectionPosition.ComputeDigest(System.Collections.Generic.IEnumerable<Penghou.Hongxian.SessionEvidencePosition!>! streams) -> string!
+Penghou.Hongxian.IExperienceProjectionCheckpointStore
+Penghou.Hongxian.IExperienceProjectionCheckpointStore.AdvanceAsync(Penghou.Hongxian.AdvanceExperienceProjectionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceProjectionCheckpoint!>!
+Penghou.Hongxian.IExperienceProjectionCheckpointStore.GetAsync(Penghou.Hongxian.ExperienceProjectionId projectionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceProjectionCheckpoint?>!
+Penghou.Hongxian.SessionEvidencePosition
+Penghou.Hongxian.SessionEvidencePosition.SessionEvidencePosition(Penghou.Hongxian.SessionId sessionId, Penghou.Hongxian.SessionLedgerHead! sessionLedgerHead) -> void
+Penghou.Hongxian.SessionEvidencePosition.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.SessionEvidencePosition.SessionLedgerHead.get -> Penghou.Hongxian.SessionLedgerHead!
+Penghou.Hongxian.ExperienceProjectionPositionValidationException
+Penghou.Hongxian.ExperienceProjectionPositionValidationException.ExperienceProjectionPositionValidationException(string! message) -> void
+Penghou.Hongxian.ExperienceProjectionCheckpointRules
+static Penghou.Hongxian.ExperienceProjectionCheckpointRules.Validate(Penghou.Hongxian.ExperienceProjectionCheckpoint? current, Penghou.Hongxian.AdvanceExperienceProjectionRequest! request) -> Penghou.Hongxian.ExperienceProjectionCheckpoint!
 const Penghou.Hongxian.CrossStoreSuggestedActions.InspectFailedParticipants = "inspect-failed-participants" -> string!
 const Penghou.Hongxian.CrossStoreSuggestedActions.ReconcileForward = "reconcile-forward" -> string!
 const Penghou.Hongxian.CrossStoreSuggestedActions.ResumeIncompleteParticipants = "resume-incomplete-participants" -> string!
@@ -14,6 +144,9 @@ const Penghou.Hongxian.SessionContractLimits.ExternalOperationIdCharacters = 102
 const Penghou.Hongxian.SessionContractLimits.ExternalSystemCharacters = 128 -> int
 const Penghou.Hongxian.SessionContractLimits.IdempotencyKeyCharacters = 512 -> int
 const Penghou.Hongxian.SessionContractLimits.NarrativeCharacters = 8192 -> int
+const Penghou.Hongxian.SessionContractLimits.EvidenceBasisCharacters = 256 -> int
+const Penghou.Hongxian.SessionContractLimits.EvidenceDispositionCharacters = 128 -> int
+const Penghou.Hongxian.SessionContractLimits.EvidenceNatureCharacters = 128 -> int
 const Penghou.Hongxian.SessionContractLimits.OperationIdentityCharacters = 2048 -> int
 const Penghou.Hongxian.SessionContractLimits.OperationKindCharacters = 200 -> int
 const Penghou.Hongxian.SessionContractLimits.OperationParticipantCharacters = 200 -> int
@@ -26,7 +159,7 @@ const Penghou.Hongxian.SessionContractLimits.ReasonCodeCharacters = 200 -> int
 const Penghou.Hongxian.SessionContractLimits.ResourceIdCharacters = 2048 -> int
 const Penghou.Hongxian.SessionContractLimits.RevisionCharacters = 1024 -> int
 const Penghou.Hongxian.SessionContractLimits.SuggestedActionCodeCharacters = 200 -> int
-const Penghou.Hongxian.SessionEventEnvelopeSchema.CurrentVersion = 2 -> int
+const Penghou.Hongxian.SessionEventEnvelopeSchema.CurrentVersion = 3 -> int
 const Penghou.Hongxian.SessionEventEnvelopeSchema.MinimumSupportedVersion = 1 -> int
 const Penghou.Hongxian.SessionEventPageRequest.MaximumLimit = 9999 -> int
 const Penghou.Hongxian.SessionEventTypes.ApprovalDenied = "approval-denied" -> string!
@@ -66,6 +199,22 @@ const Penghou.Hongxian.SessionParticipantKinds.Model = "model" -> string!
 const Penghou.Hongxian.SessionParticipantKinds.System = "system" -> string!
 const Penghou.Hongxian.SessionParticipantKinds.Tool = "tool" -> string!
 const Penghou.Hongxian.SessionParticipantKinds.WorkflowActivity = "workflow-activity" -> string!
+const Penghou.Hongxian.SessionEvidenceBases.AuthorityReceipt = "authority-receipt" -> string!
+const Penghou.Hongxian.SessionEvidenceBases.Derived = "derived" -> string!
+const Penghou.Hongxian.SessionEvidenceBases.DirectObservation = "direct-observation" -> string!
+const Penghou.Hongxian.SessionEvidenceBases.ParticipantClaim = "participant-claim" -> string!
+const Penghou.Hongxian.SessionEvidenceBases.Unspecified = "unspecified" -> string!
+const Penghou.Hongxian.SessionEvidenceDispositions.Contradicted = "contradicted" -> string!
+const Penghou.Hongxian.SessionEvidenceDispositions.Supported = "supported" -> string!
+const Penghou.Hongxian.SessionEvidenceDispositions.Superseded = "superseded" -> string!
+const Penghou.Hongxian.SessionEvidenceDispositions.Unassessed = "unassessed" -> string!
+const Penghou.Hongxian.SessionEvidenceNatures.Assertion = "assertion" -> string!
+const Penghou.Hongxian.SessionEvidenceNatures.Decision = "decision" -> string!
+const Penghou.Hongxian.SessionEvidenceNatures.Diagnostic = "diagnostic" -> string!
+const Penghou.Hongxian.SessionEvidenceNatures.Measurement = "measurement" -> string!
+const Penghou.Hongxian.SessionEvidenceNatures.Observation = "observation" -> string!
+const Penghou.Hongxian.SessionEvidenceNatures.Receipt = "receipt" -> string!
+const Penghou.Hongxian.SessionEvidenceNatures.Unspecified = "unspecified" -> string!
 override Penghou.Hongxian.CrossStoreOperationId.ToString() -> string!
 override Penghou.Hongxian.ExternalOperationReference.ToString() -> string!
 override Penghou.Hongxian.SessionId.ToString() -> string!
@@ -363,6 +512,8 @@ Penghou.Hongxian.SessionEvent.EventId.get -> System.Guid
 Penghou.Hongxian.SessionEvent.EventId.init -> void
 Penghou.Hongxian.SessionEvent.EventType.get -> string!
 Penghou.Hongxian.SessionEvent.EventType.init -> void
+Penghou.Hongxian.SessionEvent.Evidence.get -> Penghou.Hongxian.SessionEvidenceDescriptor?
+Penghou.Hongxian.SessionEvent.Evidence.init -> void
 Penghou.Hongxian.SessionEvent.Hash.get -> string!
 Penghou.Hongxian.SessionEvent.Hash.init -> void
 Penghou.Hongxian.SessionEvent.IdempotencyKey.get -> string?
@@ -398,6 +549,19 @@ Penghou.Hongxian.SessionEventAppendResult.ProjectionDelivery.get -> Penghou.Hong
 Penghou.Hongxian.SessionEventAppendResult.ProjectionDelivery.init -> void
 Penghou.Hongxian.SessionEventAppendResult.SessionEventAppendResult(Penghou.Hongxian.SessionEvent! Event, Penghou.Hongxian.SessionProjectionDeliveryResult! ProjectionDelivery) -> void
 Penghou.Hongxian.SessionEventEnvelopeSchema
+Penghou.Hongxian.SessionEvidenceDescriptor
+Penghou.Hongxian.SessionEvidenceDescriptor.Basis.get -> string!
+Penghou.Hongxian.SessionEvidenceDescriptor.Basis.init -> void
+Penghou.Hongxian.SessionEvidenceDescriptor.Disposition.get -> string!
+Penghou.Hongxian.SessionEvidenceDescriptor.Disposition.init -> void
+Penghou.Hongxian.SessionEvidenceDescriptor.Nature.get -> string!
+Penghou.Hongxian.SessionEvidenceDescriptor.Nature.init -> void
+Penghou.Hongxian.SessionEvidenceDescriptor.SessionEvidenceDescriptor(string! Nature, string! Basis, string! Disposition) -> void
+static Penghou.Hongxian.SessionEvidenceDescriptor.Unspecified.get -> Penghou.Hongxian.SessionEvidenceDescriptor!
+Penghou.Hongxian.SessionEvidenceDescriptor.Validate() -> void
+Penghou.Hongxian.SessionEvidenceBases
+Penghou.Hongxian.SessionEvidenceDispositions
+Penghou.Hongxian.SessionEvidenceNatures
 Penghou.Hongxian.SessionEventIdempotencyConflictException
 Penghou.Hongxian.SessionEventIdempotencyConflictException.ExistingEventId.get -> System.Guid
 Penghou.Hongxian.SessionEventIdempotencyConflictException.IdempotencyKey.get -> string!
@@ -432,6 +596,8 @@ Penghou.Hongxian.SessionEventRequest.EventId.get -> System.Guid?
 Penghou.Hongxian.SessionEventRequest.EventId.init -> void
 Penghou.Hongxian.SessionEventRequest.EventType.get -> string!
 Penghou.Hongxian.SessionEventRequest.EventType.init -> void
+Penghou.Hongxian.SessionEventRequest.Evidence.get -> Penghou.Hongxian.SessionEvidenceDescriptor?
+Penghou.Hongxian.SessionEventRequest.Evidence.init -> void
 Penghou.Hongxian.SessionEventRequest.ExpectedHead.get -> Penghou.Hongxian.SessionLedgerHead?
 Penghou.Hongxian.SessionEventRequest.ExpectedHead.init -> void
 Penghou.Hongxian.SessionEventRequest.IdempotencyKey.get -> string?
@@ -450,7 +616,7 @@ Penghou.Hongxian.SessionEventRequest.PayloadSchema.get -> Penghou.Hongxian.Sessi
 Penghou.Hongxian.SessionEventRequest.PayloadSchema.init -> void
 Penghou.Hongxian.SessionEventRequest.PayloadSensitivity.get -> Penghou.Hongxian.SessionPayloadSensitivity
 Penghou.Hongxian.SessionEventRequest.PayloadSensitivity.init -> void
-Penghou.Hongxian.SessionEventRequest.SessionEventRequest(Penghou.Hongxian.SessionId SessionId, Penghou.Hongxian.SessionParticipantAttribution! Participant, string! EventType, System.DateTimeOffset OccurredAt, System.Guid? CausationId = null, System.Guid? CorrelationId = null, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? CrossSystemRefs = null, string? PayloadJson = null, string? IdempotencyKey = null, System.Guid? EventId = null, Penghou.Hongxian.SessionPayloadSensitivity PayloadSensitivity = Penghou.Hongxian.SessionPayloadSensitivity.Internal, Penghou.Hongxian.SessionPayloadRetention PayloadRetention = Penghou.Hongxian.SessionPayloadRetention.Retain, Penghou.Hongxian.SessionLedgerHead? ExpectedHead = null, Penghou.Hongxian.SessionPayloadSchema? PayloadSchema = null, System.Text.Json.JsonElement? Payload = null) -> void
+Penghou.Hongxian.SessionEventRequest.SessionEventRequest(Penghou.Hongxian.SessionId SessionId, Penghou.Hongxian.SessionParticipantAttribution! Participant, string! EventType, System.DateTimeOffset OccurredAt, System.Guid? CausationId = null, System.Guid? CorrelationId = null, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? CrossSystemRefs = null, string? PayloadJson = null, string? IdempotencyKey = null, System.Guid? EventId = null, Penghou.Hongxian.SessionPayloadSensitivity PayloadSensitivity = Penghou.Hongxian.SessionPayloadSensitivity.Internal, Penghou.Hongxian.SessionPayloadRetention PayloadRetention = Penghou.Hongxian.SessionPayloadRetention.Retain, Penghou.Hongxian.SessionLedgerHead? ExpectedHead = null, Penghou.Hongxian.SessionPayloadSchema? PayloadSchema = null, System.Text.Json.JsonElement? Payload = null, Penghou.Hongxian.SessionEvidenceDescriptor? Evidence = null) -> void
 Penghou.Hongxian.SessionEventRequest.SessionId.get -> Penghou.Hongxian.SessionId
 Penghou.Hongxian.SessionEventRequest.SessionId.init -> void
 Penghou.Hongxian.SessionEventTimePolicy
@@ -887,3 +1053,186 @@ static Penghou.Hongxian.SessionParticipantAttribution.Tool(string! subject, stri
 static Penghou.Hongxian.SessionTimelineProjection.Apply(Penghou.Hongxian.SessionCurrentState? state, Penghou.Hongxian.SessionEvent! sessionEvent) -> Penghou.Hongxian.SessionCurrentState!
 static Penghou.Hongxian.SessionTimelineProjection.Project(System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvent!>! events) -> Penghou.Hongxian.SessionCurrentState!
 static Penghou.Hongxian.SessionTimelineProjection.RenderTimeline(System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvent!>! events) -> System.Collections.Generic.IReadOnlyList<string!>!
+Penghou.Hongxian.ExperienceEntityId
+Penghou.Hongxian.ExperienceEntityId.ExperienceEntityId() -> void
+Penghou.Hongxian.ExperienceEntityId.ExperienceEntityId(System.Guid value) -> void
+Penghou.Hongxian.ExperienceEntityId.Value.get -> System.Guid
+static Penghou.Hongxian.ExperienceEntityId.New() -> Penghou.Hongxian.ExperienceEntityId
+static Penghou.Hongxian.ExperienceEntityId.CreateDeterministic(Penghou.Hongxian.ExperienceProjectionId projectionId, string! kind, string! stableKey) -> Penghou.Hongxian.ExperienceEntityId
+static Penghou.Hongxian.ExperienceEntityId.Parse(string! value) -> Penghou.Hongxian.ExperienceEntityId
+static Penghou.Hongxian.ExperienceEntityId.Parse(string! value, System.IFormatProvider? provider) -> Penghou.Hongxian.ExperienceEntityId
+static Penghou.Hongxian.ExperienceEntityId.TryParse(string? value, out Penghou.Hongxian.ExperienceEntityId result) -> bool
+static Penghou.Hongxian.ExperienceEntityId.TryParse(string? value, System.IFormatProvider? provider, out Penghou.Hongxian.ExperienceEntityId result) -> bool
+override Penghou.Hongxian.ExperienceEntityId.ToString() -> string!
+Penghou.Hongxian.ExperienceEntityId.ToString(string? format, System.IFormatProvider? formatProvider) -> string!
+Penghou.Hongxian.ExperienceEntityId.TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider) -> bool
+Penghou.Hongxian.ExperienceRelationId
+Penghou.Hongxian.ExperienceRelationId.ExperienceRelationId() -> void
+Penghou.Hongxian.ExperienceRelationId.ExperienceRelationId(System.Guid value) -> void
+Penghou.Hongxian.ExperienceRelationId.Value.get -> System.Guid
+static Penghou.Hongxian.ExperienceRelationId.New() -> Penghou.Hongxian.ExperienceRelationId
+static Penghou.Hongxian.ExperienceRelationId.CreateDeterministic(Penghou.Hongxian.ExperienceProjectionId projectionId, Penghou.Hongxian.ExperienceEntityId from, Penghou.Hongxian.ExperienceEntityId to, string! kind, string! stableKey) -> Penghou.Hongxian.ExperienceRelationId
+static Penghou.Hongxian.ExperienceRelationId.Parse(string! value) -> Penghou.Hongxian.ExperienceRelationId
+static Penghou.Hongxian.ExperienceRelationId.Parse(string! value, System.IFormatProvider? provider) -> Penghou.Hongxian.ExperienceRelationId
+static Penghou.Hongxian.ExperienceRelationId.TryParse(string? value, out Penghou.Hongxian.ExperienceRelationId result) -> bool
+static Penghou.Hongxian.ExperienceRelationId.TryParse(string? value, System.IFormatProvider? provider, out Penghou.Hongxian.ExperienceRelationId result) -> bool
+override Penghou.Hongxian.ExperienceRelationId.ToString() -> string!
+Penghou.Hongxian.ExperienceRelationId.ToString(string? format, System.IFormatProvider? formatProvider) -> string!
+Penghou.Hongxian.ExperienceRelationId.TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider) -> bool
+Penghou.Hongxian.ExperienceEvidenceReferenceId
+Penghou.Hongxian.ExperienceEvidenceReferenceId.ExperienceEvidenceReferenceId() -> void
+Penghou.Hongxian.ExperienceEvidenceReferenceId.ExperienceEvidenceReferenceId(System.Guid value) -> void
+Penghou.Hongxian.ExperienceEvidenceReferenceId.Value.get -> System.Guid
+static Penghou.Hongxian.ExperienceEvidenceReferenceId.Parse(string! value) -> Penghou.Hongxian.ExperienceEvidenceReferenceId
+static Penghou.Hongxian.ExperienceEvidenceReferenceId.Parse(string! value, System.IFormatProvider? provider) -> Penghou.Hongxian.ExperienceEvidenceReferenceId
+static Penghou.Hongxian.ExperienceEvidenceReferenceId.TryParse(string? value, out Penghou.Hongxian.ExperienceEvidenceReferenceId result) -> bool
+static Penghou.Hongxian.ExperienceEvidenceReferenceId.TryParse(string? value, System.IFormatProvider? provider, out Penghou.Hongxian.ExperienceEvidenceReferenceId result) -> bool
+override Penghou.Hongxian.ExperienceEvidenceReferenceId.ToString() -> string!
+Penghou.Hongxian.ExperienceEvidenceReferenceId.ToString(string? format, System.IFormatProvider? formatProvider) -> string!
+Penghou.Hongxian.ExperienceEvidenceReferenceId.TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider) -> bool
+Penghou.Hongxian.ExperienceDerivationId
+Penghou.Hongxian.ExperienceDerivationId.ExperienceDerivationId() -> void
+Penghou.Hongxian.ExperienceDerivationId.ExperienceDerivationId(System.Guid value) -> void
+Penghou.Hongxian.ExperienceDerivationId.Value.get -> System.Guid
+static Penghou.Hongxian.ExperienceDerivationId.New() -> Penghou.Hongxian.ExperienceDerivationId
+static Penghou.Hongxian.ExperienceDerivationId.CreateDeterministic(Penghou.Hongxian.ExperienceProjectionId projectionId, string! derivationKind, string! stableKey) -> Penghou.Hongxian.ExperienceDerivationId
+static Penghou.Hongxian.ExperienceDerivationId.Parse(string! value) -> Penghou.Hongxian.ExperienceDerivationId
+static Penghou.Hongxian.ExperienceDerivationId.Parse(string! value, System.IFormatProvider? provider) -> Penghou.Hongxian.ExperienceDerivationId
+static Penghou.Hongxian.ExperienceDerivationId.TryParse(string? value, out Penghou.Hongxian.ExperienceDerivationId result) -> bool
+static Penghou.Hongxian.ExperienceDerivationId.TryParse(string? value, System.IFormatProvider? provider, out Penghou.Hongxian.ExperienceDerivationId result) -> bool
+override Penghou.Hongxian.ExperienceDerivationId.ToString() -> string!
+Penghou.Hongxian.ExperienceDerivationId.ToString(string? format, System.IFormatProvider? formatProvider) -> string!
+Penghou.Hongxian.ExperienceDerivationId.TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider) -> bool
+Penghou.Hongxian.ExperienceContractLimits
+const Penghou.Hongxian.ExperienceContractLimits.KindCharacters = 200 -> int
+const Penghou.Hongxian.ExperienceContractLimits.PropertyCount = 128 -> int
+const Penghou.Hongxian.ExperienceContractLimits.PropertyNameCharacters = 200 -> int
+const Penghou.Hongxian.ExperienceContractLimits.PropertySetUtf8Bytes = 1048576 -> int
+const Penghou.Hongxian.ExperienceContractLimits.PropertyValueUtf8Bytes = 32768 -> int
+const Penghou.Hongxian.ExperienceContractLimits.EvidenceReferenceCount = 256 -> int
+const Penghou.Hongxian.ExperienceContractLimits.IdentityComponentUtf8Bytes = 4096 -> int
+const Penghou.Hongxian.ExperienceContractLimits.DerivationNameCharacters = 200 -> int
+const Penghou.Hongxian.ExperienceContractLimits.DerivationVersionCharacters = 128 -> int
+Penghou.Hongxian.ExperienceEvidenceReference
+Penghou.Hongxian.ExperienceEvidenceReference.ExperienceEvidenceReference(Penghou.Hongxian.SessionId sessionId, string! ledgerIdentity, long sequence, System.Guid eventId, string! eventHash) -> void
+Penghou.Hongxian.ExperienceEvidenceReference.Id.get -> Penghou.Hongxian.ExperienceEvidenceReferenceId
+Penghou.Hongxian.ExperienceEvidenceReference.SessionId.get -> Penghou.Hongxian.SessionId
+Penghou.Hongxian.ExperienceEvidenceReference.LedgerIdentity.get -> string!
+Penghou.Hongxian.ExperienceEvidenceReference.Sequence.get -> long
+Penghou.Hongxian.ExperienceEvidenceReference.EventId.get -> System.Guid
+Penghou.Hongxian.ExperienceEvidenceReference.EventHash.get -> string!
+static Penghou.Hongxian.ExperienceEvidenceReference.FromEvent(Penghou.Hongxian.SessionEvent! sessionEvent, string! ledgerIdentity) -> Penghou.Hongxian.ExperienceEvidenceReference!
+Penghou.Hongxian.ExperienceIdentityContracts
+const Penghou.Hongxian.ExperienceIdentityContracts.DeterministicIdV1 = "sha256:penghou-hongxian-experience-id:v1" -> string!
+Penghou.Hongxian.ExperienceProvenance
+Penghou.Hongxian.ExperienceProvenance.ExperienceProvenance(Penghou.Hongxian.ExperienceProjectionDescriptor! projection, Penghou.Hongxian.ExperienceDerivationId derivationId) -> void
+Penghou.Hongxian.ExperienceProvenance.Projection.get -> Penghou.Hongxian.ExperienceProjectionDescriptor!
+Penghou.Hongxian.ExperienceProvenance.DerivationId.get -> Penghou.Hongxian.ExperienceDerivationId
+Penghou.Hongxian.ExperienceTemporalValidity
+Penghou.Hongxian.ExperienceTemporalValidity.ExperienceTemporalValidity(System.DateTimeOffset? validFrom, System.DateTimeOffset? validTo) -> void
+Penghou.Hongxian.ExperienceTemporalValidity.ValidFrom.get -> System.DateTimeOffset?
+Penghou.Hongxian.ExperienceTemporalValidity.ValidTo.get -> System.DateTimeOffset?
+Penghou.Hongxian.ExperienceEntity
+Penghou.Hongxian.ExperienceEntity.ExperienceEntity(Penghou.Hongxian.ExperienceEntityId id, string! kind, Penghou.Hongxian.ExperienceProvenance! provenance, System.Collections.Generic.IReadOnlyDictionary<string!, System.Text.Json.JsonElement>? properties = null, Penghou.Hongxian.ExperienceTemporalValidity? validity = null, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReference!>? evidence = null) -> void
+Penghou.Hongxian.ExperienceEntity.Id.get -> Penghou.Hongxian.ExperienceEntityId
+Penghou.Hongxian.ExperienceEntity.Kind.get -> string!
+Penghou.Hongxian.ExperienceEntity.Properties.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Text.Json.JsonElement>!
+Penghou.Hongxian.ExperienceEntity.Provenance.get -> Penghou.Hongxian.ExperienceProvenance!
+Penghou.Hongxian.ExperienceEntity.Validity.get -> Penghou.Hongxian.ExperienceTemporalValidity?
+Penghou.Hongxian.ExperienceEntity.Evidence.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReference!>!
+Penghou.Hongxian.ExperienceRelation
+Penghou.Hongxian.ExperienceRelation.ExperienceRelation(Penghou.Hongxian.ExperienceRelationId id, Penghou.Hongxian.ExperienceEntityId from, Penghou.Hongxian.ExperienceEntityId to, string! kind, Penghou.Hongxian.ExperienceProvenance! provenance, System.Collections.Generic.IReadOnlyDictionary<string!, System.Text.Json.JsonElement>? properties = null, Penghou.Hongxian.ExperienceTemporalValidity? validity = null, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReference!>? evidence = null) -> void
+Penghou.Hongxian.ExperienceRelation.Id.get -> Penghou.Hongxian.ExperienceRelationId
+Penghou.Hongxian.ExperienceRelation.From.get -> Penghou.Hongxian.ExperienceEntityId
+Penghou.Hongxian.ExperienceRelation.To.get -> Penghou.Hongxian.ExperienceEntityId
+Penghou.Hongxian.ExperienceRelation.Kind.get -> string!
+Penghou.Hongxian.ExperienceRelation.Properties.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Text.Json.JsonElement>!
+Penghou.Hongxian.ExperienceRelation.Provenance.get -> Penghou.Hongxian.ExperienceProvenance!
+Penghou.Hongxian.ExperienceRelation.Validity.get -> Penghou.Hongxian.ExperienceTemporalValidity?
+Penghou.Hongxian.ExperienceRelation.Evidence.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReference!>!
+Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapability.None = 0 -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapability.ExactLookup = 1 -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapability.BoundedTraversal = 2 -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapability.LexicalSearch = 4 -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapability.VectorSearch = 8 -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapability.HybridRanking = 16 -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapability.AsOf = 32 -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapability.CheckpointConsistency = 64 -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapability.RemoteOperation = 128 -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapabilities
+Penghou.Hongxian.ExperienceProviderCapabilities.ExperienceProviderCapabilities(string! providerName, Penghou.Hongxian.ExperienceProviderCapability supported) -> void
+Penghou.Hongxian.ExperienceProviderCapabilities.ProviderName.get -> string!
+Penghou.Hongxian.ExperienceProviderCapabilities.Supported.get -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceProviderCapabilities.Supports(Penghou.Hongxian.ExperienceProviderCapability capability) -> bool
+Penghou.Hongxian.ExperienceRecallCompletion
+Penghou.Hongxian.ExperienceRecallCompletion.Completed = 0 -> Penghou.Hongxian.ExperienceRecallCompletion
+Penghou.Hongxian.ExperienceRecallCompletion.Unsupported = 1 -> Penghou.Hongxian.ExperienceRecallCompletion
+Penghou.Hongxian.ExperienceProviderFreshness
+Penghou.Hongxian.ExperienceProviderFreshness.Current = 0 -> Penghou.Hongxian.ExperienceProviderFreshness
+Penghou.Hongxian.ExperienceProviderFreshness.Stale = 1 -> Penghou.Hongxian.ExperienceProviderFreshness
+Penghou.Hongxian.ExperienceProviderFreshness.Unknown = 2 -> Penghou.Hongxian.ExperienceProviderFreshness
+Penghou.Hongxian.ExperienceRecallResult<T>
+Penghou.Hongxian.ExperienceRecallResult<T>.ExperienceRecallResult(System.Collections.Generic.IReadOnlyList<T>! items, Penghou.Hongxian.ExperienceRecallCompletion completion = Penghou.Hongxian.ExperienceRecallCompletion.Completed, Penghou.Hongxian.ExperienceProviderFreshness freshness = Penghou.Hongxian.ExperienceProviderFreshness.Current, bool isDegraded = false, bool isTruncated = false, Penghou.Hongxian.ExperienceProviderCapability unsupportedCapabilities = Penghou.Hongxian.ExperienceProviderCapability.None, Penghou.Hongxian.ExperienceProjectionCheckpoint? checkpoint = null, string? diagnostic = null) -> void
+Penghou.Hongxian.ExperienceRecallResult<T>.Items.get -> System.Collections.Generic.IReadOnlyList<T>!
+Penghou.Hongxian.ExperienceRecallResult<T>.Completion.get -> Penghou.Hongxian.ExperienceRecallCompletion
+Penghou.Hongxian.ExperienceRecallResult<T>.Freshness.get -> Penghou.Hongxian.ExperienceProviderFreshness
+Penghou.Hongxian.ExperienceRecallResult<T>.IsDegraded.get -> bool
+Penghou.Hongxian.ExperienceRecallResult<T>.IsTruncated.get -> bool
+Penghou.Hongxian.ExperienceRecallResult<T>.UnsupportedCapabilities.get -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceRecallResult<T>.Checkpoint.get -> Penghou.Hongxian.ExperienceProjectionCheckpoint?
+Penghou.Hongxian.ExperienceRecallResult<T>.Diagnostic.get -> string?
+static Penghou.Hongxian.ExperienceRecallResult<T>.Success(System.Collections.Generic.IEnumerable<T>! items, Penghou.Hongxian.ExperienceProjectionCheckpoint? checkpoint = null) -> Penghou.Hongxian.ExperienceRecallResult<T>!
+static Penghou.Hongxian.ExperienceRecallResult<T>.Unsupported(Penghou.Hongxian.ExperienceProviderCapability capability, string! diagnostic) -> Penghou.Hongxian.ExperienceRecallResult<T>!
+static Penghou.Hongxian.ExperienceRecallResult<T>.Degraded(System.Collections.Generic.IEnumerable<T>! items, string! diagnostic, Penghou.Hongxian.ExperienceProviderFreshness freshness = Penghou.Hongxian.ExperienceProviderFreshness.Unknown, bool isTruncated = false, Penghou.Hongxian.ExperienceProjectionCheckpoint? checkpoint = null) -> Penghou.Hongxian.ExperienceRecallResult<T>!
+static Penghou.Hongxian.ExperienceRecallResult<T>.Stale(System.Collections.Generic.IEnumerable<T>! items, string! diagnostic, Penghou.Hongxian.ExperienceProjectionCheckpoint? checkpoint = null) -> Penghou.Hongxian.ExperienceRecallResult<T>!
+static Penghou.Hongxian.ExperienceRecallResult<T>.Truncated(System.Collections.Generic.IEnumerable<T>! items, string! diagnostic, Penghou.Hongxian.ExperienceProjectionCheckpoint? checkpoint = null) -> Penghou.Hongxian.ExperienceRecallResult<T>!
+Penghou.Hongxian.ExperienceModelWriteOutcome
+Penghou.Hongxian.ExperienceModelWriteOutcome.Applied = 0 -> Penghou.Hongxian.ExperienceModelWriteOutcome
+Penghou.Hongxian.ExperienceModelWriteOutcome.AlreadyPresent = 1 -> Penghou.Hongxian.ExperienceModelWriteOutcome
+Penghou.Hongxian.ExperienceModelWriteOutcome.Conflict = 2 -> Penghou.Hongxian.ExperienceModelWriteOutcome
+Penghou.Hongxian.ExperienceModelWriteResult
+Penghou.Hongxian.ExperienceModelWriteResult.ExperienceModelWriteResult(Penghou.Hongxian.ExperienceModelWriteOutcome Outcome, string? Diagnostic = null) -> void
+Penghou.Hongxian.ExperienceModelWriteResult.Outcome.get -> Penghou.Hongxian.ExperienceModelWriteOutcome
+Penghou.Hongxian.ExperienceModelWriteResult.Outcome.init -> void
+Penghou.Hongxian.ExperienceModelWriteResult.Diagnostic.get -> string?
+Penghou.Hongxian.ExperienceModelWriteResult.Diagnostic.init -> void
+Penghou.Hongxian.ExperienceEntityLookupRequest
+Penghou.Hongxian.ExperienceEntityLookupRequest.ExperienceEntityLookupRequest(Penghou.Hongxian.ExperienceProjectionId projectionId, Penghou.Hongxian.ExperienceEntityId entityId, Penghou.Hongxian.ExperienceProjectionPosition? asOf = null) -> void
+Penghou.Hongxian.ExperienceEntityLookupRequest.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
+Penghou.Hongxian.ExperienceEntityLookupRequest.EntityId.get -> Penghou.Hongxian.ExperienceEntityId
+Penghou.Hongxian.ExperienceEntityLookupRequest.AsOf.get -> Penghou.Hongxian.ExperienceProjectionPosition?
+Penghou.Hongxian.ExperienceRelationTraversalRequest
+Penghou.Hongxian.ExperienceRelationTraversalRequest.ExperienceRelationTraversalRequest(Penghou.Hongxian.ExperienceProjectionId projectionId, Penghou.Hongxian.ExperienceEntityId start, string? relationKind = null, int maximumDepth = 1, int maximumItems = 100, Penghou.Hongxian.ExperienceProjectionPosition? asOf = null) -> void
+Penghou.Hongxian.ExperienceRelationTraversalRequest.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
+Penghou.Hongxian.ExperienceRelationTraversalRequest.Start.get -> Penghou.Hongxian.ExperienceEntityId
+Penghou.Hongxian.ExperienceRelationTraversalRequest.RelationKind.get -> string?
+Penghou.Hongxian.ExperienceRelationTraversalRequest.MaximumDepth.get -> int
+Penghou.Hongxian.ExperienceRelationTraversalRequest.MaximumItems.get -> int
+Penghou.Hongxian.ExperienceRelationTraversalRequest.AsOf.get -> Penghou.Hongxian.ExperienceProjectionPosition?
+Penghou.Hongxian.ExperienceLexicalSearchRequest
+Penghou.Hongxian.ExperienceLexicalSearchRequest.ExperienceLexicalSearchRequest(Penghou.Hongxian.ExperienceProjectionId projectionId, string! query, int maximumItems = 20, int maximumBytes = 65536, Penghou.Hongxian.ExperienceProjectionPosition? asOf = null) -> void
+Penghou.Hongxian.ExperienceLexicalSearchRequest.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
+Penghou.Hongxian.ExperienceLexicalSearchRequest.Query.get -> string!
+Penghou.Hongxian.ExperienceLexicalSearchRequest.MaximumItems.get -> int
+Penghou.Hongxian.ExperienceLexicalSearchRequest.MaximumBytes.get -> int
+Penghou.Hongxian.ExperienceLexicalSearchRequest.AsOf.get -> Penghou.Hongxian.ExperienceProjectionPosition?
+Penghou.Hongxian.IExperienceProjectionModelWriter
+Penghou.Hongxian.IExperienceProjectionModelWriter.Capabilities.get -> Penghou.Hongxian.ExperienceProviderCapabilities!
+Penghou.Hongxian.IExperienceProjectionModelWriter.UpsertEntityAsync(Penghou.Hongxian.ExperienceEntity! entity, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceModelWriteResult!>!
+Penghou.Hongxian.IExperienceProjectionModelWriter.UpsertRelationAsync(Penghou.Hongxian.ExperienceRelation! relation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceModelWriteResult!>!
+Penghou.Hongxian.IExperienceProjectionModelWriter.DeleteProjectionAsync(Penghou.Hongxian.ExperienceProjectionDescriptor! descriptor, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.IExperienceRecallReader
+Penghou.Hongxian.IExperienceRecallReader.Capabilities.get -> Penghou.Hongxian.ExperienceProviderCapabilities!
+Penghou.Hongxian.IExperienceRecallReader.GetEntityAsync(Penghou.Hongxian.ExperienceEntityLookupRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEntity!>!>!
+Penghou.Hongxian.IExperienceRecallReader.TraverseAsync(Penghou.Hongxian.ExperienceRelationTraversalRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceRelation!>!>!
+Penghou.Hongxian.IExperienceRecallReader.SearchLexicalAsync(Penghou.Hongxian.ExperienceLexicalSearchRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEntity!>!>!
+Penghou.Hongxian.InMemoryExperienceProvider
+Penghou.Hongxian.InMemoryExperienceProvider.InMemoryExperienceProvider(string! providerName = "memory") -> void
+Penghou.Hongxian.InMemoryExperienceProvider.Capabilities.get -> Penghou.Hongxian.ExperienceProviderCapabilities!
+Penghou.Hongxian.InMemoryExperienceProvider.UpsertEntityAsync(Penghou.Hongxian.ExperienceEntity! entity, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceModelWriteResult!>!
+Penghou.Hongxian.InMemoryExperienceProvider.UpsertRelationAsync(Penghou.Hongxian.ExperienceRelation! relation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceModelWriteResult!>!
+Penghou.Hongxian.InMemoryExperienceProvider.DeleteProjectionAsync(Penghou.Hongxian.ExperienceProjectionDescriptor! descriptor, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.InMemoryExperienceProvider.GetEntityAsync(Penghou.Hongxian.ExperienceEntityLookupRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEntity!>!>!
+Penghou.Hongxian.InMemoryExperienceProvider.TraverseAsync(Penghou.Hongxian.ExperienceRelationTraversalRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceRelation!>!>!
+Penghou.Hongxian.InMemoryExperienceProvider.SearchLexicalAsync(Penghou.Hongxian.ExperienceLexicalSearchRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEntity!>!>!

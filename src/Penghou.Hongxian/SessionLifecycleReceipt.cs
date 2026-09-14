@@ -74,7 +74,11 @@ public sealed class SessionEvidenceOutboxDispatcher(
                     CausationId: record.CausationId,
                     CorrelationId: record.CorrelationId,
                     CrossSystemRefs: record.CrossSystemRefs,
-                    IdempotencyKey: record.IdempotencyKey),
+                    IdempotencyKey: record.IdempotencyKey,
+                    Evidence: new SessionEvidenceDescriptor(
+                        SessionEvidenceNatures.Receipt,
+                        SessionEvidenceBases.AuthorityReceipt,
+                        SessionEvidenceDispositions.Unassessed)),
                 cancellationToken).ConfigureAwait(false);
             await outbox.MarkDeliveredAsync(
                 record.ReceiptId,

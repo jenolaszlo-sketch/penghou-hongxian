@@ -92,7 +92,8 @@ public sealed record SessionEventRequest(
     SessionPayloadRetention PayloadRetention = SessionPayloadRetention.Retain,
     SessionLedgerHead? ExpectedHead = null,
     SessionPayloadSchema? PayloadSchema = null,
-    JsonElement? Payload = null);
+    JsonElement? Payload = null,
+    SessionEvidenceDescriptor? Evidence = null);
 
 /// <summary>Provider-neutral identity of an authoritative session-ledger head.</summary>
 public sealed record SessionLedgerHead(

@@ -40,6 +40,26 @@ internal sealed class CrossStoreOperationIdJsonConverter : JsonConverter<CrossSt
         writer.WriteStringValue(value.ToString());
 }
 
+internal sealed class ExperienceProjectionIdJsonConverter :
+    JsonConverter<ExperienceProjectionId>
+{
+    public override ExperienceProjectionId Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options) =>
+        reader.TokenType == JsonTokenType.String &&
+        ExperienceProjectionId.TryParse(reader.GetString(), out var value)
+            ? value
+            : throw new JsonException(
+                "Experience projection ID must be a non-empty UUID string.");
+
+    public override void Write(
+        Utf8JsonWriter writer,
+        ExperienceProjectionId value,
+        JsonSerializerOptions options) =>
+        writer.WriteStringValue(value.ToString());
+}
+
 internal sealed class ExternalOperationReferenceJsonConverter :
     JsonConverter<ExternalOperationReference>
 {

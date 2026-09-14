@@ -9,6 +9,34 @@ permissions:
   contents: read
 
 jobs:
+  latticedb-provider:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore from public NuGet
+        run: >
+          dotnet restore Penghou.Hongxian.slnx
+          --source https://api.nuget.org/v3/index.json
+          --packages "${{ runner.temp }}/hongxian-latticedb-packages"
+          --force --force-evaluate --no-cache
+
+      - name: Run LatticeDB provider conformance
+        run: >
+          dotnet test tests/Penghou.Hongxian.Tests/Penghou.Hongxian.Tests.csproj
+          --configuration Release --no-restore
+          --filter FullyQualifiedName~LatticeDbExperienceProviderTests
+
   build-test-pack:
     runs-on: ubuntu-latest
     steps:

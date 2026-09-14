@@ -41,7 +41,8 @@ jobs:
           echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
           for csproj in \
             src/Penghou.Hongxian/Penghou.Hongxian.csproj \
-            src/Penghou.Hongxian.Sqlite/Penghou.Hongxian.Sqlite.csproj; do
+            src/Penghou.Hongxian.Sqlite/Penghou.Hongxian.Sqlite.csproj \
+            src/Penghou.Hongxian.LatticeDb/Penghou.Hongxian.LatticeDb.csproj; do
             dotnet pack "$csproj" \
               --configuration Release \
               --no-restore \

@@ -1,0 +1,44 @@
+#nullable enable
+Penghou.Hongxian.LatticeDb.LatticeDbDurability
+Penghou.Hongxian.LatticeDb.LatticeDbDurability.DurableWal = 0 -> Penghou.Hongxian.LatticeDb.LatticeDbDurability
+Penghou.Hongxian.LatticeDb.LatticeDbDurability.Volatile = 1 -> Penghou.Hongxian.LatticeDb.LatticeDbDurability
+Penghou.Hongxian.LatticeDb.LatticeDbLocationKind
+Penghou.Hongxian.LatticeDb.LatticeDbLocationKind.File = 0 -> Penghou.Hongxian.LatticeDb.LatticeDbLocationKind
+Penghou.Hongxian.LatticeDb.LatticeDbLocationKind.Memory = 1 -> Penghou.Hongxian.LatticeDb.LatticeDbLocationKind
+Penghou.Hongxian.LatticeDb.LatticeDbOpenMode
+Penghou.Hongxian.LatticeDb.LatticeDbOpenMode.CreateOrOpen = 0 -> Penghou.Hongxian.LatticeDb.LatticeDbOpenMode
+Penghou.Hongxian.LatticeDb.LatticeDbOpenMode.OpenExisting = 1 -> Penghou.Hongxian.LatticeDb.LatticeDbOpenMode
+Penghou.Hongxian.LatticeDb.LatticeDbOpenMode.ReadOnly = 2 -> Penghou.Hongxian.LatticeDb.LatticeDbOpenMode
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.DatabasePath.get -> string?
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.DatabasePath.init -> void
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.Durability.get -> Penghou.Hongxian.LatticeDb.LatticeDbDurability
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.Durability.init -> void
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.Lock.get -> bool
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.Lock.init -> void
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.Location.get -> Penghou.Hongxian.LatticeDb.LatticeDbLocationKind
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.Location.init -> void
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.OpenMode.get -> Penghou.Hongxian.LatticeDb.LatticeDbOpenMode
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.OpenMode.init -> void
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions.Validate() -> void
+Penghou.Hongxian.LatticeDb.LatticeDbProviderException
+Penghou.Hongxian.LatticeDb.LatticeDbProviderException.LatticeDbProviderException(Penghou.Hongxian.LatticeDb.LatticeDbProviderFailure failure, string! operation, string! message, System.Exception? innerException = null) -> void
+Penghou.Hongxian.LatticeDb.LatticeDbProviderException.Failure.get -> Penghou.Hongxian.LatticeDb.LatticeDbProviderFailure
+Penghou.Hongxian.LatticeDb.LatticeDbProviderException.Operation.get -> string!
+Penghou.Hongxian.LatticeDb.LatticeDbProviderFailure
+Penghou.Hongxian.LatticeDb.LatticeDbProviderFailure.InvalidConfiguration = 0 -> Penghou.Hongxian.LatticeDb.LatticeDbProviderFailure
+Penghou.Hongxian.LatticeDb.LatticeDbProviderFailure.NativeRuntime = 1 -> Penghou.Hongxian.LatticeDb.LatticeDbProviderFailure
+Penghou.Hongxian.LatticeDb.LatticeDbProviderFailure.NativeOperation = 2 -> Penghou.Hongxian.LatticeDb.LatticeDbProviderFailure
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.AdvanceAsync(Penghou.Hongxian.AdvanceExperienceProjectionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceProjectionCheckpoint!>!
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.Capabilities.get -> Penghou.Hongxian.ExperienceProviderCapabilities!
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.DeleteProjectionAsync(Penghou.Hongxian.ExperienceProjectionDescriptor! descriptor, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.Dispose() -> void
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.GetAsync(Penghou.Hongxian.ExperienceProjectionId projectionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceProjectionCheckpoint?>!
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.GetEntityAsync(Penghou.Hongxian.ExperienceEntityLookupRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEntity!>!>!
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.LatticeDbExperienceProvider(Penghou.Hongxian.LatticeDb.LatticeDbExperienceProviderOptions! options) -> void
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.ResetAsync(Penghou.Hongxian.ExperienceProjectionId projectionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.SearchLexicalAsync(Penghou.Hongxian.ExperienceLexicalSearchRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEntity!>!>!
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.TraverseAsync(Penghou.Hongxian.ExperienceRelationTraversalRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceRelation!>!>!
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.UpsertEntityAsync(Penghou.Hongxian.ExperienceEntity! entity, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceModelWriteResult!>!
+Penghou.Hongxian.LatticeDb.LatticeDbExperienceProvider.UpsertRelationAsync(Penghou.Hongxian.ExperienceRelation! relation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceModelWriteResult!>!

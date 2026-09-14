@@ -220,6 +220,35 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task DeliveryCursor_RemainsLaggingWhenAppliedHeadTrailsCommittedHead()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var projections = new SqliteSessionProjectionStore(
+            Path.Combine(rootPath, "advanced-lag.db"), pooling: false);
+        await using var events = new SimingSessionEventStore(
+            Path.Combine(rootPath, "advanced-lag-sessions"));
+        var sessionId = SessionId.New();
+        var first = await events.AppendAsync(new SessionEventRequest(
+            sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
+        var second = await events.AppendAsync(new SessionEventRequest(
+            sessionId, Participant("hongxian"), SessionEventTypes.ExecutionStarted, DateTimeOffset.UtcNow), ct);
+
+        await projections.RecordCommittedAsync(first, ct);
+        await projections.RecordCommittedAsync(second, ct);
+        await projections.ApplyAsync(first, ct);
+
+        var status = await projections.GetDeliveryStatusAsync(sessionId, ct);
+        status.Should().NotBeNull();
+        status!.CommittedSequence.Should().Be(2);
+        status.CommittedHeadHash.Should().Be(second.Hash);
+        status.AppliedSequence.Should().Be(1);
+        status.AppliedHeadHash.Should().Be(first.Hash);
+        status.IsLagging.Should().BeTrue();
+        (await projections.ListLaggingAsync(cancellationToken: ct))
+            .Should().ContainSingle(item => item.SessionId == sessionId);
+    }
+
+    [Fact]
     public async Task DeliveryCursor_PersistsBoundedFailureDiagnostics()
     {
         var ct = TestContext.Current.CancellationToken;

@@ -45,6 +45,14 @@ Last reviewed: **2026-09-13**
 - LatticeDB is the planned first experience projection provider, not a core
   storage identity. Neo4j, another graph store, or a remote provider must be
   addable without changing evidence envelopes or portable recall consumers.
+- Experience implementation Phase 0 is complete: the durable-state authority
+  inventory and evidence-semantics draft are recorded, projection-lag
+  characterization was extended, and clean restore/build/format/pack plus all
+  76 tests pass.
+- Experience implementation Phase 1 is complete: envelope v3 persists explicit
+  bounded evidence nature, capture basis, and capture-time disposition; v1/v2
+  remain readable without reinterpretation; authority outbox events are marked
+  as receipts; build, format, pack, and all 82 tests pass.
 
 ## Accepted architectural direction
 
@@ -84,6 +92,9 @@ observation and commit time, schema, verification status, measurement kind, and
 optional domain confidence remain explicit.
 
 ## Delivery order for the experience layer
+
+Detailed deliverables, tests, and safe checkpoints are maintained in the
+[experience implementation plan](experience-implementation-plan.md).
 
 1. Freeze the versioned evidence envelope and assertion/source semantics.
 2. Confirm sessions as expected-head Siming streams with derived lifecycle.
@@ -362,38 +373,58 @@ application policy remain with consumers.
 
 Evidence and projection contract:
 
-- [ ] Inventory current event, catalog, projection, and operation fields and
+- [x] Inventory current event, catalog, projection, and operation fields and
   classify each as authoritative evidence, rebuildable derived state, or
   ephemeral coordination. Do not remove the current SQLite implementation until
   parity and verified rebuild tests exist.
-- [ ] Freeze a versioned provider-neutral evidence envelope vocabulary for
+- [x] Freeze a versioned provider-neutral evidence envelope vocabulary for
   assertion/measurement kind, source, observed and committed time, verification
-  status, and optional domain confidence without breaking application-defined
-  payloads.
-- [ ] Define projector identity and version, verified source head, projection
+  status without breaking application-defined payloads. Deliberately keep
+  confidence in qualified application payloads until two domains prove a
+  portable core meaning.
+- [x] Define projector identity and version, verified source head, projection
   checkpoint, replay idempotency, gap/corruption behavior, and safe rebuild from
   one or more session ledgers.
+  - [x] Define bounded canonical multi-ledger positions, stable projector
+    descriptors, and monotonic idempotent checkpoint transition rules with a
+    concurrency-safe in-memory reference store.
+  - [x] Add verified projector execution, interruption recovery, gap rejection,
+    and delete/rebuild equivalence before closing the parent item.
 - [ ] Define bounded cross-ledger evidence references and discovery. A project
   experience view may span sessions, but no projection may silently merge or
   rewrite their authoritative histories.
-- [ ] Define provider-neutral logical projection and recall ports. Keep storage
+  - [x] Define canonical, bounded immutable references to session, ledger,
+    sequence, event identity, and event hash.
+  - [ ] Add bounded discovery by evidence reference without scanning or merging
+    authoritative ledgers.
+- [x] Define provider-neutral logical projection and recall ports. Keep storage
   schemas, SQL, Cypher, LatticeDB types, embedding types, and transport clients
   out of `Penghou.Hongxian` public contracts.
-- [ ] Define an explicit provider capability descriptor for graph traversal,
+- [x] Define an explicit provider capability descriptor for graph traversal,
   lexical, vector, hybrid ranking, `AsOf`, checkpoint consistency, and remote
   operation. Missing capability returns a typed result or uses a declared,
   deterministic fallback.
-- [ ] Add a provider conformance suite covering checkpoint monotonicity,
+- [x] Add an internal provider conformance suite covering checkpoint monotonicity,
   idempotent replay, evidence provenance, deletion/rebuild, bounds, truncation,
   unsupported capabilities, and projection-lag reporting.
 
 First provider and recall slice:
 
 - [ ] Implement LatticeDB as the first disposable experience provider, starting
-  with evidence-backed entities/relations and lexical search. Keep the package
-  boundary provisional until dependency and deployment needs justify a split.
+    with evidence-backed entities/relations and lexical search. Keep the package
+    boundary provisional until dependency and deployment needs justify a split.
+  - [x] Add the optional provider project, explicit lifecycle/open options,
+    versioned physical schema, replay-safe writes, exact lookup, bounded
+    traversal, projection-scoped BM25 search, typed diagnostics, and native
+    provider tests.
+  - [ ] Prove the packed package and native assets in an isolated consumer on
+    every supported CI platform; verify core/SQLite packages remain isolated.
 - [ ] Prove a projection can be deleted, rebuilt from verified Siming streams,
-  and produce equivalent portable results at the same checkpoint.
+    and produce equivalent portable results at the same checkpoint.
+  - [x] Prove provider-level delete/replay equivalence for portable entity,
+    relation, lexical, and traversal results.
+  - [ ] Complete end-to-end verified-history projector equivalence once an
+    application-neutral event-to-experience mapping fixture is defined.
 - [ ] Add bounded recall requests with scope, `AsOf`, item/byte/token budgets,
   evidence-strength and freshness requirements, revision filters, and a
   versioned retrieval policy.

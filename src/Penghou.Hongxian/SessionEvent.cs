@@ -104,6 +104,9 @@ public sealed record SessionEvent
 
     public required SessionPayloadRetention PayloadRetention { get; init; }
 
+    /// <summary>Capture-time evidence semantics, when supplied by the producer.</summary>
+    public SessionEvidenceDescriptor? Evidence { get; init; }
+
     /// <summary>SHA-256 of the original UTF-8 payload when retained or digest-only.</summary>
     public string? PayloadDigest { get; init; }
 

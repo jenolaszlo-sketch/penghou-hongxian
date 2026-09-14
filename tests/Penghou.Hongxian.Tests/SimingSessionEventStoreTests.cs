@@ -13,6 +13,55 @@ public sealed class SimingSessionEventStoreTests : IDisposable
     private readonly string rootPath = Path.Combine(Path.GetTempPath(), "hongxian-siming-session-tests", Guid.NewGuid().ToString("N"));
 
     [Fact]
+    public async Task Append_V3PersistsExplicitEvidence_AndNullNormalizesToUnspecified()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new SimingSessionEventStore(rootPath);
+        var sessionId = SessionId.New();
+        var defaulted = await store.AppendAsync(new SessionEventRequest(
+            sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow), ct);
+        var explicitEvidence = new SessionEvidenceDescriptor("custom/source", "direct-observation", "unassessed");
+        var explicitEvent = await store.AppendAsync(new SessionEventRequest(
+            sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow,
+            Evidence: explicitEvidence), ct);
+
+        defaulted.SchemaVersion.Should().Be(3);
+        defaulted.Evidence.Should().Be(SessionEvidenceDescriptor.Unspecified);
+        explicitEvent.Evidence.Should().Be(explicitEvidence);
+        (await store.ReadAsync(sessionId, cancellationToken: ct)).Select(item => item.Evidence).Should()
+            .ContainInOrder(SessionEvidenceDescriptor.Unspecified, explicitEvidence);
+    }
+
+    [Fact]
+    public void EvidenceDescriptor_RejectsNonPortableOrOversizedTokens()
+    {
+        var uppercase = () => new SessionEvidenceDescriptor("Observation", "direct-observation", "unassessed").Validate();
+        uppercase.Should().Throw<ArgumentException>();
+        var whitespace = () => new SessionEvidenceDescriptor("observation", "direct observation", "unassessed").Validate();
+        whitespace.Should().Throw<ArgumentException>();
+        var oversized = () => new SessionEvidenceDescriptor(new string('a', SessionContractLimits.EvidenceNatureCharacters + 1), "basis", "disposition").Validate();
+        oversized.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public async Task IdempotentReplay_RequiresEquivalentEvidenceDescriptor()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new SimingSessionEventStore(rootPath);
+        var sessionId = SessionId.New();
+        var request = new SessionEventRequest(
+            sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow,
+            IdempotencyKey: "evidence:1");
+        var first = await store.AppendAsync(request, ct);
+        (await store.AppendAsync(request with { Evidence = null }, ct)).Should().Be(first);
+        var conflict = () => store.AppendAsync(request with
+        {
+            Evidence = new SessionEvidenceDescriptor("assertion", "participant-claim", "unassessed")
+        }, ct);
+        await conflict.Should().ThrowAsync<SessionEventIdempotencyConflictException>();
+    }
+
+    [Fact]
     public async Task Append_ReopenAndVerify_PreservesDomainEnvelope()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -85,6 +134,110 @@ public sealed class SimingSessionEventStoreTests : IDisposable
             IdempotencyKey: "legacy:user-message:1"), ct);
         replay.EventId.Should().Be(restored.EventId);
         (await store.ReadAsync(sessionId, cancellationToken: ct)).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Read_Preview2Envelope_PreservesUnknownEvidenceSemanticsAsNull()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var sessionId = SessionId.New();
+        var ledgerPath = Path.Combine(rootPath, sessionId.ToString(), "session.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(ledgerPath)!);
+        await using (var legacyLedger = new SqliteAppendOnlyLedger<CanonicalJsonPayloadSerializer>(
+            new SimingSqliteOptions { DatabasePath = ledgerPath, Pooling = false },
+            new CanonicalJsonPayloadSerializer()))
+        {
+            await legacyLedger.AppendAsync(new LedgerAppendRequest<Preview2SessionEventPayload>(
+                sessionId.ToString(),
+                SessionEventTypes.UserMessage,
+                Preview2Payload(sessionId, schemaVersion: 2),
+                $"preview-2:{sessionId}"), ct);
+        }
+
+        await using var store = new SimingSessionEventStore(rootPath);
+        var restored = (await store.ReadAsync(sessionId, cancellationToken: ct)).Single();
+
+        restored.SchemaVersion.Should().Be(2);
+        restored.Evidence.Should().BeNull();
+        (await store.VerifyChainAsync(sessionId, ct)).Should().BeEquivalentTo(restored);
+
+        var replayRequest = new SessionEventRequest(
+            sessionId,
+            Participant("legacy-v2"),
+            SessionEventTypes.UserMessage,
+            DateTimeOffset.UtcNow,
+            IdempotencyKey: $"preview-2:{sessionId}",
+            PayloadRetention: SessionPayloadRetention.Omit);
+        (await store.AppendAsync(replayRequest, ct)).EventId.Should().Be(restored.EventId);
+        var reinterpret = () => store.AppendAsync(replayRequest with
+        {
+            Evidence = new SessionEvidenceDescriptor(
+                SessionEvidenceNatures.Assertion,
+                SessionEvidenceBases.ParticipantClaim,
+                SessionEvidenceDispositions.Unassessed)
+        }, ct);
+        await reinterpret.Should().ThrowAsync<SessionEventIdempotencyConflictException>();
+    }
+
+    [Fact]
+    public async Task Read_V3EnvelopeWithoutEvidenceDescriptor_IsRejected()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var sessionId = SessionId.New();
+        var ledgerPath = Path.Combine(rootPath, sessionId.ToString(), "session.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(ledgerPath)!);
+        await using (var malformedLedger = new SqliteAppendOnlyLedger<CanonicalJsonPayloadSerializer>(
+            new SimingSqliteOptions { DatabasePath = ledgerPath, Pooling = false },
+            new CanonicalJsonPayloadSerializer()))
+        {
+            await malformedLedger.AppendAsync(new LedgerAppendRequest<Preview2SessionEventPayload>(
+                sessionId.ToString(),
+                SessionEventTypes.UserMessage,
+                Preview2Payload(sessionId, schemaVersion: 3),
+                "malformed-v3:user-message:1"), ct);
+        }
+
+        await using var store = new SimingSessionEventStore(rootPath);
+        var read = () => store.ReadAsync(sessionId, cancellationToken: ct);
+
+        await read.Should().ThrowAsync<InvalidDataException>()
+            .WithMessage("*no evidence descriptor*");
+    }
+
+    [Fact]
+    public async Task LaterAssessment_AppendsLinkedEvidenceWithoutMutatingOriginal()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new SimingSessionEventStore(rootPath);
+        var sessionId = SessionId.New();
+        var originalDescriptor = new SessionEvidenceDescriptor(
+            SessionEvidenceNatures.Assertion,
+            SessionEvidenceBases.ParticipantClaim,
+            SessionEvidenceDispositions.Unassessed);
+        var original = await store.AppendAsync(new SessionEventRequest(
+            sessionId,
+            Participant("planner"),
+            SessionEventTypes.DecisionProposed,
+            DateTimeOffset.UtcNow,
+            Evidence: originalDescriptor), ct);
+        var assessmentDescriptor = new SessionEvidenceDescriptor(
+            SessionEvidenceNatures.Observation,
+            SessionEvidenceBases.DirectObservation,
+            SessionEvidenceDispositions.Supported);
+
+        var assessment = await store.AppendAsync(new SessionEventRequest(
+            sessionId,
+            Participant("reviewer"),
+            SessionEventTypes.ExternalEventMirrored,
+            DateTimeOffset.UtcNow,
+            CausationId: original.EventId,
+            Evidence: assessmentDescriptor), ct);
+
+        var history = await store.ReadAsync(sessionId, cancellationToken: ct);
+        history.Should().HaveCount(2);
+        history[0].Evidence.Should().Be(originalDescriptor);
+        history[1].Evidence.Should().Be(assessmentDescriptor);
+        assessment.CausationId.Should().Be(original.EventId);
     }
 
     [Fact]
@@ -469,6 +622,43 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         string? PayloadDigest,
         SessionPayloadSchema? PayloadSchema = null,
         JsonElement? Payload = null);
+
+    private static Preview2SessionEventPayload Preview2Payload(
+        SessionId sessionId,
+        int schemaVersion) =>
+        new(
+            schemaVersion,
+            Guid.CreateVersion7(),
+            null,
+            DateTimeOffset.UtcNow,
+            null,
+            null,
+            $"preview-{schemaVersion}:{sessionId}",
+            null,
+            null,
+            SessionPayloadSensitivity.Internal,
+            SessionPayloadRetention.Omit,
+            null,
+            null,
+            null,
+            Participant("legacy-v2"));
+
+    private sealed record Preview2SessionEventPayload(
+        int SchemaVersion,
+        Guid EventId,
+        string? Actor,
+        DateTimeOffset OccurredAt,
+        Guid? CausationId,
+        Guid? CorrelationId,
+        string? IdempotencyKey,
+        IReadOnlyDictionary<string, string>? CrossSystemRefs,
+        string? PayloadJson,
+        SessionPayloadSensitivity PayloadSensitivity,
+        SessionPayloadRetention PayloadRetention,
+        string? PayloadDigest,
+        SessionPayloadSchema? PayloadSchema,
+        JsonElement? Payload,
+        SessionParticipantAttribution Participant);
 
     private sealed class FailOnceDeliveryProjectionStore(
         SqliteSessionProjectionStore inner) :

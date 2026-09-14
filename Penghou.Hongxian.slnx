@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Penghou.Hongxian/Penghou.Hongxian.csproj" />
     <Project Path="src/Penghou.Hongxian.Sqlite/Penghou.Hongxian.Sqlite.csproj" />
+    <Project Path="src/Penghou.Hongxian.LatticeDb/Penghou.Hongxian.LatticeDb.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Penghou.Hongxian.Tests/Penghou.Hongxian.Tests.csproj" />

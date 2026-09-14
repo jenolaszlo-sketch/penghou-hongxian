@@ -32,6 +32,14 @@ public static class SessionContractLimits
     public const int SuggestedActionCodeCharacters = 200;
     public const int ReasonCodeCharacters = 200;
     public const int NarrativeCharacters = 8_192;
+    public const int EvidenceNatureCharacters = 128;
+    public const int EvidenceBasisCharacters = 256;
+    public const int EvidenceDispositionCharacters = 128;
+    public const int LedgerIdentityCharacters = 200;
+    public const int ProjectionStreamCount = 256;
+    public const int ProjectionProviderCharacters = 128;
+    public const int ProjectorNameCharacters = 256;
+    public const int PolicyVersionCharacters = 128;
 }
 
 /// <summary>Shared provider-neutral validation for event persistence boundaries.</summary>
@@ -62,6 +70,7 @@ public static class SessionContractValidation
         if (!Enum.IsDefined(request.PayloadRetention))
             throw new ArgumentOutOfRangeException(nameof(request.PayloadRetention));
         request.PayloadSchema?.Validate();
+        request.Evidence?.Validate();
         if (request.Payload is not null && request.PayloadJson is not null)
             throw new ArgumentException(
                 "Specify either a JSON-tree payload or legacy PayloadJson, not both.",
@@ -81,7 +90,10 @@ public static class SessionContractValidation
 
         if (request.ExpectedHead is { } head)
         {
-            ValidateRequired(head.LedgerIdentity, 200, nameof(request.ExpectedHead));
+            ValidateRequired(
+                head.LedgerIdentity,
+                SessionContractLimits.LedgerIdentityCharacters,
+                nameof(request.ExpectedHead));
             ValidateRequired(head.Hash, 256, nameof(request.ExpectedHead));
             if (head.Sequence < 0)
                 throw new ArgumentOutOfRangeException(nameof(request.ExpectedHead));
@@ -94,6 +106,10 @@ public static class SessionContractValidation
         if (sessionEvent.SchemaVersion is < SessionEventEnvelopeSchema.MinimumSupportedVersion or
             > SessionEventEnvelopeSchema.CurrentVersion)
             throw new UnsupportedSessionEventSchemaException(sessionEvent.SchemaVersion);
+        if (sessionEvent.SchemaVersion >= 3 && sessionEvent.Evidence is null)
+            throw new ArgumentException(
+                "Envelope version 3 and later requires evidence semantics.",
+                nameof(sessionEvent));
         if (sessionEvent.Sequence <= 0)
             throw new ArgumentOutOfRangeException(nameof(sessionEvent.Sequence));
         if (sessionEvent.EventId == Guid.Empty)
@@ -131,6 +147,7 @@ public static class SessionContractValidation
         if (!Enum.IsDefined(sessionEvent.PayloadRetention))
             throw new ArgumentOutOfRangeException(nameof(sessionEvent.PayloadRetention));
         sessionEvent.PayloadSchema?.Validate();
+        sessionEvent.Evidence?.Validate();
         ValidateReferences(sessionEvent.CrossSystemRefs, nameof(sessionEvent.CrossSystemRefs));
     }
 

@@ -7,7 +7,84 @@ public static class SessionEventEnvelopeSchema
 {
     public const int MinimumSupportedVersion = 1;
 
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
+}
+
+/// <summary>Well-known, extensible evidence-nature values.</summary>
+public static class SessionEvidenceNatures
+{
+    public const string Unspecified = "unspecified";
+    public const string Assertion = "assertion";
+    public const string Observation = "observation";
+    public const string Measurement = "measurement";
+    public const string Decision = "decision";
+    public const string Receipt = "receipt";
+    public const string Diagnostic = "diagnostic";
+}
+
+/// <summary>Well-known, extensible capture-basis values.</summary>
+public static class SessionEvidenceBases
+{
+    public const string Unspecified = "unspecified";
+    public const string ParticipantClaim = "participant-claim";
+    public const string AuthorityReceipt = "authority-receipt";
+    public const string DirectObservation = "direct-observation";
+    public const string Derived = "derived";
+}
+
+/// <summary>Well-known, extensible capture-time disposition values.</summary>
+public static class SessionEvidenceDispositions
+{
+    public const string Unassessed = "unassessed";
+    public const string Supported = "supported";
+    public const string Contradicted = "contradicted";
+    public const string Superseded = "superseded";
+}
+
+/// <summary>
+/// Immutable capture-time evidence semantics. Values are portable identifier
+/// tokens: lowercase ASCII letter/digit first, then lowercase ASCII
+/// letters/digits or '.', '-', '_', ':', '/'.
+/// </summary>
+public sealed record SessionEvidenceDescriptor(string Nature, string Basis, string Disposition)
+{
+    public static SessionEvidenceDescriptor Unspecified { get; } = new(
+        SessionEvidenceNatures.Unspecified,
+        SessionEvidenceBases.Unspecified,
+        SessionEvidenceDispositions.Unassessed);
+
+    public void Validate()
+    {
+        ValidateValue(Nature, SessionContractLimits.EvidenceNatureCharacters, nameof(Nature));
+        ValidateValue(Basis, SessionContractLimits.EvidenceBasisCharacters, nameof(Basis));
+        ValidateValue(Disposition, SessionContractLimits.EvidenceDispositionCharacters, nameof(Disposition));
+    }
+
+    private static void ValidateValue(string value, int maximum, string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new ArgumentException("A non-empty evidence value is required.", parameterName);
+        if (value.Length > maximum)
+            throw new ArgumentOutOfRangeException(parameterName, $"Values cannot exceed {maximum} characters.");
+        if (!IsToken(value))
+            throw new ArgumentException(
+                "Evidence values must be lowercase portable identifier tokens.", parameterName);
+    }
+
+    private static bool IsToken(string value)
+    {
+        static bool IsAlphaNumeric(char c) =>
+            c is >= 'a' and <= 'z' or >= '0' and <= '9';
+
+        if (!IsAlphaNumeric(value[0])) return false;
+        for (var index = 1; index < value.Length; index++)
+        {
+            var character = value[index];
+            if (!IsAlphaNumeric(character) && character is not ('.' or '-' or '_' or ':' or '/'))
+                return false;
+        }
+        return true;
+    }
 }
 
 /// <summary>Application-owned identity and version of an event payload.</summary>

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <PackageId>Penghou.Hongxian.LatticeDb</PackageId>
+    <Title>Penghou Hongxian LatticeDB provider</Title>
+    <Description>Optional LatticeDB graph and lexical experience provider for Penghou.Hongxian.</Description>
+    <PackageTags>experience;projection;recall;latticedb;graph;bm25</PackageTags>
+    <!-- This package has no published compatibility baseline yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Penghou.Hongxian\Penghou.Hongxian.csproj" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="LatticeDbSharp" Version="0.2.0" />
+  </ItemGroup>
+</Project>
