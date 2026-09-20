@@ -91,6 +91,7 @@ participated in one session.
 | --- | --- |
 | `Penghou.Hongxian` | Provider-neutral session, event, projection, decision, incident, recovery, lease, and cross-store operation contracts |
 | `Penghou.Hongxian.Sqlite` | Per-session Siming ledgers, transactional operational catalogs, decision leases, lifecycle and cross-store participant receipts, operation state, and rebuildable projections |
+| `Penghou.Hongxian.LatticeDb` | Optional graph and lexical experience projection with exact lookup, bounded traversal, BM25 recall, checkpoints, and typed provider diagnostics |
 
 The core contracts do not require a workflow engine. Applications can attach
 any external execution system using a provider-qualified operation reference.
@@ -182,6 +183,25 @@ versioned separately from the Hongxian envelope and SQLite schema. Registered
 upcasters transform payloads only while reading or projecting and never rewrite
 immutable ledger history.
 
+## Experience projection and recall
+
+Hongxian now includes a provider-neutral experience model derived from verified
+session evidence. `ExperienceEntity` and `ExperienceRelation` retain temporal
+validity, provenance, and evidence references. The projector advances through
+explicit checkpoints, applies effects idempotently, and can rebuild a derived
+projection without changing the authoritative Siming streams.
+
+Recall is capability-aware and bounded. Exact lookup, relation traversal, and
+lexical search return freshness, truncation, degradation, unsupported-feature,
+and checkpoint metadata rather than silently changing query meaning. The core
+ships an in-memory reference provider; `Penghou.Hongxian.LatticeDb` supplies the
+first durable graph and BM25 implementation.
+
+The experience graph is a disposable read model. It does not turn remembered
+claims into facts, replace ledger verification, or authorize an action. A
+consumer can trace recalled material back to the evidence that produced it and
+decide how much authority that evidence deserves.
+
 ## Architectural boundaries
 
 Hongxian records facts and coordination evidence. Applications still decide
@@ -212,12 +232,13 @@ the event again as though nothing happened.
 
 ## Status and direction
 
-Hongxian is experimental and targets .NET 10 for its first preview. Its initial
-contracts were extracted from working Guyabano session and recovery paths, and
-the next step is package-backed Guyabano integration. Planned work includes
-bounded query and lifecycle APIs, participant collaboration, optional execution
-adapters, and validation through a substantially different media-generation
-consumer.
+Hongxian `0.1.0-preview.2` targets .NET 10. The session kernel, SQLite provider,
+recovery and reconciliation contracts, verified experience projector,
+in-memory experience provider, and initial LatticeDB provider are implemented.
+The LatticeDB package remains a checkpoint: packed-consumer isolation and the
+full supported-platform matrix are still being completed. Package-backed
+Guyabano integration, richer bounded queries, participant collaboration, and
+cross-domain validation remain roadmap work.
 
 See the [architecture](docs/architecture.md) for authority and failure
 semantics, and the [roadmap](docs/roadmap.md) for current milestones and
@@ -253,4 +274,6 @@ monotonic token contract.
 
 ## License
 
-MIT
+Apache-2.0
+
+Copyright (c) 2026 Jenő Konrád László
