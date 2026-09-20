@@ -57,13 +57,14 @@ Last reviewed: **2026-09-20**
   positions/checkpoints, replay-safe execution, the portable evidence-bound
   entity/relation model, provider capabilities, in-memory reference provider,
   and remote-shaped contract fixture are implemented.
-- Experience implementation Phase 4 is in progress: the optional
+- Experience implementation Phase 4 is complete (2026-09-20): the optional
   `Penghou.Hongxian.LatticeDb` provider implements exact lookup, bounded
   traversal, projection-scoped BM25 recall, checkpoints, typed diagnostics,
   and delete/replay equivalence. Separate core, SQLite, and LatticeDB packed
   consumers now exercise dependency isolation and the native provider, and the
-  three-platform CI matrix runs the packed-consumer gate. Confirmation of a
-  clean GitHub run remains required before closing Phase 4. Extraction of a
+  three-platform CI matrix passed the packed-consumer gate in
+  [run 35489969452](https://github.com/jenolaszlo-sketch/penghou-hongxian/actions/runs/35489969452).
+  Phase 5 bounded evidence-bound recall is next. Extraction of a
   reusable experience-provider conformance fixture is deferred until endpoint
   policy, mismatch behavior, and capability-specific assertions are aligned.
 

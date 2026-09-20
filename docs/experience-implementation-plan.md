@@ -3,7 +3,7 @@
 ## Status
 
 Planned on **2026-09-13** from the accepted architecture decision records.
-Phases 0 through 3 are complete. Phase 4 is in progress. This document converts the target architecture
+Phases 0 through 4 are complete. Phase 5 is next. This document converts the target architecture
 into safe implementation phases. The [roadmap](roadmap.md) remains the progress
 summary; this plan carries the working detail and phase gates.
 
@@ -303,10 +303,10 @@ Started:
   SourceLink was updated to 10.0.401 to remove the vulnerable build dependency
   that blocked restore in the previous GitHub run.
 
-Remaining before the Phase 4 gate:
-
-- Confirm the three-platform CI matrix and packed-consumer checks from a clean
-  GitHub run.
+Phase 4 gate passed on 2026-09-20:
+[GitHub run 35489969452](https://github.com/jenolaszlo-sketch/penghou-hongxian/actions/runs/35489969452)
+at commit `bcf0382` passed provider conformance and packed consumers on Windows,
+Linux, and macOS, plus the complete build/test/format/example/package job.
 
 Conformance extraction reassessment (2026-09-20): defer publishing a reusable
 fixture until the portable behavior profile is explicit. The in-memory provider
