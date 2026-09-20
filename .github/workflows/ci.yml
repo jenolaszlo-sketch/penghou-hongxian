@@ -37,6 +37,16 @@ jobs:
           --configuration Release --no-restore
           --filter FullyQualifiedName~LatticeDbExperienceProviderTests
 
+      - name: Pack LatticeDB provider
+        run: >
+          dotnet pack Penghou.Hongxian.slnx
+          --configuration Release --no-restore --output artifacts
+          --property:PackageVersion=0.0.0-ci.${{ github.run_id }}
+
+      - name: Restore and audit packed LatticeDB consumer
+        shell: pwsh
+        run: ./tools/verify_packed_consumer.ps1 -PackageDirectory artifacts -Version 0.0.0-ci.${{ github.run_id }}
+
   build-test-pack:
     runs-on: ubuntu-latest
     steps:
