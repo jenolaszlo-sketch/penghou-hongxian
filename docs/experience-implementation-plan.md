@@ -3,7 +3,7 @@
 ## Status
 
 Planned on **2026-09-13** from the accepted architecture decision records.
-Phases 0 through 3 are complete. Phase 4 is in progress. This document converts the target architecture
+Phases 0 through 4 are complete. Phase 5 is next. This document converts the target architecture
 into safe implementation phases. The [roadmap](roadmap.md) remains the progress
 summary; this plan carries the working detail and phase gates.
 
@@ -293,15 +293,31 @@ Started:
   projection deletion, and delete/replay equivalence.
 - Added native Windows tests and a CI matrix for Windows x64, Linux x64, and
   macOS ARM64 provider conformance.
+- Added separate isolated packed consumers for core, SQLite, and LatticeDB.
+  Core and SQLite reject LatticeDB package/runtime assets; the native consumer
+  verifies persistence, exact lookup, lexical search, traversal, checkpoints,
+  deletion/replay, and read-only reopen. Each matrix platform runs this gate.
+- Windows validation on 2026-09-20 passed public restore, Release build with
+  zero warnings/errors, all 123 tests, formatting, the standalone example,
+  package creation, and all three packed consumers and vulnerability audits.
+  SourceLink was updated to 10.0.401 to remove the vulnerable build dependency
+  that blocked restore in the previous GitHub run.
 
-Remaining before the Phase 4 gate:
+Phase 4 gate passed on 2026-09-20:
+[GitHub run 35489969452](https://github.com/jenolaszlo-sketch/penghou-hongxian/actions/runs/35489969452)
+at commit `bcf0382` passed provider conformance and packed consumers on Windows,
+Linux, and macOS, plus the complete build/test/format/example/package job.
 
-- Extend the isolated packed-consumer audit to execute the LatticeDB package and
-  prove the core and SQLite packages remain free of LatticeDB native assets.
-- Confirm the three-platform CI matrix and packed-consumer checks from a clean
-  GitHub run.
-- Reassess whether the internal conformance cases are mature enough to extract
-  into the reusable provider-conformance fixture planned in Phase 3.
+Conformance extraction reassessment (2026-09-20): defer publishing a reusable
+fixture until the portable behavior profile is explicit. The in-memory provider
+accepts relations before their endpoints exist, while LatticeDB requires both
+endpoints; provider-name mismatches also return a conflict in memory but throw
+a typed provider exception in LatticeDB. Checkpoint assertions must be
+capability-specific, and substring matching cannot establish BM25 ranking
+semantics. Keep the current implementation-specific tests, then add shared
+parity cases for endpoint policy, mismatch behavior, lexical budgets, and
+unsupported capabilities before freezing an external conformance API. The
+remote-shaped fixture proves interface portability, not transport resilience.
 
 ### Deliverables
 
