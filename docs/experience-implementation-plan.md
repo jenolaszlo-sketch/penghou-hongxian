@@ -346,6 +346,34 @@ produces equivalent portable records and queries.
 
 ## Phase 5 — Bounded evidence-bound recall
 
+### Progress
+
+Started (2026-09-23):
+
+- Added portable recall contracts in `Penghou.Hongxian`: retrieval policy,
+  kind-scoped request with `AsOf`, item/byte/token budgets, evidence-strength
+  and freshness requirements, provider-ranked results with checkpoints,
+  canonical query fingerprints, and compact recall receipts.
+- Added a portable executor that enforces budgets as hard caps, surfaces
+  typed unsupported results without fallback, and keeps provider ranking with
+  record-id tie-breaking and deterministic replay.
+- Added receipt persistence helpers (`experience-recall-recorded` event,
+  `penghou.recall-receipt` schema v1, fingerprint-derived idempotency) plus a
+  typed receipt reader for audits.
+- The suite passes 143 tests, including executor, fingerprint, receipt, and
+  ledger round-trip coverage across in-memory, LatticeDB, and fake-remote
+  shapes.
+- The standalone example appends session evidence, projects it into LatticeDB
+  through a sample-local event-to-experience mapping, recalls a bounded
+  result, appends a recall receipt to the same session ledger, rebuilds the
+  projection with equivalent results, and prints the fingerprint, evidence,
+  policy, truncation, and receipt behind its decision.
+
+Remaining before the Phase 5 gate:
+
+- Confirm the extended sample plus the full suite from a clean GitHub run
+  (the sample now exercises the complete gate loop locally on Windows).
+
 ### Deliverables
 
 - Add a recall request with scope, `AsOf` position/checkpoint, item and byte

@@ -34,6 +34,7 @@ public static class SessionEventTypes
     public const string UserActionRequired = "user-action-required";
     public const string DecisionSuperseded = "decision-superseded";
     public const string ExternalEventMirrored = "external-event-mirrored";
+    public const string ExperienceRecallRecorded = "experience-recall-recorded";
 }
 
 /// <summary>

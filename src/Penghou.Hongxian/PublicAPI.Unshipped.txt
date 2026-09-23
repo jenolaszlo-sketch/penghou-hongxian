@@ -1236,3 +1236,90 @@ Penghou.Hongxian.InMemoryExperienceProvider.DeleteProjectionAsync(Penghou.Hongxi
 Penghou.Hongxian.InMemoryExperienceProvider.GetEntityAsync(Penghou.Hongxian.ExperienceEntityLookupRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEntity!>!>!
 Penghou.Hongxian.InMemoryExperienceProvider.TraverseAsync(Penghou.Hongxian.ExperienceRelationTraversalRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceRelation!>!>!
 Penghou.Hongxian.InMemoryExperienceProvider.SearchLexicalAsync(Penghou.Hongxian.ExperienceLexicalSearchRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEntity!>!>!
+const Penghou.Hongxian.SessionEventTypes.ExperienceRecallRecorded = "experience-recall-recorded" -> string!
+Penghou.Hongxian.ExperienceRecallLimits
+const Penghou.Hongxian.ExperienceRecallLimits.LexicalQueryCharacters = 2048 -> int
+const Penghou.Hongxian.ExperienceRecallLimits.ScopeKindCount = 64 -> int
+const Penghou.Hongxian.ExperienceRecallLimits.RetrievalPolicyNameCharacters = 200 -> int
+const Penghou.Hongxian.ExperienceRecallLimits.RetrievalPolicyVersionCharacters = 128 -> int
+const Penghou.Hongxian.ExperienceRecallLimits.RecallItemLimit = 1000 -> int
+const Penghou.Hongxian.ExperienceRecallLimits.RecallByteLimit = 1048576 -> int
+const Penghou.Hongxian.ExperienceRecallLimits.RecallFingerprintCharacters = 256 -> int
+Penghou.Hongxian.ExperienceRecallFreshnessRequirement
+Penghou.Hongxian.ExperienceRecallFreshnessRequirement.Any = 0 -> Penghou.Hongxian.ExperienceRecallFreshnessRequirement
+Penghou.Hongxian.ExperienceRecallFreshnessRequirement.Current = 1 -> Penghou.Hongxian.ExperienceRecallFreshnessRequirement
+Penghou.Hongxian.ExperienceBoundedRecallCompletion
+Penghou.Hongxian.ExperienceBoundedRecallCompletion.Completed = 0 -> Penghou.Hongxian.ExperienceBoundedRecallCompletion
+Penghou.Hongxian.ExperienceBoundedRecallCompletion.Unsupported = 1 -> Penghou.Hongxian.ExperienceBoundedRecallCompletion
+Penghou.Hongxian.ExperienceRetrievalPolicy
+Penghou.Hongxian.ExperienceRetrievalPolicy.ExperienceRetrievalPolicy(string! Name, string! Version) -> void
+Penghou.Hongxian.ExperienceRetrievalPolicy.Name.get -> string!
+Penghou.Hongxian.ExperienceRetrievalPolicy.Version.get -> string!
+Penghou.Hongxian.ExperienceRecallScoreSemantics
+const Penghou.Hongxian.ExperienceRecallScoreSemantics.ProviderRank = "provider-rank" -> string!
+Penghou.Hongxian.ExperienceBoundedRecallRequest
+Penghou.Hongxian.ExperienceBoundedRecallRequest.ExperienceBoundedRecallRequest(Penghou.Hongxian.ExperienceProjectionId projectionId, Penghou.Hongxian.ExperienceRetrievalPolicy! policy, string! lexicalQuery, System.Collections.Generic.IReadOnlyList<string!>? entityKinds = null, Penghou.Hongxian.ExperienceProjectionPosition? asOf = null, int maximumItems = 20, int maximumBytes = 65536, int? maximumTokens = null, int minimumEvidenceReferences = 1, Penghou.Hongxian.ExperienceRecallFreshnessRequirement freshnessRequirement = Penghou.Hongxian.ExperienceRecallFreshnessRequirement.Current) -> void
+Penghou.Hongxian.ExperienceBoundedRecallRequest.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
+Penghou.Hongxian.ExperienceBoundedRecallRequest.Policy.get -> Penghou.Hongxian.ExperienceRetrievalPolicy!
+Penghou.Hongxian.ExperienceBoundedRecallRequest.LexicalQuery.get -> string!
+Penghou.Hongxian.ExperienceBoundedRecallRequest.EntityKinds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Penghou.Hongxian.ExperienceBoundedRecallRequest.AsOf.get -> Penghou.Hongxian.ExperienceProjectionPosition?
+Penghou.Hongxian.ExperienceBoundedRecallRequest.MaximumItems.get -> int
+Penghou.Hongxian.ExperienceBoundedRecallRequest.MaximumBytes.get -> int
+Penghou.Hongxian.ExperienceBoundedRecallRequest.MaximumTokens.get -> int?
+Penghou.Hongxian.ExperienceBoundedRecallRequest.MinimumEvidenceReferences.get -> int
+Penghou.Hongxian.ExperienceBoundedRecallRequest.FreshnessRequirement.get -> Penghou.Hongxian.ExperienceRecallFreshnessRequirement
+Penghou.Hongxian.ExperienceRecalledEntity
+Penghou.Hongxian.ExperienceRecalledEntity.ExperienceRecalledEntity(Penghou.Hongxian.ExperienceEntity! Record, int Rank, string! ScoreSemantics, long EstimatedTokens) -> void
+Penghou.Hongxian.ExperienceRecalledEntity.Record.get -> Penghou.Hongxian.ExperienceEntity!
+Penghou.Hongxian.ExperienceRecalledEntity.Rank.get -> int
+Penghou.Hongxian.ExperienceRecalledEntity.ScoreSemantics.get -> string!
+Penghou.Hongxian.ExperienceRecalledEntity.EstimatedTokens.get -> long
+Penghou.Hongxian.ExperienceBoundedRecallResult
+Penghou.Hongxian.ExperienceBoundedRecallResult.ExperienceBoundedRecallResult(string! queryFingerprint, Penghou.Hongxian.ExperienceProjectionId projectionId, string! providerName, Penghou.Hongxian.ExperienceRetrievalPolicy! policy, Penghou.Hongxian.ExperienceProjectionCheckpoint? coveredCheckpoint, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceRecalledEntity!>! items, long estimatedTokensTotal, Penghou.Hongxian.ExperienceProviderFreshness freshness, bool isTruncated, Penghou.Hongxian.ExperienceBoundedRecallCompletion completion = Penghou.Hongxian.ExperienceBoundedRecallCompletion.Completed, Penghou.Hongxian.ExperienceProviderCapability unsupportedCapabilities = Penghou.Hongxian.ExperienceProviderCapability.None, string? diagnostic = null) -> void
+Penghou.Hongxian.ExperienceBoundedRecallResult.QueryFingerprint.get -> string!
+Penghou.Hongxian.ExperienceBoundedRecallResult.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
+Penghou.Hongxian.ExperienceBoundedRecallResult.ProviderName.get -> string!
+Penghou.Hongxian.ExperienceBoundedRecallResult.Policy.get -> Penghou.Hongxian.ExperienceRetrievalPolicy!
+Penghou.Hongxian.ExperienceBoundedRecallResult.CoveredCheckpoint.get -> Penghou.Hongxian.ExperienceProjectionCheckpoint?
+Penghou.Hongxian.ExperienceBoundedRecallResult.Items.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceRecalledEntity!>!
+Penghou.Hongxian.ExperienceBoundedRecallResult.EstimatedTokensTotal.get -> long
+Penghou.Hongxian.ExperienceBoundedRecallResult.Freshness.get -> Penghou.Hongxian.ExperienceProviderFreshness
+Penghou.Hongxian.ExperienceBoundedRecallResult.IsTruncated.get -> bool
+Penghou.Hongxian.ExperienceBoundedRecallResult.Completion.get -> Penghou.Hongxian.ExperienceBoundedRecallCompletion
+Penghou.Hongxian.ExperienceBoundedRecallResult.UnsupportedCapabilities.get -> Penghou.Hongxian.ExperienceProviderCapability
+Penghou.Hongxian.ExperienceBoundedRecallResult.Diagnostic.get -> string?
+Penghou.Hongxian.ExperienceBoundedRecallResult.SelectedEvidence.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReferenceId>!
+Penghou.Hongxian.ExperienceRecallFingerprint
+const Penghou.Hongxian.ExperienceRecallFingerprint.ContractVersion = "sha256:penghou-hongxian-recall:v1" -> string!
+static Penghou.Hongxian.ExperienceRecallFingerprint.Compute(Penghou.Hongxian.ExperienceBoundedRecallRequest! request) -> string!
+Penghou.Hongxian.ExperienceRecallReceiptItem
+Penghou.Hongxian.ExperienceRecallReceiptItem.ExperienceRecallReceiptItem(Penghou.Hongxian.ExperienceEntityId entityId, Penghou.Hongxian.ExperienceDerivationId derivationId, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReferenceId>! evidenceIds, long estimatedTokens) -> void
+Penghou.Hongxian.ExperienceRecallReceiptItem.EntityId.get -> Penghou.Hongxian.ExperienceEntityId
+Penghou.Hongxian.ExperienceRecallReceiptItem.DerivationId.get -> Penghou.Hongxian.ExperienceDerivationId
+Penghou.Hongxian.ExperienceRecallReceiptItem.EvidenceIds.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReferenceId>!
+Penghou.Hongxian.ExperienceRecallReceiptItem.EstimatedTokens.get -> long
+Penghou.Hongxian.ExperienceRecallReceipt
+Penghou.Hongxian.ExperienceRecallReceipt.ExperienceRecallReceipt(string! queryFingerprint, Penghou.Hongxian.ExperienceProjectionId projectionId, Penghou.Hongxian.ExperienceRetrievalPolicy! policy, string? checkpointPositionDigest, long? checkpointVersion, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceRecallReceiptItem!>! items, string! suppliedContextDigest, long estimatedTokensTotal, bool sourceTruncated) -> void
+Penghou.Hongxian.ExperienceRecallReceipt.QueryFingerprint.get -> string!
+Penghou.Hongxian.ExperienceRecallReceipt.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
+Penghou.Hongxian.ExperienceRecallReceipt.Policy.get -> Penghou.Hongxian.ExperienceRetrievalPolicy!
+Penghou.Hongxian.ExperienceRecallReceipt.CheckpointPositionDigest.get -> string?
+Penghou.Hongxian.ExperienceRecallReceipt.CheckpointVersion.get -> long?
+Penghou.Hongxian.ExperienceRecallReceipt.Items.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceRecallReceiptItem!>!
+Penghou.Hongxian.ExperienceRecallReceipt.SuppliedContextDigest.get -> string!
+Penghou.Hongxian.ExperienceRecallReceipt.EstimatedTokensTotal.get -> long
+Penghou.Hongxian.ExperienceRecallReceipt.SourceTruncated.get -> bool
+static Penghou.Hongxian.ExperienceRecallReceipt.Create(Penghou.Hongxian.ExperienceBoundedRecallResult! result, string! suppliedContextDigest) -> Penghou.Hongxian.ExperienceRecallReceipt!
+Penghou.Hongxian.ExperienceRecallReceiptSchema
+const Penghou.Hongxian.ExperienceRecallReceiptSchema.Name = "penghou.recall-receipt" -> string!
+const Penghou.Hongxian.ExperienceRecallReceiptSchema.Version = 1 -> int
+static Penghou.Hongxian.ExperienceRecallReceiptSchema.Schema.get -> Penghou.Hongxian.SessionPayloadSchema!
+Penghou.Hongxian.ExperienceRecallReceipts
+static Penghou.Hongxian.ExperienceRecallReceipts.CreateRequest(Penghou.Hongxian.SessionId sessionId, Penghou.Hongxian.SessionParticipantAttribution! participant, Penghou.Hongxian.ExperienceRecallReceipt! receipt, System.DateTimeOffset? occurredAt = null, System.Guid? causationId = null, System.Guid? correlationId = null, string? idempotencyKey = null) -> Penghou.Hongxian.SessionEventRequest!
+static Penghou.Hongxian.ExperienceRecallReceipts.AppendRecallReceiptAsync(this Penghou.Hongxian.ISessionEventStore! store, Penghou.Hongxian.SessionId sessionId, Penghou.Hongxian.SessionParticipantAttribution! participant, Penghou.Hongxian.ExperienceRecallReceipt! receipt, System.DateTimeOffset? occurredAt = null, System.Guid? causationId = null, System.Guid? correlationId = null, string? idempotencyKey = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent!>!
+static Penghou.Hongxian.ExperienceRecallReceipts.ReadRecallReceipt(this Penghou.Hongxian.SessionEvent! sessionEvent, System.Text.Json.JsonSerializerOptions? serializerOptions = null) -> Penghou.Hongxian.ExperienceRecallReceipt!
+Penghou.Hongxian.ExperienceBoundedRecall
+const Penghou.Hongxian.ExperienceBoundedRecall.TokenEstimateModel = "ceiling(utf8-bytes/4)" -> string!
+static Penghou.Hongxian.ExperienceBoundedRecall.EstimateTokens(long utf8Bytes) -> long
+static Penghou.Hongxian.ExperienceBoundedRecall.ExecuteAsync(Penghou.Hongxian.IExperienceRecallReader! reader, Penghou.Hongxian.ExperienceBoundedRecallRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceBoundedRecallResult!>!
