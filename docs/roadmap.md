@@ -27,7 +27,9 @@ Last reviewed: **2026-09-14**
   operation receipts, and forward reconciliation are extracted.
 - Provider-qualified external-operation identity prevents collisions between
   execution systems without introducing workflow-engine types.
-- The current experience checkpoint passes 123 tests; a standalone example and an isolated packed
+- The current experience checkpoint passes 128 tests, including a shared
+  internal experience-provider conformance suite run against in-memory,
+  LatticeDB, and fake-remote shapes; a standalone example and an isolated packed
   consumer both persist, project, and verify a session event.
 - A pre-integration review found no vulnerable direct or transitive packages
   and all tests pass. Preview 2 now records in-repository, interface-driven
@@ -60,8 +62,9 @@ Last reviewed: **2026-09-14**
 - Experience implementation Phase 4 is in progress: the optional
   `Penghou.Hongxian.LatticeDb` provider implements exact lookup, bounded
   traversal, projection-scoped BM25 recall, checkpoints, typed diagnostics,
-  and delete/replay equivalence. Packed-consumer isolation and confirmation of
-  the three-platform CI matrix remain open.
+  and delete/replay equivalence. Packed-consumer LatticeDB execution and
+  core/SQLite isolation are implemented and verified locally; confirmation of
+  the three-platform CI matrix from a clean GitHub run remains open.
 
 ## Accepted architectural direction
 

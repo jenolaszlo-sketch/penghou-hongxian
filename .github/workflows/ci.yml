@@ -37,6 +37,16 @@ jobs:
           --configuration Release --no-restore
           --filter FullyQualifiedName~LatticeDbExperienceProviderTests
 
+      - name: Pack
+        run: >
+          dotnet pack Penghou.Hongxian.slnx
+          --configuration Release --no-restore
+          --output artifacts --property:PackageVersion=0.0.0-ci.${{ github.run_id }}
+
+      - name: Restore and audit packed consumers
+        shell: pwsh
+        run: ./tools/verify_packed_consumer.ps1 -PackageDirectory artifacts -Version 0.0.0-ci.${{ github.run_id }}
+
   build-test-pack:
     runs-on: ubuntu-latest
     steps:
@@ -70,7 +80,7 @@ jobs:
       - name: Pack
         run: dotnet pack Penghou.Hongxian.slnx --configuration Release --no-build --no-restore --output artifacts --property:PackageVersion=0.0.0-ci.${{ github.run_id }}
 
-      - name: Restore and audit packed consumer
+      - name: Restore and audit packed consumers
         shell: pwsh
         run: ./tools/verify_packed_consumer.ps1 -PackageDirectory artifacts -Version 0.0.0-ci.${{ github.run_id }}
 

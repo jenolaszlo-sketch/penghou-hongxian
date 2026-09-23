@@ -293,15 +293,31 @@ Started:
   projection deletion, and delete/replay equivalence.
 - Added native Windows tests and a CI matrix for Windows x64, Linux x64, and
   macOS ARM64 provider conformance.
+- Extended the isolated packed-consumer audit to execute the LatticeDB package
+  (memory-provider entity/relation writes, exact lookup, lexical search,
+  traversal, checkpoint, delete/replay equivalence) and to prove the core and
+  SQLite consumer remains free of LatticeDB assets via transitive package and
+  package-cache checks. Verified locally on Windows with all 123 tests passing;
+  the three-platform CI matrix now packs and runs the same audit on every
+  supported platform.
+- Added packed-consumer coverage to the LatticeDB CI matrix job so provider
+  conformance plus packed execution run on Windows, Linux, and macOS.
+- Reassessed the provider-conformance extraction (2026-09-23): the portable
+  writer/reader cases now live in an internal shared suite
+  (`ExperienceProviderConformanceCases`) exercised against three shapes
+  (in-memory reference, LatticeDB memory, transport-shaped fake remote) by
+  `ExperienceProviderConformanceTests`. Session-kernel conformance still has a
+  single implementation, so a public `Penghou.Hongxian.Testing` package remains
+  deferred until a second session provider or a Neo4j/remote consumer needs it.
+  Two behaviors are documented as provider-specific and excluded from the
+  shared suite: missing-relation-endpoint handling (conflict in LatticeDB,
+  accepted by the reference provider) and provider-mismatch signaling
+  (conflict result versus `ArgumentException`).
 
 Remaining before the Phase 4 gate:
 
-- Extend the isolated packed-consumer audit to execute the LatticeDB package and
-  prove the core and SQLite packages remain free of LatticeDB native assets.
 - Confirm the three-platform CI matrix and packed-consumer checks from a clean
   GitHub run.
-- Reassess whether the internal conformance cases are mature enough to extract
-  into the reusable provider-conformance fixture planned in Phase 3.
 
 ### Deliverables
 
