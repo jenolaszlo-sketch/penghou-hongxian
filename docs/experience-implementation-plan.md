@@ -401,6 +401,33 @@ This is the first package candidate useful to Guyabano and Fuwen.
 
 ## Phase 6 — Derived summaries and embeddings
 
+### Progress
+
+Started (2026-09-23):
+
+- Added derivation contracts in `Penghou.Hongxian`: generator identity,
+  summary/embedding requests and results, host-supplied generator interfaces
+  with no model SDK dependency, and rebuild-stable records carrying evidence
+  snapshots, versioned content digests, sensitivity, disclosure scope, and
+  supersession links.
+- Added the derivation orchestrator, which validates untrusted generator
+  output (budgets, finiteness, identity match), snapshots source evidence,
+  and persists caller-declared classification without weakening guarantees.
+  Re-derivation creates a linked new record; older records and their receipts
+  stay verifiable.
+- The suite passes 149 tests, including derivation identity stability,
+  digest vectors, supersession chains, dishonest-generator rejection, and
+  JSON round trips.
+
+Remaining before the Phase 6 gate:
+
+- Add derivation storage ports plus vector and hybrid recall (cosine
+  similarity, RRF fusion) on the in-memory reference provider; LatticeDB
+  vector indexing stays deferred until its native capability is verified.
+- Extend the conformance suite for vector/hybrid retrieval and prove the
+  gate: swapping the generator rebuilds only derived data while evidence
+  and recall receipts remain verifiable.
+
 ### Deliverables
 
 - Add optional derivation contracts for summaries and embeddings, using a

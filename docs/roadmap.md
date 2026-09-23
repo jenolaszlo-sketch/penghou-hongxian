@@ -27,11 +27,12 @@ Last reviewed: **2026-09-23**
   operation receipts, and forward reconciliation are extracted.
 - Provider-qualified external-operation identity prevents collisions between
   execution systems without introducing workflow-engine types.
-- The current experience checkpoint passes 143 tests, including portable
-  bounded-recall contracts with canonical fingerprints and recall receipts,
-  a shared internal experience-provider conformance suite run against
-  in-memory, LatticeDB, and fake-remote shapes; a standalone example and an
-  isolated packed consumer both persist, project, and verify a session event.
+- The current experience checkpoint passes 149 tests, including derived
+  summary/embedding contracts with host-supplied generators alongside
+  portable bounded-recall contracts, a shared internal
+  experience-provider conformance suite run against in-memory, LatticeDB,
+  and fake-remote shapes; a standalone example and an isolated packed
+  consumer both persist, project, and verify a session event.
 - A pre-integration review found no vulnerable direct or transitive packages
   and all tests pass. Preview 2 now records in-repository, interface-driven
   provider contract conformance and public API compatibility against preview 1.
@@ -69,6 +70,10 @@ Last reviewed: **2026-09-23**
   requests, provider-ranked bounded results, canonical query fingerprints,
   and recall receipts are implemented with 143 passing tests, and a clean CI
   run confirmed the full evidence-to-receipt example loop.
+- Experience implementation Phase 6 is in progress (2026-09-23): derivation
+  records, host-supplied generator contracts, and the validation
+  orchestrator are implemented with 149 passing tests. Derivation storage,
+  vector/hybrid recall, and the provider-swap gate remain open.
 
 ## Accepted architectural direction
 
