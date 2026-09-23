@@ -14,7 +14,7 @@ tracks only its application profile and package integration.
 
 ## Current state
 
-Last reviewed: **2026-09-14**
+Last reviewed: **2026-09-23**
 
 - `Penghou.Hongxian` and `Penghou.Hongxian.Sqlite` `0.1.0-preview.2` are
   published on NuGet.
@@ -59,12 +59,11 @@ Last reviewed: **2026-09-14**
   positions/checkpoints, replay-safe execution, the portable evidence-bound
   entity/relation model, provider capabilities, in-memory reference provider,
   and remote-shaped contract fixture are implemented.
-- Experience implementation Phase 4 is in progress: the optional
+- Experience implementation Phase 4 is complete (2026-09-23): the optional
   `Penghou.Hongxian.LatticeDb` provider implements exact lookup, bounded
   traversal, projection-scoped BM25 recall, checkpoints, typed diagnostics,
-  and delete/replay equivalence. Packed-consumer LatticeDB execution and
-  core/SQLite isolation are implemented and verified locally; confirmation of
-  the three-platform CI matrix from a clean GitHub run remains open.
+  and delete/replay equivalence. A clean CI run passed provider conformance
+  and packed-consumer execution/isolation checks on Windows, Linux, and macOS.
 
 ## Accepted architectural direction
 

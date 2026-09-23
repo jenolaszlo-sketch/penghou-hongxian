@@ -3,7 +3,7 @@
 ## Status
 
 Planned on **2026-09-13** from the accepted architecture decision records.
-Phases 0 through 3 are complete. Phase 4 is in progress. This document converts the target architecture
+Phases 0 through 4 are complete. This document converts the target architecture
 into safe implementation phases. The [roadmap](roadmap.md) remains the progress
 summary; this plan carries the working detail and phase gates.
 
@@ -313,11 +313,14 @@ Started:
   shared suite: missing-relation-endpoint handling (conflict in LatticeDB,
   accepted by the reference provider) and provider-mismatch signaling
   (conflict result versus `ArgumentException`).
+- Confirmed the gate from a clean GitHub run (2026-09-23, CI run 35874188863):
+  provider conformance plus packed LatticeDB execution and core/SQLite
+  isolation passed on Windows x64, Linux x64, and macOS ARM64, and the
+  build-test-pack job passed with all 128 tests.
 
-Remaining before the Phase 4 gate:
-
-- Confirm the three-platform CI matrix and packed-consumer checks from a clean
-  GitHub run.
+Gate passed (2026-09-23). Deleting the LatticeDB database and replaying the
+same verified position produces equivalent portable records and queries, as
+proven by the delete/replay conformance cases and the packed-consumer audit.
 
 ### Deliverables
 
