@@ -3,7 +3,7 @@
 ## Status
 
 Planned on **2026-09-13** from the accepted architecture decision records.
-Phases 0 through 5 are complete. This document converts the target architecture
+Phases 0 through 6 are complete. This document converts the target architecture
 into safe implementation phases. The [roadmap](roadmap.md) remains the progress
 summary; this plan carries the working detail and phase gates.
 
@@ -415,18 +415,17 @@ Started (2026-09-23):
   and persists caller-declared classification without weakening guarantees.
   Re-derivation creates a linked new record; older records and their receipts
   stay verifiable.
-- The suite passes 149 tests, including derivation identity stability,
-  digest vectors, supersession chains, dishonest-generator rejection, and
-  JSON round trips.
+- The suite passes 160 tests, including derivation storage, cosine vector
+  ranking, RRF hybrid fusion, and a provider-swap gate test proving that
+  re-derivation touches only derived data while evidence and recall receipts
+  stay verifiable. LatticeDB vector indexing remains deferred until its
+  native vector capability is verified.
 
-Remaining before the Phase 6 gate:
-
-- Add derivation storage ports plus vector and hybrid recall (cosine
-  similarity, RRF fusion) on the in-memory reference provider; LatticeDB
-  vector indexing stays deferred until its native capability is verified.
-- Extend the conformance suite for vector/hybrid retrieval and prove the
-  gate: swapping the generator rebuilds only derived data while evidence
-  and recall receipts remain verifiable.
+Gate passed (2026-09-23). Swapping the embedding generator rebuilds only
+derived data; existing evidence and recall receipts remain verifiable, as
+proven by the provider-swap test. Vector/hybrid recall over the in-memory
+reference uses portable cosine similarity and RRF fusion that later
+providers reuse.
 
 ### Deliverables
 
