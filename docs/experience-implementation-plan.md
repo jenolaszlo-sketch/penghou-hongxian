@@ -3,7 +3,7 @@
 ## Status
 
 Planned on **2026-09-13** from the accepted architecture decision records.
-Phases 0 through 4 are complete. This document converts the target architecture
+Phases 0 through 5 are complete. This document converts the target architecture
 into safe implementation phases. The [roadmap](roadmap.md) remains the progress
 summary; this plan carries the working detail and phase gates.
 
@@ -369,10 +369,11 @@ Started (2026-09-23):
   projection with equivalent results, and prints the fingerprint, evidence,
   policy, truncation, and receipt behind its decision.
 
-Remaining before the Phase 5 gate:
-
-- Confirm the extended sample plus the full suite from a clean GitHub run
-  (the sample now exercises the complete gate loop locally on Windows).
+Gate passed (2026-09-23, CI run 35883135145). The sample appends evidence,
+projects it into LatticeDB, recalls a bounded result, appends a recall
+receipt, rebuilds the projection with equivalent results, and prints the
+fingerprint, evidence, policy, truncation, and receipt behind its decision.
+This is the first package candidate useful to Guyabano and Fuwen.
 
 ### Deliverables
 
