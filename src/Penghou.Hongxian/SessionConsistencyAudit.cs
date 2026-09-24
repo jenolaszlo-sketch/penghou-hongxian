@@ -159,11 +159,12 @@ public sealed class SessionConsistencyAuditService
         foreach (var source in outboxes)
         {
             var pending = await source.Outbox.ListPendingAsync(
+                sessionId,
                 MaximumOutboxScan,
                 cancellationToken).ConfigureAwait(false);
             outboxItems.Add(new SessionEvidenceOutboxAuditResult(
                 source.Name,
-                pending.Count(item => item.SessionId == sessionId),
+                pending.Count,
                 pending.Count < MaximumOutboxScan));
         }
         var lease = leases is null

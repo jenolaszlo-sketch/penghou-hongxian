@@ -330,20 +330,52 @@ public sealed class SqliteCrossStoreOperationStore :
         await using var reader = await command.ExecuteReaderAsync(cancellationToken)
             .ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            result.Add(new SessionEvidenceOutboxRecord
-            {
-                ReceiptId = Guid.Parse(reader.GetString(0)),
-                SessionId = SessionId.Parse(reader.GetString(1)),
-                EventType = reader.GetString(2),
-                OccurredAt = Parse(reader.GetString(3)),
-                IdempotencyKey = reader.GetString(4),
-                CrossSystemRefs = JsonSerializer.Deserialize<Dictionary<string, string>>(
-                        reader.GetString(5))
-                    ?? new Dictionary<string, string>(StringComparer.Ordinal),
-                DeliveredAt = reader.IsDBNull(6) ? null : Parse(reader.GetString(6))
-            });
+            result.Add(MapOutboxRecord(reader));
         return result;
     }
+
+    public async Task<IReadOnlyList<SessionEvidenceOutboxRecord>> ListPendingAsync(
+        SessionId sessionId,
+        int maximumCount = 100,
+        CancellationToken cancellationToken = default)
+    {
+        if (sessionId.Value == Guid.Empty)
+            throw new ArgumentException("A non-empty session ID is required.", nameof(sessionId));
+        if (maximumCount is < 1 or > 1000)
+            throw new ArgumentOutOfRangeException(nameof(maximumCount));
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT receipt_id, session_id, event_type, occurred_at,
+                   idempotency_key, cross_system_refs_json, delivered_at
+            FROM cross_store_evidence_outbox
+            WHERE delivered_at IS NULL AND session_id = $sessionId
+            ORDER BY occurred_at, receipt_id
+            LIMIT $limit;
+            """;
+        command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
+        command.Parameters.AddWithValue("$limit", maximumCount);
+        var result = new List<SessionEvidenceOutboxRecord>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            result.Add(MapOutboxRecord(reader));
+        return result;
+    }
+
+    private static SessionEvidenceOutboxRecord MapOutboxRecord(SqliteDataReader reader) =>
+        new()
+        {
+            ReceiptId = Guid.Parse(reader.GetString(0)),
+            SessionId = SessionId.Parse(reader.GetString(1)),
+            EventType = reader.GetString(2),
+            OccurredAt = Parse(reader.GetString(3)),
+            IdempotencyKey = reader.GetString(4),
+            CrossSystemRefs = JsonSerializer.Deserialize<Dictionary<string, string>>(
+                    reader.GetString(5))
+                ?? new Dictionary<string, string>(StringComparer.Ordinal),
+            DeliveredAt = reader.IsDBNull(6) ? null : Parse(reader.GetString(6))
+        };
 
     public async Task MarkDeliveredAsync(
         Guid receiptId,

@@ -305,7 +305,7 @@ public sealed class SessionRecoveryCoordinator
                 ("recoveryResultIdentity", resolution.ActionReceipt?.ResultIdentity),
                 ("recoveryVerification", resolution.ActionReceipt?.Verification)),
             PayloadJson: JsonSerializer.Serialize(resolution, SerializerOptions),
-            IdempotencyKey: $"incident:{resolution.IncidentId:D}:plan:{resolution.RecoveryPlanId:D}:attempt:{resolution.Attempt}:outcome"),
+            IdempotencyKey: $"incident:{resolution.IncidentId:D}:plan:{resolution.RecoveryPlanId:D}:attempt:{resolution.Attempt}:outcome:{resolution.Outcome}"),
             cancellationToken);
     }
 

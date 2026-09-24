@@ -112,6 +112,52 @@ public sealed class SessionRecoveryCoordinatorTests : IDisposable
         (await events.ReadAsync(sessionId, cancellationToken: ct)).Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task CompleteAsync_SameAttemptDifferentOutcomes_RecordsDistinctEvents()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var events = new SimingSessionEventStore(Path.Combine(rootPath, "sessions"));
+        var coordinator = new SessionRecoveryCoordinator(events);
+        var sessionId = SessionId.New();
+        var incidentId = Guid.CreateVersion7();
+        var planId = Guid.CreateVersion7();
+        var causationId = Guid.CreateVersion7();
+        var now = DateTimeOffset.UtcNow;
+        var action = new SessionRecoveryActionReference(
+            "retry-publication",
+            "search-index",
+            "publication-7");
+
+        var attention = await coordinator.CompleteAsync(new SessionRecoveryResolution(
+            planId,
+            incidentId,
+            sessionId,
+            SessionRecoveryOutcome.ReconciliationRequired,
+            1,
+            "Needs attention.",
+            now), causationId, ct);
+        var receipt = new SessionRecoveryActionReceipt(
+            Guid.CreateVersion7(),
+            action,
+            "The publication was verified and can be opened by identity.",
+            now.AddSeconds(1),
+            Verified: true,
+            ResultIdentity: "index-publication-7");
+        var recovered = await coordinator.CompleteAsync(new SessionRecoveryResolution(
+            planId,
+            incidentId,
+            sessionId,
+            SessionRecoveryOutcome.Recovered,
+            1,
+            "Recovered on re-check.",
+            now.AddSeconds(2),
+            ActionReceipt: receipt), causationId, ct);
+
+        recovered.EventId.Should().NotBe(attention.EventId);
+        recovered.EventType.Should().Be(SessionEventTypes.RecoverySucceeded);
+        (await events.ReadAsync(sessionId, cancellationToken: ct)).Should().HaveCount(2);
+    }
+
     public void Dispose()
     {
         SqliteConnection.ClearAllPools();

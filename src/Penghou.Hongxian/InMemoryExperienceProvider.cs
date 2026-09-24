@@ -310,6 +310,33 @@ public sealed class InMemoryExperienceProvider :
         }
     }
 
+    public Task<ExperienceRecallResult<ExperienceEntityDerivations>> ListDerivationsAsync(
+        ExperienceEntityLookupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (request.AsOf is not null)
+            return Task.FromResult(ExperienceRecallResult<ExperienceEntityDerivations>.Unsupported(
+                ExperienceProviderCapability.AsOf,
+                "The in-memory reference provider does not retain historical versions."));
+        lock (gate)
+        {
+            var listing = new ExperienceEntityDerivations(
+                request.ProjectionId,
+                request.EntityId,
+                summaries.Values
+                    .Where(item => item.ProjectionId == request.ProjectionId && item.EntityId == request.EntityId)
+                    .Select(item => item.Id)
+                    .ToArray(),
+                embeddings.Values
+                    .Where(item => item.ProjectionId == request.ProjectionId && item.EntityId == request.EntityId)
+                    .Select(item => item.Id)
+                    .ToArray());
+            return Task.FromResult(ExperienceRecallResult<ExperienceEntityDerivations>.Success([listing]));
+        }
+    }
+
     public Task<ExperienceRecallResult<ExperienceVectorMatch>> SearchVectorAsync(
         ExperienceVectorSearchRequest request,
         CancellationToken cancellationToken = default)

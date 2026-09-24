@@ -46,6 +46,44 @@ public sealed class SqliteSessionCatalogTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateRevisionAsync_NullReplacement_IsRejected()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var catalog = new SqliteSessionCatalog(
+            Path.Combine(rootPath, "null-revision.db"), pooling: false);
+        var session = await catalog.CreateAsync("repo", "resource", cancellationToken: ct);
+
+        var nullReplacement = () => catalog.UpdateRevisionAsync(session.Id, null, null!, ct);
+
+        await nullReplacement.Should().ThrowAsync<ArgumentNullException>();
+        (await catalog.GetAsync(session.Id, ct))!.CurrentRevision.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ListPendingAsync_ScopesToSession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var catalog = new SqliteSessionCatalog(
+            Path.Combine(rootPath, "scoped.db"), pooling: false);
+        var first = await catalog.CreateAsync("repo", "resource-a", cancellationToken: ct);
+        await catalog.UpdateRevisionAsync(first.Id, null, "rev-1", ct);
+        var second = await catalog.CreateAsync("repo", "resource-b", cancellationToken: ct);
+
+        var scoped = await catalog.ListPendingAsync(first.Id, cancellationToken: ct);
+        scoped.Should().HaveCount(2);
+        scoped.Should().OnlyContain(item => item.SessionId == first.Id);
+        var other = await catalog.ListPendingAsync(second.Id, cancellationToken: ct);
+        other.Should().ContainSingle().Which.SessionId.Should().Be(second.Id);
+        (await catalog.ListPendingAsync(first.Id, 1, ct)).Should().ContainSingle();
+
+        var emptySession = () => catalog.ListPendingAsync(
+            new SessionId(Guid.Empty), cancellationToken: ct);
+        await emptySession.Should().ThrowAsync<ArgumentException>();
+        var unbounded = () => catalog.ListPendingAsync(first.Id, 0, ct);
+        await unbounded.Should().ThrowAsync<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
     public async Task Catalog_PersistsAndListsSessionsWithoutOpeningSessionStores()
     {
         var ct = TestContext.Current.CancellationToken;

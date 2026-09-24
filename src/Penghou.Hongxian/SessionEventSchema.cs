@@ -191,6 +191,19 @@ public sealed class UnsupportedSessionEventSchemaException(int detectedVersion)
         SessionEventEnvelopeSchema.MinimumSupportedVersion;
 }
 
+/// <summary>Raised when a persisted event carries no payload schema at all.</summary>
+public sealed class MissingSessionPayloadSchemaException(
+    Guid eventId,
+    SessionPayloadSchema targetSchema)
+    : Exception(
+        $"Session event '{eventId:D}' has no recorded payload schema; " +
+        $"no upcast path to '{targetSchema.Name}' version {targetSchema.Version} can be resolved.")
+{
+    public Guid EventId { get; } = eventId;
+
+    public SessionPayloadSchema TargetSchema { get; } = targetSchema;
+}
+
 /// <summary>Raised when no complete application payload upcast path exists.</summary>
 public sealed class UnsupportedSessionPayloadSchemaException(
     SessionPayloadSchema sourceSchema,

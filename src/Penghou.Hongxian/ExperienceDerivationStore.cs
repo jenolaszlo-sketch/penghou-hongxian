@@ -47,6 +47,15 @@ public interface IExperienceDerivationReader
     Task<ExperienceRecallResult<ExperienceHybridMatch>> SearchHybridAsync(
         ExperienceHybridSearchRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists the derivation identities attached to one entity. The listing is
+    /// how consumers discover which summaries and embeddings to fetch after
+    /// recall returns their entity.
+    /// </summary>
+    Task<ExperienceRecallResult<ExperienceEntityDerivations>> ListDerivationsAsync(
+        ExperienceEntityLookupRequest request,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>Lookup of one derivation record by its stable identity.</summary>
@@ -243,6 +252,49 @@ public sealed record ExperienceHybridMatch
 
     /// <summary>The embedding derivation behind the vector rank, when ranked on that side.</summary>
     public ExperienceDerivationId? VectorDerivationId { get; }
+}
+
+/// <summary>Derivation identities attached to one entity, in stable order.</summary>
+public sealed record ExperienceEntityDerivations
+{
+    public ExperienceEntityDerivations(
+        ExperienceProjectionId projectionId,
+        ExperienceEntityId entityId,
+        IReadOnlyList<ExperienceDerivationId> summaryIds,
+        IReadOnlyList<ExperienceDerivationId> embeddingIds)
+    {
+        if (projectionId.Value == Guid.Empty)
+            throw new ArgumentException("A non-empty projection ID is required.", nameof(projectionId));
+        ProjectionId = projectionId;
+        if (entityId.Value == Guid.Empty)
+            throw new ArgumentException("A non-empty entity ID is required.", nameof(entityId));
+        EntityId = entityId;
+        SummaryIds = SnapshotIds(summaryIds, nameof(summaryIds));
+        EmbeddingIds = SnapshotIds(embeddingIds, nameof(embeddingIds));
+    }
+
+    public ExperienceProjectionId ProjectionId { get; }
+
+    public ExperienceEntityId EntityId { get; }
+
+    public IReadOnlyList<ExperienceDerivationId> SummaryIds { get; }
+
+    public IReadOnlyList<ExperienceDerivationId> EmbeddingIds { get; }
+
+    private static IReadOnlyList<ExperienceDerivationId> SnapshotIds(
+        IReadOnlyList<ExperienceDerivationId> ids,
+        string parameterName)
+    {
+        ArgumentNullException.ThrowIfNull(ids, parameterName);
+        if (ids.Any(static item => item.Value == Guid.Empty))
+            throw new ArgumentException("Derivation identities cannot be empty.", parameterName);
+        var ordered = ids.Select(static item => item.ToString())
+            .OrderBy(static value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (ordered.Distinct().Count() != ordered.Length)
+            throw new ArgumentException("Derivation identities cannot repeat.", parameterName);
+        return Array.AsReadOnly(ordered.Select(ExperienceDerivationId.Parse).ToArray());
+    }
 }
 
 /// <summary>Portable cosine similarity. Zero-norm inputs score 0.0 by definition.</summary>

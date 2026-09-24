@@ -268,6 +268,19 @@ public sealed class SimingSessionEventStore :
                         new CanonicalJsonPayloadSerializer(SerializerOptions)),
                     LazyThreadSafetyMode.ExecutionAndPublication));
                 ledgers.Add(sessionId, entry);
+                try
+                {
+                    _ = entry.Ledger.Value;
+                }
+                catch
+                {
+                    // A faulted lazy caches its exception permanently, and the
+                    // reference count below must only cover successful leases.
+                    // Drop the entry so the next acquire retries the open
+                    // instead of poisoning this session until eviction.
+                    ledgers.Remove(sessionId);
+                    throw;
+                }
             }
             entry.ReferenceCount++;
             entry.LastUsed = timeProvider.GetUtcNow();

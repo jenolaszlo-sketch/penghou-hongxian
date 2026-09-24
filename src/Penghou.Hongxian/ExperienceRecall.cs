@@ -333,7 +333,10 @@ public sealed record ExperienceBoundedRecallResult
 
     /// <summary>Source evidence identities across all recalled items, in item order.</summary>
     public IReadOnlyList<ExperienceEvidenceReferenceId> SelectedEvidence =>
-        Items.SelectMany(item => item.Record.Evidence).Select(reference => reference.Id).ToArray();
+        Items.SelectMany(item => item.Record.Evidence)
+            .Select(reference => reference.Id)
+            .Distinct()
+            .ToArray();
 }
 
 /// <summary>
@@ -707,7 +710,7 @@ public static class ExperienceBoundedRecall
                 request.ProjectionId,
                 request.LexicalQuery,
                 request.MaximumItems,
-                request.MaximumBytes,
+                ExperienceRecallLimits.RecallByteLimit,
                 request.AsOf),
             cancellationToken);
 

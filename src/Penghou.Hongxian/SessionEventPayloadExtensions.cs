@@ -133,10 +133,9 @@ public static class SessionEventPayloadExtensions
         ArgumentNullException.ThrowIfNull(targetSchema);
         ArgumentNullException.ThrowIfNull(upcasters);
         var source = sessionEvent.PayloadSchema
-            ?? throw new UnsupportedSessionPayloadSchemaException(
-                new SessionPayloadSchema(targetSchema.Name, 1),
-                targetSchema.Version,
-                1);
+            ?? throw new MissingSessionPayloadSchemaException(
+                sessionEvent.EventId,
+                targetSchema);
         if (!string.Equals(source.Name, targetSchema.Name, StringComparison.Ordinal))
             throw new UnsupportedSessionPayloadSchemaException(
                 source,

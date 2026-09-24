@@ -15,6 +15,7 @@ await sessions.AppendAsync(new SessionEventRequest(
     SessionEventTypes.SessionCreated,
     DateTimeOffset.UtcNow,
     IdempotencyKey: $"session:{sessionId}:created"));
+var index = 0;
 foreach (var (eventType, text) in new[]
          {
              (SessionEventTypes.UserMessage, "durable sessions survive process restarts"),
@@ -28,7 +29,7 @@ foreach (var (eventType, text) in new[]
             participant,
             eventType,
             DateTimeOffset.UtcNow,
-            IdempotencyKey: $"session:{sessionId}:{text.Length}:{eventType}"),
+            IdempotencyKey: $"session:{sessionId}:message:{index++}"),
         new { text });
 }
 

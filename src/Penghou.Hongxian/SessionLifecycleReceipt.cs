@@ -32,6 +32,25 @@ public interface ISessionEvidenceOutbox
         int maximumCount = 100,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Lists pending receipts for one session. Audits use this overload so a
+    /// busy outbox cannot truncate another session's receipts out of view.
+    /// The default filters the global page; providers with session-scoped
+    /// storage should override it with an indexed query.
+    /// </summary>
+    async Task<IReadOnlyList<SessionEvidenceOutboxRecord>> ListPendingAsync(
+        SessionId sessionId,
+        int maximumCount = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var pending = await ListPendingAsync(maximumCount, cancellationToken)
+            .ConfigureAwait(false);
+        return pending
+            .Where(item => item.SessionId == sessionId)
+            .Take(maximumCount)
+            .ToArray();
+    }
+
     Task MarkDeliveredAsync(
         Guid receiptId,
         DateTimeOffset deliveredAt,

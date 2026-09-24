@@ -75,6 +75,7 @@ public sealed class ExperienceBoundedRecallTests : IDisposable
             provider, RecallRequest(projection, maximumBytes: 1), ct);
         byteCapped.Items.Should().BeEmpty();
         byteCapped.IsTruncated.Should().BeTrue();
+        byteCapped.Diagnostic.Should().Contain("portable");
     }
 
     [Fact]

@@ -108,6 +108,69 @@ public sealed class ExperienceDerivationStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ListDerivations_ReturnsAttachedIdentities()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var provider = new InMemoryExperienceProvider();
+        var projection = Descriptor("memory");
+        var first = Entity(projection, "task:1", "first");
+        var second = Entity(projection, "task:2", "second");
+        await provider.UpsertEntityAsync(first, ct);
+        await provider.UpsertEntityAsync(second, ct);
+        var summary = await ExperienceDerivation.DeriveSummaryAsync(
+            new ExperienceSummaryRequest(first, 8_192, "policy-1", "v1"),
+            new FixedSummaryGenerator("first summary"),
+            SessionPayloadSensitivity.Internal,
+            createdAt: FixedTime,
+            cancellationToken: ct);
+        var embedding = await ExperienceDerivation.DeriveEmbeddingAsync(
+            new ExperienceEmbeddingRequest(first, "policy-1", "v1"),
+            new FixedEmbeddingGenerator([0.5f, 0.5f]),
+            SessionPayloadSensitivity.Internal,
+            createdAt: FixedTime,
+            cancellationToken: ct);
+        var other = await ExperienceDerivation.DeriveEmbeddingAsync(
+            new ExperienceEmbeddingRequest(second, "policy-1", "v1"),
+            new FixedEmbeddingGenerator([0.5f, 0.5f]),
+            SessionPayloadSensitivity.Internal,
+            createdAt: FixedTime,
+            cancellationToken: ct);
+        (await provider.UpsertEmbeddingAsync(other, ct)).Outcome
+            .Should().Be(ExperienceModelWriteOutcome.Applied);
+        (await provider.UpsertSummaryAsync(summary, ct)).Outcome
+            .Should().Be(ExperienceModelWriteOutcome.Applied);
+        (await provider.UpsertEmbeddingAsync(embedding, ct)).Outcome
+            .Should().Be(ExperienceModelWriteOutcome.Applied);
+
+        var listing = await provider.ListDerivationsAsync(
+            new ExperienceEntityLookupRequest(projection.ProjectionId, first.Id), ct);
+
+        listing.Completion.Should().Be(ExperienceRecallCompletion.Completed);
+        var record = listing.Items.Should().ContainSingle().Which;
+        record.ProjectionId.Should().Be(projection.ProjectionId);
+        record.EntityId.Should().Be(first.Id);
+        record.SummaryIds.Should().Equal(summary.Id);
+        record.EmbeddingIds.Should().Equal(embedding.Id);
+
+        var unknown = await provider.ListDerivationsAsync(
+            new ExperienceEntityLookupRequest(projection.ProjectionId, ExperienceEntityId.New()), ct);
+        var empty = unknown.Items.Should().ContainSingle().Which;
+        empty.SummaryIds.Should().BeEmpty();
+        empty.EmbeddingIds.Should().BeEmpty();
+
+        var asOf = await provider.ListDerivationsAsync(
+            new ExperienceEntityLookupRequest(
+                projection.ProjectionId,
+                first.Id,
+                asOf: new ExperienceProjectionPosition([
+                    new SessionEvidencePosition(SessionId.New(), new SessionLedgerHead("ledger", 1, "hash"))
+                ])),
+            ct);
+        asOf.Completion.Should().Be(ExperienceRecallCompletion.Unsupported);
+        asOf.UnsupportedCapabilities.Should().Be(ExperienceProviderCapability.AsOf);
+    }
+
+    [Fact]
     public async Task VectorSearch_RanksByCosineSimilarity()
     {
         var ct = TestContext.Current.CancellationToken;

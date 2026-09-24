@@ -274,6 +274,40 @@ public sealed class SqliteSessionProjectionStoreTests : IDisposable
         status.LastFailureDetail.Should().HaveLength(2048);
     }
 
+    [Fact]
+    public async Task Rebuild_EmptyHistoryClearsProjectionAndDeliveryCursor()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var projections = new SqliteSessionProjectionStore(
+            Path.Combine(rootPath, "rebuild.db"), pooling: false);
+        var sessionId = SessionId.New();
+        var committed = new SessionEvent
+        {
+            SchemaVersion = 3,
+            Sequence = 5,
+            EventId = Guid.CreateVersion7(),
+            SessionId = sessionId,
+            Participant = Participant("hongxian"),
+            EventType = SessionEventTypes.ExecutionStarted,
+            OccurredAt = DateTimeOffset.UtcNow,
+            CommittedAt = DateTimeOffset.UtcNow,
+            PayloadSensitivity = SessionPayloadSensitivity.Internal,
+            PayloadRetention = SessionPayloadRetention.Retain,
+            Hash = "orphaned-head"
+        };
+        await projections.RecordCommittedAsync(committed, ct);
+        (await projections.GetDeliveryStatusAsync(sessionId, ct)).Should().NotBeNull();
+
+        var rebuilt = await projections.RebuildAsync(
+            new VerifiedSessionHistory(
+                sessionId, new SessionLedgerHead("ledger", 0, "genesis"), []),
+            ct);
+
+        rebuilt.Should().BeNull();
+        (await projections.GetAsync(sessionId, ct)).Should().BeNull();
+        (await projections.GetDeliveryStatusAsync(sessionId, ct)).Should().BeNull();
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(rootPath)) Directory.Delete(rootPath, recursive: true);

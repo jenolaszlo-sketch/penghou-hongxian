@@ -356,6 +356,7 @@ Penghou.Hongxian.ISessionEventStore.ReadVerifiedHistoryAsync(Penghou.Hongxian.Se
 Penghou.Hongxian.ISessionEventStore.VerifyChainAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent?>!
 Penghou.Hongxian.ISessionEvidenceOutbox
 Penghou.Hongxian.ISessionEvidenceOutbox.ListPendingAsync(int maximumCount = 100, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvidenceOutboxRecord!>!>!
+Penghou.Hongxian.ISessionEvidenceOutbox.ListPendingAsync(Penghou.Hongxian.SessionId sessionId, int maximumCount = 100, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.SessionEvidenceOutboxRecord!>!>!
 Penghou.Hongxian.ISessionEvidenceOutbox.MarkDeliveredAsync(System.Guid receiptId, System.DateTimeOffset deliveredAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Penghou.Hongxian.ISessionLedgerPresenceStore
 Penghou.Hongxian.ISessionLedgerPresenceStore.ExistsAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
@@ -1001,6 +1002,10 @@ Penghou.Hongxian.UnsupportedSessionPayloadSchemaException.MissingSourceVersion.g
 Penghou.Hongxian.UnsupportedSessionPayloadSchemaException.RequestedVersion.get -> int
 Penghou.Hongxian.UnsupportedSessionPayloadSchemaException.SourceSchema.get -> Penghou.Hongxian.SessionPayloadSchema!
 Penghou.Hongxian.UnsupportedSessionPayloadSchemaException.UnsupportedSessionPayloadSchemaException(Penghou.Hongxian.SessionPayloadSchema! sourceSchema, int requestedVersion, int missingSourceVersion) -> void
+Penghou.Hongxian.MissingSessionPayloadSchemaException
+Penghou.Hongxian.MissingSessionPayloadSchemaException.MissingSessionPayloadSchemaException(System.Guid eventId, Penghou.Hongxian.SessionPayloadSchema! targetSchema) -> void
+Penghou.Hongxian.MissingSessionPayloadSchemaException.EventId.get -> System.Guid
+Penghou.Hongxian.MissingSessionPayloadSchemaException.TargetSchema.get -> Penghou.Hongxian.SessionPayloadSchema!
 Penghou.Hongxian.UpcastedSessionPayload
 Penghou.Hongxian.UpcastedSessionPayload.Payload.get -> System.Text.Json.JsonElement
 Penghou.Hongxian.UpcastedSessionPayload.Payload.init -> void
@@ -1412,6 +1417,13 @@ Penghou.Hongxian.IExperienceDerivationReader.GetSummaryAsync(Penghou.Hongxian.Ex
 Penghou.Hongxian.IExperienceDerivationReader.GetEmbeddingAsync(Penghou.Hongxian.ExperienceDerivationLookupRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEmbedding!>!>!
 Penghou.Hongxian.IExperienceDerivationReader.SearchVectorAsync(Penghou.Hongxian.ExperienceVectorSearchRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceVectorMatch!>!>!
 Penghou.Hongxian.IExperienceDerivationReader.SearchHybridAsync(Penghou.Hongxian.ExperienceHybridSearchRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceHybridMatch!>!>!
+Penghou.Hongxian.IExperienceDerivationReader.ListDerivationsAsync(Penghou.Hongxian.ExperienceEntityLookupRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEntityDerivations!>!>!
+Penghou.Hongxian.ExperienceEntityDerivations
+Penghou.Hongxian.ExperienceEntityDerivations.ExperienceEntityDerivations(Penghou.Hongxian.ExperienceProjectionId projectionId, Penghou.Hongxian.ExperienceEntityId entityId, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceDerivationId>! summaryIds, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceDerivationId>! embeddingIds) -> void
+Penghou.Hongxian.ExperienceEntityDerivations.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
+Penghou.Hongxian.ExperienceEntityDerivations.EntityId.get -> Penghou.Hongxian.ExperienceEntityId
+Penghou.Hongxian.ExperienceEntityDerivations.SummaryIds.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceDerivationId>!
+Penghou.Hongxian.ExperienceEntityDerivations.EmbeddingIds.get -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceDerivationId>!
 Penghou.Hongxian.ExperienceDerivationLookupRequest
 Penghou.Hongxian.ExperienceDerivationLookupRequest.ExperienceDerivationLookupRequest(Penghou.Hongxian.ExperienceProjectionId projectionId, Penghou.Hongxian.ExperienceDerivationId derivationId, Penghou.Hongxian.ExperienceProjectionPosition? asOf = null) -> void
 Penghou.Hongxian.ExperienceDerivationLookupRequest.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
@@ -1455,3 +1467,4 @@ Penghou.Hongxian.InMemoryExperienceProvider.GetSummaryAsync(Penghou.Hongxian.Exp
 Penghou.Hongxian.InMemoryExperienceProvider.GetEmbeddingAsync(Penghou.Hongxian.ExperienceDerivationLookupRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEmbedding!>!>!
 Penghou.Hongxian.InMemoryExperienceProvider.SearchVectorAsync(Penghou.Hongxian.ExperienceVectorSearchRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceVectorMatch!>!>!
 Penghou.Hongxian.InMemoryExperienceProvider.SearchHybridAsync(Penghou.Hongxian.ExperienceHybridSearchRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceHybridMatch!>!>!
+Penghou.Hongxian.InMemoryExperienceProvider.ListDerivationsAsync(Penghou.Hongxian.ExperienceEntityLookupRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceRecallResult<Penghou.Hongxian.ExperienceEntityDerivations!>!>!

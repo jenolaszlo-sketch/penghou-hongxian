@@ -572,6 +572,25 @@ public sealed class SimingSessionEventStoreTests : IDisposable
         await conflict.Should().ThrowAsync<SessionEventIdempotencyConflictException>();
     }
 
+    [Fact]
+    public async Task LedgerOpenFailure_DoesNotPoisonLaterAcquires()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new SimingSessionEventStore(rootPath);
+        var sessionId = SessionId.New();
+        var request = new SessionEventRequest(
+            sessionId, Participant("user"), SessionEventTypes.UserMessage, DateTimeOffset.UtcNow);
+
+        Directory.CreateDirectory(store.GetLedgerPath(sessionId));
+        var poisoned = () => store.AppendAsync(request, ct);
+        await poisoned.Should().ThrowAsync<Exception>();
+        Directory.Delete(store.GetLedgerPath(sessionId));
+
+        var appended = await store.AppendAsync(request, ct);
+        appended.Sequence.Should().Be(1);
+        (await store.VerifyChainAsync(sessionId, ct)).Should().NotBeNull();
+    }
+
     public void Dispose()
     {
         SqliteConnection.ClearAllPools();

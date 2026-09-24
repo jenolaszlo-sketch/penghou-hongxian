@@ -221,6 +221,7 @@ public sealed class SqliteSessionCatalog :
     {
         ValidateSessionId(sessionId, nameof(sessionId));
         SessionContractValidation.ValidateRevision(expectedRevision, nameof(expectedRevision));
+        ArgumentNullException.ThrowIfNull(replacementRevision);
         SessionContractValidation.ValidateRevision(replacementRevision, nameof(replacementRevision));
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction(deferred: false);
@@ -460,22 +461,52 @@ public sealed class SqliteSessionCatalog :
         var result = new List<SessionEvidenceOutboxRecord>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            result.Add(new SessionEvidenceOutboxRecord
-            {
-                ReceiptId = Guid.Parse(reader.GetString(0)),
-                SessionId = SessionId.Parse(reader.GetString(1)),
-                EventType = reader.GetString(2),
-                OccurredAt = DateTimeOffset.Parse(reader.GetString(3), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-                IdempotencyKey = reader.GetString(4),
-                CorrelationId = reader.IsDBNull(5) ? null : Guid.Parse(reader.GetString(5)),
-                CrossSystemRefs = JsonSerializer.Deserialize<Dictionary<string, string>>(reader.GetString(6))
-                    ?? new Dictionary<string, string>(StringComparer.Ordinal),
-                DeliveredAt = reader.IsDBNull(7)
-                    ? null
-                    : DateTimeOffset.Parse(reader.GetString(7), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
-            });
+            result.Add(MapOutboxRecord(reader));
         return result;
     }
+
+    public async Task<IReadOnlyList<SessionEvidenceOutboxRecord>> ListPendingAsync(
+        SessionId sessionId,
+        int maximumCount = 100,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateSessionId(sessionId, nameof(sessionId));
+        if (maximumCount is < 1 or > 1000)
+            throw new ArgumentOutOfRangeException(nameof(maximumCount));
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT receipt_id, session_id, event_type, occurred_at, idempotency_key,
+                   correlation_id, cross_system_refs_json, delivered_at
+            FROM session_lifecycle_receipts
+            WHERE delivered_at IS NULL AND session_id = $sessionId
+            ORDER BY occurred_at, receipt_id
+            LIMIT $limit;
+            """;
+        command.Parameters.AddWithValue("$sessionId", sessionId.ToString());
+        command.Parameters.AddWithValue("$limit", maximumCount);
+        var result = new List<SessionEvidenceOutboxRecord>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            result.Add(MapOutboxRecord(reader));
+        return result;
+    }
+
+    private static SessionEvidenceOutboxRecord MapOutboxRecord(SqliteDataReader reader) =>
+        new()
+        {
+            ReceiptId = Guid.Parse(reader.GetString(0)),
+            SessionId = SessionId.Parse(reader.GetString(1)),
+            EventType = reader.GetString(2),
+            OccurredAt = DateTimeOffset.Parse(reader.GetString(3), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            IdempotencyKey = reader.GetString(4),
+            CorrelationId = reader.IsDBNull(5) ? null : Guid.Parse(reader.GetString(5)),
+            CrossSystemRefs = JsonSerializer.Deserialize<Dictionary<string, string>>(reader.GetString(6))
+                ?? new Dictionary<string, string>(StringComparer.Ordinal),
+            DeliveredAt = reader.IsDBNull(7)
+                ? null
+                : DateTimeOffset.Parse(reader.GetString(7), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
+        };
 
     public async Task MarkDeliveredAsync(
         Guid receiptId,

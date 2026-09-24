@@ -214,6 +214,35 @@ public sealed class SqliteCrossStoreOperationStoreTests : IDisposable
             ResultHash = $"hash:{participant}"
         };
 
+    [Fact]
+    public async Task ListPendingAsync_ScopesToSession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var store = new SqliteCrossStoreOperationStore(
+            Path.Combine(rootPath, "scoped.db"), pooling: false);
+        var firstSession = SessionId.New();
+        var secondSession = SessionId.New();
+        await store.StartAsync(new StartCrossStoreOperationRequest(
+            firstSession,
+            new ExternalOperationReference("eng", Guid.CreateVersion7()),
+            "batch",
+            "key-first",
+            DateTimeOffset.UtcNow), ct);
+        await store.StartAsync(new StartCrossStoreOperationRequest(
+            secondSession,
+            new ExternalOperationReference("eng", Guid.CreateVersion7()),
+            "batch",
+            "key-second",
+            DateTimeOffset.UtcNow), ct);
+
+        var scoped = await store.ListPendingAsync(firstSession, cancellationToken: ct);
+        scoped.Should().NotBeEmpty();
+        scoped.Should().OnlyContain(item => item.SessionId == firstSession);
+        var other = await store.ListPendingAsync(secondSession, cancellationToken: ct);
+        other.Should().NotBeEmpty();
+        other.Should().OnlyContain(item => item.SessionId == secondSession);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(rootPath))
@@ -229,6 +258,12 @@ public sealed class SqliteCrossStoreOperationStoreTests : IDisposable
             int maximumCount = 100,
             CancellationToken cancellationToken = default) =>
             inner.ListPendingAsync(maximumCount, cancellationToken);
+
+        public Task<IReadOnlyList<SessionEvidenceOutboxRecord>> ListPendingAsync(
+            SessionId sessionId,
+            int maximumCount = 100,
+            CancellationToken cancellationToken = default) =>
+            inner.ListPendingAsync(sessionId, maximumCount, cancellationToken);
 
         public Task MarkDeliveredAsync(
             Guid receiptId,

@@ -31,6 +31,36 @@ public sealed class SessionPayloadUpcasterTests
     }
 
     [Fact]
+    public void ReadPayload_WithoutSchema_ReportsMissingHonestly()
+    {
+        using var document = JsonDocument.Parse("{\"message\":\"hello\"}");
+        var sessionEvent = new SessionEvent
+        {
+            SchemaVersion = 3,
+            Sequence = 1,
+            EventId = Guid.CreateVersion7(),
+            SessionId = SessionId.New(),
+            Participant = Participant("user"),
+            EventType = SessionEventTypes.UserMessage,
+            OccurredAt = DateTimeOffset.UtcNow,
+            CommittedAt = DateTimeOffset.UtcNow,
+            PayloadSensitivity = SessionPayloadSensitivity.Internal,
+            PayloadRetention = SessionPayloadRetention.Retain,
+            Payload = document.RootElement.Clone(),
+            Hash = "hash"
+        };
+
+        var read = () => sessionEvent.ReadPayload<JsonElement>(
+            new SessionPayloadSchema("chat.message", 2),
+            new SessionPayloadUpcasterRegistry());
+
+        var failure = read.Should().Throw<MissingSessionPayloadSchemaException>().Which;
+        failure.EventId.Should().Be(sessionEvent.EventId);
+        failure.TargetSchema.Should().Be(new SessionPayloadSchema("chat.message", 2));
+        failure.Message.Should().Contain("no recorded payload schema");
+    }
+
+    [Fact]
     public void Upcast_ReportsTheMissingStepAsTypedData()
     {
         using var document = JsonDocument.Parse("{}");

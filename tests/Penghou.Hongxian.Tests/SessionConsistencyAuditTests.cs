@@ -115,9 +115,81 @@ public sealed class SessionConsistencyAuditTests : IDisposable
         create.Should().Throw<ArgumentException>().WithMessage("*unique*");
     }
 
+    [Fact]
+    public async Task Audit_CountsPerSessionOutboxBeyondGlobalPage()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var stores = new HongxianSqliteStoreSet(new HongxianSqliteOptions
+        {
+            RootPath = rootPath,
+            Pooling = false
+        });
+        var session = await stores.SessionStore.CreateAsync(
+            "example",
+            "resource/1",
+            cancellationToken: ct);
+        var baseTime = DateTimeOffset.UtcNow;
+        var others = Enumerable.Range(0, SessionConsistencyAuditService.MaximumOutboxScan + 1)
+            .Select(index => OutboxRecord(SessionId.New(), baseTime.AddTicks(index)))
+            .ToArray();
+        var own = new[]
+        {
+            OutboxRecord(session.Id, baseTime.AddHours(1)),
+            OutboxRecord(session.Id, baseTime.AddHours(1).AddTicks(1))
+        };
+        var fake = new FixedOutbox([.. others, .. own]);
+        var audit = new SessionConsistencyAuditService(
+            stores.Events,
+            stores.ProjectionDelivery,
+            stores.Catalog,
+            stores.OperationStore,
+            [new SessionEvidenceOutboxAuditSource("fake", fake)]);
+
+        var result = await audit.InspectAsync(session.Id, ct);
+
+        var outbox = result.EvidenceOutboxes.Should().ContainSingle().Which;
+        outbox.PendingCount.Should().Be(2);
+        outbox.ScanComplete.Should().BeTrue();
+    }
+
     public void Dispose()
     {
         SqliteConnection.ClearAllPools();
         if (Directory.Exists(rootPath)) Directory.Delete(rootPath, recursive: true);
+    }
+
+    private static SessionEvidenceOutboxRecord OutboxRecord(
+        SessionId sessionId,
+        DateTimeOffset occurredAt) =>
+        new()
+        {
+            ReceiptId = Guid.CreateVersion7(),
+            SessionId = sessionId,
+            EventType = SessionEventTypes.SessionCreated,
+            OccurredAt = occurredAt,
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        };
+
+    private sealed class FixedOutbox(IReadOnlyList<SessionEvidenceOutboxRecord> records)
+        : ISessionEvidenceOutbox
+    {
+        public Task<IReadOnlyList<SessionEvidenceOutboxRecord>> ListPendingAsync(
+            int maximumCount = 100,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SessionEvidenceOutboxRecord>>(
+                records.Take(maximumCount).ToArray());
+
+        public Task<IReadOnlyList<SessionEvidenceOutboxRecord>> ListPendingAsync(
+            SessionId sessionId,
+            int maximumCount = 100,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SessionEvidenceOutboxRecord>>(
+                records.Where(item => item.SessionId == sessionId).Take(maximumCount).ToArray());
+
+        public Task MarkDeliveredAsync(
+            Guid receiptId,
+            DateTimeOffset deliveredAt,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 }

@@ -164,7 +164,22 @@ public sealed class SqliteSessionProjectionStore :
         }
         SessionCurrentState? state = null;
         foreach (var sessionEvent in ordered) state = SessionTimelineProjection.Apply(state, sessionEvent);
-        if (state is null) { transaction.Commit(); return null; }
+        if (state is null)
+        {
+            // An empty verified history leaves no projection behind. The
+            // delivery cursor must go with it; otherwise a stale committed
+            // head reports phantom lag against an empty ledger forever.
+            await using (var deleteCursor = connection.CreateCommand())
+            {
+                deleteCursor.Transaction = transaction;
+                deleteCursor.CommandText = "DELETE FROM session_projection_delivery WHERE session_id = $sessionId;";
+                deleteCursor.Parameters.AddWithValue("$sessionId", history.SessionId.ToString());
+                await deleteCursor.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+            return null;
+        }
         var snapshot = new SessionProjectionSnapshot(
             history.SessionId, ordered[^1].Sequence, ordered[^1].Hash, state);
         await WriteAsync(connection, transaction, snapshot, cancellationToken).ConfigureAwait(false);

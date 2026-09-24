@@ -138,6 +138,9 @@ public sealed class LatticeDbExperienceProviderTests
         (await provider.GetEntityAsync(
             new ExperienceEntityLookupRequest(projection.ProjectionId, first.Id), ct))
             .Items.Should().BeEmpty();
+        (await provider.SearchLexicalAsync(
+            new ExperienceLexicalSearchRequest(projection.ProjectionId, "durable"), ct))
+            .Items.Should().BeEmpty("deleted projection state must not leak through lexical search");
         await SeedAsync();
 
         var afterSearch = await provider.SearchLexicalAsync(
