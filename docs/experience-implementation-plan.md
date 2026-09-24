@@ -463,6 +463,11 @@ Started (2026-09-24):
 - Added the [ecosystem integration guide](ecosystem-integration.md) with
   host recipes for Fuwen planning evidence, Baize invocation outcomes, and
   Guyabano package-backed mapping.
+- Proved the Fuwen and Baize host recipes executable with integration tests:
+  plan-proposal evidence with external references, bounded recall with
+  receipts, conditional activation with stale-head rejection and a healthy
+  consistency audit; bounded invocation outcomes with no stored transcripts
+  and reproducible advisory reads. The suite passes 167 tests.
 
 ### Fuwen
 
@@ -500,9 +505,10 @@ boundaries.
 
 ### Deliverables
 
-- Implement a second real provider only when a consumer needs it. Neo4j is a
-  likely graph-oriented candidate; a remote provider is a useful deployment
-  test but carries a larger security and consistency surface.
+- Implement a second real provider only when a consumer needs it. Parked
+  (2026-09-24): Neo4j comes much later and is not the assumed second
+  provider; a remote provider is a useful deployment test but carries a
+  larger security and consistency surface.
 - Validate authentication/configuration ownership, tenant isolation, timeouts,
   cancellation, idempotent retry, freshness, disclosure classification, and
   degraded behavior for remote providers.

@@ -30,8 +30,9 @@ Last reviewed: **2026-09-23**
   operation receipts, and forward reconciliation are extracted.
 - Provider-qualified external-operation identity prevents collisions between
   execution systems without introducing workflow-engine types.
-- The current experience checkpoint passes 160 tests, including derivation
-  storage with portable cosine vector and RRF hybrid recall alongside
+- The current experience checkpoint passes 167 tests, including executable
+  Fuwen/Baize host integration proofs alongside derivation
+  storage with portable cosine vector and RRF hybrid recall,
   derived summary/embedding contracts, bounded-recall contracts, and a
   shared internal experience-provider conformance suite run against
   in-memory, LatticeDB, and fake-remote shapes; a standalone example and an
@@ -523,7 +524,9 @@ Provider evolution gates:
 - [ ] Validate a second provider shape before declaring the portable interface
   stable. A thin in-memory reference provider is sufficient for conformance;
   Neo4j or a remote provider should be implemented only when a real consumer
-  needs its deployment or traversal characteristics.
+  needs its deployment or traversal characteristics. Parked (2026-09-24):
+  Neo4j comes much later; LatticeDB plus the in-memory and fake-remote
+  shapes prove the portable contracts until a consumer says otherwise.
 - [ ] For remote providers, define authentication/configuration ownership,
   timeout and cancellation, retry/idempotency, consistency/freshness reporting,
   disclosure classification, tenant isolation, and safe degraded behavior.
