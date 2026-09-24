@@ -80,6 +80,7 @@ public sealed class ExperienceDerivationStoreTests : IDisposable
             summary.SourceEvidence,
             summary.Sensitivity,
             summary.DisclosureScope,
+            summary.RedactionPolicy,
             summary.Supersedes);
         (await provider.UpsertSummaryAsync(summary, ct)).Outcome
             .Should().Be(ExperienceModelWriteOutcome.Applied);
@@ -234,6 +235,9 @@ public sealed class ExperienceDerivationStoreTests : IDisposable
         await provider.UpsertEntityAsync(second, ct);
         await provider.UpsertEntityAsync(third, ct);
         await EmbedAsync(provider, second, [1.0f], ct);
+        var secondEmbedding = (await provider.SearchVectorAsync(
+                new ExperienceVectorSearchRequest(projection.ProjectionId, [1.0f]), ct))
+            .Items.Should().ContainSingle().Which;
 
         var result = await provider.SearchHybridAsync(
             new ExperienceHybridSearchRequest(projection.ProjectionId, "shared", [1.0f]), ct);
@@ -249,11 +253,13 @@ public sealed class ExperienceDerivationStoreTests : IDisposable
         var head = result.Items[0];
         head.LexicalRank.Should().Be(lexicalRank);
         head.VectorRank.Should().Be(1);
+        head.VectorDerivationId.Should().Be(secondEmbedding.DerivationId);
         head.Score.Should().BeApproximately(
             1.0 / (ExperienceHybridRankFusion.RrfK + lexicalRank) +
             1.0 / (ExperienceHybridRankFusion.RrfK + 1),
             1e-9);
         result.Items.Skip(1).Should().OnlyContain(match => match.VectorRank == null);
+        result.Items.Skip(1).Should().OnlyContain(match => match.VectorDerivationId == null);
     }
 
     [Fact]
@@ -264,13 +270,17 @@ public sealed class ExperienceDerivationStoreTests : IDisposable
         var (earlier, later) = first.ToString().CompareTo(second.ToString()) < 0
             ? (first, second)
             : (second, first);
+        var laterDerivation = ExperienceDerivationId.New();
 
-        var fused = ExperienceHybridRankFusion.Fuse([earlier], [later]);
+        var fused = ExperienceHybridRankFusion.Fuse(
+            [earlier], [new ExperienceVectorMatch(later, 0.5, laterDerivation)]);
 
         fused.Select(match => match.EntityId).Should().Equal([earlier, later]);
         fused[0].Score.Should().Be(fused[1].Score);
         fused.Should().OnlyContain(match =>
             match.LexicalRank != null || match.VectorRank != null);
+        fused[1].VectorDerivationId.Should().Be(laterDerivation);
+        fused[0].VectorDerivationId.Should().BeNull();
         ExperienceHybridRankFusion.Fuse([], []).Should().BeEmpty();
     }
 

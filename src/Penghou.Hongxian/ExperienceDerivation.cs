@@ -182,7 +182,9 @@ public interface IExperienceEmbeddingGenerator
 /// A rebuildable summary derived from one experience entity. The summary is
 /// disposable: deleting it and re-deriving from the same evidence and
 /// generator reproduces the same record. Summaries never become evidence and
-/// never weaken the source disclosure classification.
+/// never weaken the source disclosure classification. Retention is a
+/// provider-lifecycle concern: derived stores are disposable by contract and
+/// hosts re-derive after deletion instead of retaining derived bytes.
 /// </summary>
 public sealed record ExperienceSummary
 {
@@ -197,6 +199,7 @@ public sealed record ExperienceSummary
         IReadOnlyList<ExperienceEvidenceReference> sourceEvidence,
         SessionPayloadSensitivity sensitivity,
         string? disclosureScope = null,
+        string? redactionPolicy = null,
         ExperienceDerivationId? supersedes = null)
     {
         if (id.Value == Guid.Empty)
@@ -234,6 +237,15 @@ public sealed record ExperienceSummary
         }
 
         DisclosureScope = disclosureScope;
+        if (redactionPolicy is not null)
+        {
+            if (string.IsNullOrWhiteSpace(redactionPolicy) ||
+                redactionPolicy.Length > ExperienceDerivationLimits.DisclosureScopeCharacters ||
+                redactionPolicy.Any(char.IsControl))
+                throw new ArgumentException("The redaction policy is not bounded.", nameof(redactionPolicy));
+        }
+
+        RedactionPolicy = redactionPolicy;
         if (supersedes?.Value == Guid.Empty)
             throw new ArgumentException("A superseded derivation ID cannot be empty.", nameof(supersedes));
         Supersedes = supersedes;
@@ -262,13 +274,16 @@ public sealed record ExperienceSummary
 
     public string? DisclosureScope { get; }
 
+    public string? RedactionPolicy { get; }
+
     public ExperienceDerivationId? Supersedes { get; }
 }
 
 /// <summary>
 /// A rebuildable embedding derived from one experience entity. Vectors must be
 /// finite; similarity over them is a retrieval signal, never factual
-/// confidence. Like summaries, embeddings are disposable derived data.
+/// confidence. Like summaries, embeddings are disposable derived data:
+/// retention is a provider-lifecycle concern, not a per-record promise.
 /// </summary>
 public sealed record ExperienceEmbedding
 {
@@ -283,6 +298,7 @@ public sealed record ExperienceEmbedding
         IReadOnlyList<ExperienceEvidenceReference> sourceEvidence,
         SessionPayloadSensitivity sensitivity,
         string? disclosureScope = null,
+        string? redactionPolicy = null,
         ExperienceDerivationId? supersedes = null)
     {
         if (id.Value == Guid.Empty)
@@ -320,6 +336,15 @@ public sealed record ExperienceEmbedding
         }
 
         DisclosureScope = disclosureScope;
+        if (redactionPolicy is not null)
+        {
+            if (string.IsNullOrWhiteSpace(redactionPolicy) ||
+                redactionPolicy.Length > ExperienceDerivationLimits.DisclosureScopeCharacters ||
+                redactionPolicy.Any(char.IsControl))
+                throw new ArgumentException("The redaction policy is not bounded.", nameof(redactionPolicy));
+        }
+
+        RedactionPolicy = redactionPolicy;
         if (supersedes?.Value == Guid.Empty)
             throw new ArgumentException("A superseded derivation ID cannot be empty.", nameof(supersedes));
         Supersedes = supersedes;
@@ -350,6 +375,8 @@ public sealed record ExperienceEmbedding
 
     public string? DisclosureScope { get; }
 
+    public string? RedactionPolicy { get; }
+
     public ExperienceDerivationId? Supersedes { get; }
 }
 
@@ -367,9 +394,9 @@ public static class ExperienceDerivationDigest
         AppendUtf8(hash, text);
         return $"{ContractVersion}:{Convert.ToHexStringLower(hash.GetHashAndReset())}";
     }
-
     public static string ForVector(IReadOnlyList<float> vector)
     {
+        // Little-endian component bytes keep the digest stable across runtimes.
         ArgumentNullException.ThrowIfNull(vector);
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         AppendUtf8(hash, ContractVersion);
@@ -415,6 +442,7 @@ public static class ExperienceDerivation
         IExperienceSummaryGenerator generator,
         SessionPayloadSensitivity sensitivity,
         string? disclosureScope = null,
+        string? redactionPolicy = null,
         ExperienceDerivationId? supersedes = null,
         DateTimeOffset? createdAt = null,
         CancellationToken cancellationToken = default)
@@ -433,6 +461,9 @@ public static class ExperienceDerivation
         if (result.Text.Length > request.MaximumCharacters)
             throw new InvalidOperationException(
                 $"The generator returned {result.Text.Length} characters against a budget of {request.MaximumCharacters}.");
+        if (result.Text.Any(static c => char.IsControl(c) && c is not ('\n' or '\r' or '\t')))
+            throw new InvalidOperationException(
+                "The generator returned control characters outside line breaks and tabs.");
         var entity = request.Record;
         return new ExperienceSummary(
             ExperienceDerivationId.CreateDeterministic(
@@ -449,6 +480,7 @@ public static class ExperienceDerivation
             entity.Evidence,
             sensitivity,
             disclosureScope,
+            redactionPolicy,
             supersedes);
     }
 
@@ -457,6 +489,7 @@ public static class ExperienceDerivation
         IExperienceEmbeddingGenerator generator,
         SessionPayloadSensitivity sensitivity,
         string? disclosureScope = null,
+        string? redactionPolicy = null,
         ExperienceDerivationId? supersedes = null,
         DateTimeOffset? createdAt = null,
         CancellationToken cancellationToken = default)
@@ -494,6 +527,7 @@ public static class ExperienceDerivation
             entity.Evidence,
             sensitivity,
             disclosureScope,
+            redactionPolicy,
             supersedes);
     }
 }

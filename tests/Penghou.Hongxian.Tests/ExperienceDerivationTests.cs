@@ -154,6 +154,30 @@ public sealed class ExperienceDerivationTests
     }
 
     [Fact]
+    public async Task Derivations_PersistRedactionPolicy()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var projection = Descriptor("memory");
+        var entity = Entity(projection, "task:1", "Repair the broken build");
+
+        var summary = await ExperienceDerivation.DeriveSummaryAsync(
+            new ExperienceSummaryRequest(entity, 8_192, "policy-1", "v1"),
+            new FixedSummaryGenerator("a short summary"),
+            SessionPayloadSensitivity.Internal,
+            redactionPolicy: "retain-90d",
+            cancellationToken: ct);
+        summary.RedactionPolicy.Should().Be("retain-90d");
+
+        var badPolicy = () => ExperienceDerivation.DeriveSummaryAsync(
+            new ExperienceSummaryRequest(entity, 8_192, "policy-1", "v1"),
+            new FixedSummaryGenerator("a short summary"),
+            SessionPayloadSensitivity.Internal,
+            redactionPolicy: " ",
+            cancellationToken: ct);
+        await badPolicy.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
     public async Task Derivations_RoundTripJsonAndLeaveReceiptsVerifiable()
     {
         var ct = TestContext.Current.CancellationToken;

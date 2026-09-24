@@ -348,7 +348,7 @@ public sealed class InMemoryExperienceProvider :
             var vectors = VectorCandidates(request.ProjectionId, request.QueryVector, null);
             var fused = ExperienceHybridRankFusion.Fuse(
                 lexical.Take(request.MaximumItems).Select(item => item.Id).ToArray(),
-                vectors.Take(request.MaximumItems).Select(match => match.EntityId).ToArray());
+                vectors.Take(request.MaximumItems).ToArray());
             var selected = fused.Take(request.MaximumItems).ToArray();
             var truncated = lexical.Length > request.MaximumItems ||
                 vectors.Length > request.MaximumItems ||
@@ -403,7 +403,8 @@ internal static class ExperienceDerivationSemanticEquality
         left.Text == right.Text && left.Generator == right.Generator && left.PolicyVersion == right.PolicyVersion &&
         left.CreatedAt == right.CreatedAt && left.SourceEvidence.SequenceEqual(right.SourceEvidence) &&
         left.ContentDigest == right.ContentDigest && left.Sensitivity == right.Sensitivity &&
-        left.DisclosureScope == right.DisclosureScope && left.Supersedes == right.Supersedes;
+        left.DisclosureScope == right.DisclosureScope && left.RedactionPolicy == right.RedactionPolicy &&
+        left.Supersedes == right.Supersedes;
 
     public static bool Embedding(ExperienceEmbedding left, ExperienceEmbedding right) =>
         left.Id == right.Id && left.EntityId == right.EntityId && left.ProjectionId == right.ProjectionId &&
@@ -411,7 +412,8 @@ internal static class ExperienceDerivationSemanticEquality
         left.PolicyVersion == right.PolicyVersion && left.CreatedAt == right.CreatedAt &&
         left.SourceEvidence.SequenceEqual(right.SourceEvidence) &&
         left.ContentDigest == right.ContentDigest && left.Sensitivity == right.Sensitivity &&
-        left.DisclosureScope == right.DisclosureScope && left.Supersedes == right.Supersedes;
+        left.DisclosureScope == right.DisclosureScope && left.RedactionPolicy == right.RedactionPolicy &&
+        left.Supersedes == right.Supersedes;
 }
 
 internal static class ExperienceModelSemanticEquality

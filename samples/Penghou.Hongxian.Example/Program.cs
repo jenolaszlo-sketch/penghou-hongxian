@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Penghou.Hongxian;
 using Penghou.Hongxian.LatticeDb;
@@ -66,8 +64,7 @@ if (result.Completion != ExperienceBoundedRecallCompletion.Completed || result.I
 var context = string.Join(
     '\n',
     result.Items.Select(item => item.Record.Properties["text"].GetString()));
-var contextDigest = "sha256:" + Convert.ToHexStringLower(
-    SHA256.HashData(Encoding.UTF8.GetBytes(context)));
+var contextDigest = ExperienceRecallReceipts.HashSuppliedContext(context);
 var receipt = ExperienceRecallReceipt.Create(result, contextDigest);
 var receiptEvent = await sessions.AppendRecallReceiptAsync(
     sessionId,

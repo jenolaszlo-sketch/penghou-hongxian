@@ -328,6 +328,74 @@ public sealed class ExperienceBoundedRecallTests : IDisposable
     }
 
     [Fact]
+    public async Task Receipt_AllowsEmptyResults()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var provider = new InMemoryExperienceProvider();
+        var projection = Descriptor("memory");
+        await SeedAsync(provider, projection, ct);
+
+        var result = await ExperienceBoundedRecall.ExecuteAsync(
+            provider, RecallRequest(projection, entityKinds: ["nonexistent-kind"]), ct);
+        result.Completion.Should().Be(ExperienceBoundedRecallCompletion.Completed);
+        result.Items.Should().BeEmpty();
+
+        var receipt = ExperienceRecallReceipt.Create(
+            result, ExperienceRecallReceipts.HashSuppliedContext("nothing"));
+        receipt.Items.Should().BeEmpty();
+        receipt.EstimatedTokensTotal.Should().Be(0);
+        receipt.QueryFingerprint.Should().Be(result.QueryFingerprint);
+    }
+
+    [Fact]
+    public void HashSuppliedContext_UsesStableVectors()
+    {
+        ExperienceRecallReceipts.HashSuppliedContext("abc").Should().Be(
+            "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        ExperienceRecallReceipts.HashSuppliedContext([]).Should().Be(
+            "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    }
+
+    [Fact]
+    public async Task FilteredRecall_ExplainsProviderBoundInteraction()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var provider = new InMemoryExperienceProvider();
+        var projection = Descriptor("memory");
+        await SeedAsync(provider, projection, ct);
+        var note = Entity(projection, "note:1", "durable note", kind: "note");
+        (await provider.UpsertEntityAsync(note, ct)).Outcome
+            .Should().Be(ExperienceModelWriteOutcome.Applied);
+
+        var result = await ExperienceBoundedRecall.ExecuteAsync(
+            provider, RecallRequest(projection, entityKinds: ["note"], maximumItems: 1), ct);
+
+        result.IsTruncated.Should().BeTrue();
+        result.Diagnostic.Should().Contain("filtering");
+    }
+
+    [Fact]
+    public void Result_RejectsCompletedWithCapabilities()
+    {
+        var projection = Descriptor("memory");
+        var inconsistent = () => new ExperienceBoundedRecallResult(
+            "sha256:penghou-hongxian-recall:v1:00",
+            projection.ProjectionId,
+            "memory",
+            new ExperienceRetrievalPolicy("lexical-baseline", "policy-1"),
+            null,
+            [],
+            0,
+            ExperienceProviderFreshness.Current,
+            false,
+            ExperienceBoundedRecallCompletion.Completed,
+            ExperienceProviderCapability.AsOf,
+            "diagnostic");
+
+        inconsistent.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
     public void Request_RejectsInvalidBounds()
     {
         var projection = Descriptor("memory");

@@ -1316,6 +1316,8 @@ const Penghou.Hongxian.ExperienceRecallReceiptSchema.Name = "penghou.recall-rece
 const Penghou.Hongxian.ExperienceRecallReceiptSchema.Version = 1 -> int
 static Penghou.Hongxian.ExperienceRecallReceiptSchema.Schema.get -> Penghou.Hongxian.SessionPayloadSchema!
 Penghou.Hongxian.ExperienceRecallReceipts
+static Penghou.Hongxian.ExperienceRecallReceipts.HashSuppliedContext(string! context) -> string!
+static Penghou.Hongxian.ExperienceRecallReceipts.HashSuppliedContext(byte[]! context) -> string!
 static Penghou.Hongxian.ExperienceRecallReceipts.CreateRequest(Penghou.Hongxian.SessionId sessionId, Penghou.Hongxian.SessionParticipantAttribution! participant, Penghou.Hongxian.ExperienceRecallReceipt! receipt, System.DateTimeOffset? occurredAt = null, System.Guid? causationId = null, System.Guid? correlationId = null, string? idempotencyKey = null) -> Penghou.Hongxian.SessionEventRequest!
 static Penghou.Hongxian.ExperienceRecallReceipts.AppendRecallReceiptAsync(this Penghou.Hongxian.ISessionEventStore! store, Penghou.Hongxian.SessionId sessionId, Penghou.Hongxian.SessionParticipantAttribution! participant, Penghou.Hongxian.ExperienceRecallReceipt! receipt, System.DateTimeOffset? occurredAt = null, System.Guid? causationId = null, System.Guid? correlationId = null, string? idempotencyKey = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionEvent!>!
 static Penghou.Hongxian.ExperienceRecallReceipts.ReadRecallReceipt(this Penghou.Hongxian.SessionEvent! sessionEvent, System.Text.Json.JsonSerializerOptions? serializerOptions = null) -> Penghou.Hongxian.ExperienceRecallReceipt!
@@ -1362,7 +1364,7 @@ Penghou.Hongxian.IExperienceEmbeddingGenerator
 Penghou.Hongxian.IExperienceEmbeddingGenerator.Identity.get -> Penghou.Hongxian.ExperienceGeneratorIdentity!
 Penghou.Hongxian.IExperienceEmbeddingGenerator.EmbedAsync(Penghou.Hongxian.ExperienceEmbeddingRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceEmbeddingResult!>!
 Penghou.Hongxian.ExperienceSummary
-Penghou.Hongxian.ExperienceSummary.ExperienceSummary(Penghou.Hongxian.ExperienceDerivationId id, Penghou.Hongxian.ExperienceEntityId entityId, Penghou.Hongxian.ExperienceProjectionId projectionId, string! text, Penghou.Hongxian.ExperienceGeneratorIdentity! generator, string! policyVersion, System.DateTimeOffset createdAt, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReference!>! sourceEvidence, Penghou.Hongxian.SessionPayloadSensitivity sensitivity, string? disclosureScope = null, Penghou.Hongxian.ExperienceDerivationId? supersedes = null) -> void
+Penghou.Hongxian.ExperienceSummary.ExperienceSummary(Penghou.Hongxian.ExperienceDerivationId id, Penghou.Hongxian.ExperienceEntityId entityId, Penghou.Hongxian.ExperienceProjectionId projectionId, string! text, Penghou.Hongxian.ExperienceGeneratorIdentity! generator, string! policyVersion, System.DateTimeOffset createdAt, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReference!>! sourceEvidence, Penghou.Hongxian.SessionPayloadSensitivity sensitivity, string? disclosureScope = null, string? redactionPolicy = null, Penghou.Hongxian.ExperienceDerivationId? supersedes = null) -> void
 Penghou.Hongxian.ExperienceSummary.Id.get -> Penghou.Hongxian.ExperienceDerivationId
 Penghou.Hongxian.ExperienceSummary.EntityId.get -> Penghou.Hongxian.ExperienceEntityId
 Penghou.Hongxian.ExperienceSummary.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
@@ -1374,9 +1376,10 @@ Penghou.Hongxian.ExperienceSummary.SourceEvidence.get -> System.Collections.Gene
 Penghou.Hongxian.ExperienceSummary.ContentDigest.get -> string!
 Penghou.Hongxian.ExperienceSummary.Sensitivity.get -> Penghou.Hongxian.SessionPayloadSensitivity
 Penghou.Hongxian.ExperienceSummary.DisclosureScope.get -> string?
+Penghou.Hongxian.ExperienceSummary.RedactionPolicy.get -> string?
 Penghou.Hongxian.ExperienceSummary.Supersedes.get -> Penghou.Hongxian.ExperienceDerivationId?
 Penghou.Hongxian.ExperienceEmbedding
-Penghou.Hongxian.ExperienceEmbedding.ExperienceEmbedding(Penghou.Hongxian.ExperienceDerivationId id, Penghou.Hongxian.ExperienceEntityId entityId, Penghou.Hongxian.ExperienceProjectionId projectionId, System.Collections.Generic.IReadOnlyList<float>! vector, Penghou.Hongxian.ExperienceGeneratorIdentity! generator, string! policyVersion, System.DateTimeOffset createdAt, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReference!>! sourceEvidence, Penghou.Hongxian.SessionPayloadSensitivity sensitivity, string? disclosureScope = null, Penghou.Hongxian.ExperienceDerivationId? supersedes = null) -> void
+Penghou.Hongxian.ExperienceEmbedding.ExperienceEmbedding(Penghou.Hongxian.ExperienceDerivationId id, Penghou.Hongxian.ExperienceEntityId entityId, Penghou.Hongxian.ExperienceProjectionId projectionId, System.Collections.Generic.IReadOnlyList<float>! vector, Penghou.Hongxian.ExperienceGeneratorIdentity! generator, string! policyVersion, System.DateTimeOffset createdAt, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEvidenceReference!>! sourceEvidence, Penghou.Hongxian.SessionPayloadSensitivity sensitivity, string? disclosureScope = null, string? redactionPolicy = null, Penghou.Hongxian.ExperienceDerivationId? supersedes = null) -> void
 Penghou.Hongxian.ExperienceEmbedding.Id.get -> Penghou.Hongxian.ExperienceDerivationId
 Penghou.Hongxian.ExperienceEmbedding.EntityId.get -> Penghou.Hongxian.ExperienceEntityId
 Penghou.Hongxian.ExperienceEmbedding.ProjectionId.get -> Penghou.Hongxian.ExperienceProjectionId
@@ -1389,14 +1392,15 @@ Penghou.Hongxian.ExperienceEmbedding.SourceEvidence.get -> System.Collections.Ge
 Penghou.Hongxian.ExperienceEmbedding.ContentDigest.get -> string!
 Penghou.Hongxian.ExperienceEmbedding.Sensitivity.get -> Penghou.Hongxian.SessionPayloadSensitivity
 Penghou.Hongxian.ExperienceEmbedding.DisclosureScope.get -> string?
+Penghou.Hongxian.ExperienceEmbedding.RedactionPolicy.get -> string?
 Penghou.Hongxian.ExperienceEmbedding.Supersedes.get -> Penghou.Hongxian.ExperienceDerivationId?
 Penghou.Hongxian.ExperienceDerivationDigest
 const Penghou.Hongxian.ExperienceDerivationDigest.ContractVersion = "sha256:penghou-hongxian-derivation:v1" -> string!
 static Penghou.Hongxian.ExperienceDerivationDigest.ForText(string! text) -> string!
 static Penghou.Hongxian.ExperienceDerivationDigest.ForVector(System.Collections.Generic.IReadOnlyList<float>! vector) -> string!
 Penghou.Hongxian.ExperienceDerivation
-static Penghou.Hongxian.ExperienceDerivation.DeriveSummaryAsync(Penghou.Hongxian.ExperienceSummaryRequest! request, Penghou.Hongxian.IExperienceSummaryGenerator! generator, Penghou.Hongxian.SessionPayloadSensitivity sensitivity, string? disclosureScope = null, Penghou.Hongxian.ExperienceDerivationId? supersedes = null, System.DateTimeOffset? createdAt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceSummary!>!
-static Penghou.Hongxian.ExperienceDerivation.DeriveEmbeddingAsync(Penghou.Hongxian.ExperienceEmbeddingRequest! request, Penghou.Hongxian.IExperienceEmbeddingGenerator! generator, Penghou.Hongxian.SessionPayloadSensitivity sensitivity, string? disclosureScope = null, Penghou.Hongxian.ExperienceDerivationId? supersedes = null, System.DateTimeOffset? createdAt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceEmbedding!>!
+static Penghou.Hongxian.ExperienceDerivation.DeriveSummaryAsync(Penghou.Hongxian.ExperienceSummaryRequest! request, Penghou.Hongxian.IExperienceSummaryGenerator! generator, Penghou.Hongxian.SessionPayloadSensitivity sensitivity, string? disclosureScope = null, string? redactionPolicy = null, Penghou.Hongxian.ExperienceDerivationId? supersedes = null, System.DateTimeOffset? createdAt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceSummary!>!
+static Penghou.Hongxian.ExperienceDerivation.DeriveEmbeddingAsync(Penghou.Hongxian.ExperienceEmbeddingRequest! request, Penghou.Hongxian.IExperienceEmbeddingGenerator! generator, Penghou.Hongxian.SessionPayloadSensitivity sensitivity, string? disclosureScope = null, string? redactionPolicy = null, Penghou.Hongxian.ExperienceDerivationId? supersedes = null, System.DateTimeOffset? createdAt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceEmbedding!>!
 Penghou.Hongxian.IExperienceDerivationWriter
 Penghou.Hongxian.IExperienceDerivationWriter.Capabilities.get -> Penghou.Hongxian.ExperienceProviderCapabilities!
 Penghou.Hongxian.IExperienceDerivationWriter.UpsertSummaryAsync(Penghou.Hongxian.ExperienceSummary! summary, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceModelWriteResult!>!
@@ -1433,16 +1437,17 @@ Penghou.Hongxian.ExperienceVectorMatch.EntityId.get -> Penghou.Hongxian.Experien
 Penghou.Hongxian.ExperienceVectorMatch.Similarity.get -> double
 Penghou.Hongxian.ExperienceVectorMatch.DerivationId.get -> Penghou.Hongxian.ExperienceDerivationId
 Penghou.Hongxian.ExperienceHybridMatch
-Penghou.Hongxian.ExperienceHybridMatch.ExperienceHybridMatch(Penghou.Hongxian.ExperienceEntityId entityId, double score, int? lexicalRank, int? vectorRank) -> void
+Penghou.Hongxian.ExperienceHybridMatch.ExperienceHybridMatch(Penghou.Hongxian.ExperienceEntityId entityId, double score, int? lexicalRank, int? vectorRank, Penghou.Hongxian.ExperienceDerivationId? vectorDerivationId = null) -> void
 Penghou.Hongxian.ExperienceHybridMatch.EntityId.get -> Penghou.Hongxian.ExperienceEntityId
 Penghou.Hongxian.ExperienceHybridMatch.Score.get -> double
 Penghou.Hongxian.ExperienceHybridMatch.LexicalRank.get -> int?
 Penghou.Hongxian.ExperienceHybridMatch.VectorRank.get -> int?
+Penghou.Hongxian.ExperienceHybridMatch.VectorDerivationId.get -> Penghou.Hongxian.ExperienceDerivationId?
 Penghou.Hongxian.ExperienceVectorSimilarity
 static Penghou.Hongxian.ExperienceVectorSimilarity.Cosine(System.Collections.Generic.IReadOnlyList<float>! left, System.Collections.Generic.IReadOnlyList<float>! right) -> double
 Penghou.Hongxian.ExperienceHybridRankFusion
 const Penghou.Hongxian.ExperienceHybridRankFusion.RrfK = 60 -> int
-static Penghou.Hongxian.ExperienceHybridRankFusion.Fuse(System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEntityId>! lexicalOrder, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEntityId>! vectorOrder) -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceHybridMatch!>!
+static Penghou.Hongxian.ExperienceHybridRankFusion.Fuse(System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceEntityId>! lexicalOrder, System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceVectorMatch!>! vectorOrder) -> System.Collections.Generic.IReadOnlyList<Penghou.Hongxian.ExperienceHybridMatch!>!
 Penghou.Hongxian.InMemoryExperienceProvider.UpsertSummaryAsync(Penghou.Hongxian.ExperienceSummary! summary, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceModelWriteResult!>!
 Penghou.Hongxian.InMemoryExperienceProvider.UpsertEmbeddingAsync(Penghou.Hongxian.ExperienceEmbedding! embedding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.ExperienceModelWriteResult!>!
 Penghou.Hongxian.InMemoryExperienceProvider.DeleteDerivationsAsync(Penghou.Hongxian.ExperienceProjectionDescriptor! descriptor, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!

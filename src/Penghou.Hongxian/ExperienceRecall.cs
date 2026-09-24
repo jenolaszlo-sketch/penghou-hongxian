@@ -288,6 +288,11 @@ public sealed record ExperienceBoundedRecallResult
         Completion = completion;
         if (!ExperienceProviderCapabilities.IsValidSet(unsupportedCapabilities))
             throw new ArgumentOutOfRangeException(nameof(unsupportedCapabilities));
+        if (completion == ExperienceBoundedRecallCompletion.Completed &&
+            unsupportedCapabilities != ExperienceProviderCapability.None)
+            throw new ArgumentException(
+                "Completed results cannot report unsupported capabilities.",
+                nameof(unsupportedCapabilities));
         UnsupportedCapabilities = unsupportedCapabilities;
         var incomplete = completion == ExperienceBoundedRecallCompletion.Unsupported ||
             isTruncated || freshness != ExperienceProviderFreshness.Current;
@@ -474,8 +479,6 @@ public sealed record ExperienceRecallReceipt
         CheckpointVersion = checkpointVersion;
         ArgumentNullException.ThrowIfNull(items);
         var snapshot = items.ToArray();
-        if (snapshot.Length == 0)
-            throw new ArgumentException("A receipt must contain at least one item.", nameof(items));
         if (snapshot.Length > ExperienceRecallLimits.RecallItemLimit)
             throw new ArgumentOutOfRangeException(nameof(items));
         if (snapshot.Any(item => item is null))
@@ -513,6 +516,8 @@ public sealed record ExperienceRecallReceipt
     /// <summary>
     /// Builds a receipt from a completed recall result. Unsupported recalls
     /// cannot produce receipts because there is no supplied context to explain.
+    /// An empty completed recall produces an empty receipt, recording that the
+    /// decision used no recalled evidence.
     /// </summary>
     public static ExperienceRecallReceipt Create(
         ExperienceBoundedRecallResult result,
@@ -521,8 +526,6 @@ public sealed record ExperienceRecallReceipt
         ArgumentNullException.ThrowIfNull(result);
         if (result.Completion != ExperienceBoundedRecallCompletion.Completed)
             throw new ArgumentException("Only a completed recall can produce a receipt.", nameof(result));
-        if (result.Items.Count == 0)
-            throw new ArgumentException("A receipt requires at least one recalled item.", nameof(result));
         return new ExperienceRecallReceipt(
             result.QueryFingerprint,
             result.ProjectionId,
@@ -555,6 +558,24 @@ public static class ExperienceRecallReceipts
 {
     private static readonly JsonSerializerOptions PayloadOptions =
         new(JsonSerializerDefaults.Web);
+
+    /// <summary>
+    /// Hashes supplied context bytes into the digest form receipts carry.
+    /// Consumers hash exactly the bytes they supplied so a later audit can
+    /// reproduce the digest.
+    /// </summary>
+    public static string HashSuppliedContext(string context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return HashSuppliedContext(Encoding.UTF8.GetBytes(context));
+    }
+
+    /// <summary>Hashes supplied context bytes into the digest form receipts carry.</summary>
+    public static string HashSuppliedContext(byte[] context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return "sha256:" + Convert.ToHexStringLower(SHA256.HashData(context));
+    }
 
     /// <summary>
     /// Builds the session event request for a recall receipt. The default
@@ -734,12 +755,16 @@ public static class ExperienceBoundedRecall
         }
 
         var truncated = providerResult.IsTruncated || budgetTruncated;
+        var filtered = request.EntityKinds.Count > 0 || request.MinimumEvidenceReferences > 1;
         string? diagnostic = truncated
             ? providerResult.IsTruncated && budgetTruncated
                 ? "Recall reached the provider bound and the portable item, byte, or token budget."
-                : providerResult.IsTruncated
-                    ? "Recall reached the provider result bound."
-                    : "Recall reached the portable item, byte, or token budget."
+                : providerResult.IsTruncated && filtered
+                    ? "Recall reached the provider result bound before kind/evidence filtering; " +
+                      "matching records may exist beyond the bound."
+                    : providerResult.IsTruncated
+                        ? "Recall reached the provider result bound."
+                        : "Recall reached the portable item, byte, or token budget."
             : null;
         if (!truncated && providerResult.Freshness != ExperienceProviderFreshness.Current)
             diagnostic = $"The provider reported '{providerResult.Freshness}' freshness.";

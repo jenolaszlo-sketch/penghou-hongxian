@@ -1,10 +1,14 @@
 namespace Penghou.Hongxian;
 
-/// <summary>Portable write surface for derived summaries and embeddings.</summary>
+/// <summary>
+/// Portable write surface for derived summaries and embeddings. Records are
+/// scoped by projection: a store serves one provider, and descriptor-bearing
+/// operations validate the provider match while record writes rely on
+/// projection identity.
+/// </summary>
 public interface IExperienceDerivationWriter
 {
     ExperienceProviderCapabilities Capabilities { get; }
-
     Task<ExperienceModelWriteResult> UpsertSummaryAsync(
         ExperienceSummary summary,
         CancellationToken cancellationToken = default);
@@ -203,7 +207,8 @@ public sealed record ExperienceHybridMatch
         ExperienceEntityId entityId,
         double score,
         int? lexicalRank,
-        int? vectorRank)
+        int? vectorRank,
+        ExperienceDerivationId? vectorDerivationId = null)
     {
         if (entityId.Value == Guid.Empty)
             throw new ArgumentException("A non-empty entity ID is required.", nameof(entityId));
@@ -217,8 +222,15 @@ public sealed record ExperienceHybridMatch
             throw new ArgumentOutOfRangeException(nameof(vectorRank));
         if (lexicalRank is null && vectorRank is null)
             throw new ArgumentException("A match must rank on at least one side.");
+        if (vectorRank.HasValue != vectorDerivationId.HasValue)
+            throw new ArgumentException(
+                "A vector rank requires the matched embedding derivation, and vice versa.",
+                nameof(vectorDerivationId));
+        if (vectorDerivationId?.Value == Guid.Empty)
+            throw new ArgumentException("The vector derivation ID cannot be empty.", nameof(vectorDerivationId));
         LexicalRank = lexicalRank;
         VectorRank = vectorRank;
+        VectorDerivationId = vectorDerivationId;
     }
 
     public ExperienceEntityId EntityId { get; }
@@ -228,6 +240,9 @@ public sealed record ExperienceHybridMatch
     public int? LexicalRank { get; }
 
     public int? VectorRank { get; }
+
+    /// <summary>The embedding derivation behind the vector rank, when ranked on that side.</summary>
+    public ExperienceDerivationId? VectorDerivationId { get; }
 }
 
 /// <summary>Portable cosine similarity. Zero-norm inputs score 0.0 by definition.</summary>
@@ -261,6 +276,8 @@ public static class ExperienceVectorSimilarity
 /// <summary>
 /// Portable reciprocal-rank fusion. Every provider fuses identically:
 /// score 1/(k+rank) per side with k=60, ordered by score then record-id.
+/// The vector side passes full matches so fused results keep the derivation
+/// behind each vector rank; callers pass best-per-entity matches.
 /// </summary>
 public static class ExperienceHybridRankFusion
 {
@@ -268,18 +285,27 @@ public static class ExperienceHybridRankFusion
 
     public static IReadOnlyList<ExperienceHybridMatch> Fuse(
         IReadOnlyList<ExperienceEntityId> lexicalOrder,
-        IReadOnlyList<ExperienceEntityId> vectorOrder)
+        IReadOnlyList<ExperienceVectorMatch> vectorOrder)
     {
         ArgumentNullException.ThrowIfNull(lexicalOrder);
         ArgumentNullException.ThrowIfNull(vectorOrder);
+        if (vectorOrder.Any(static match => match is null))
+            throw new ArgumentException("Vector matches cannot be null.", nameof(vectorOrder));
         var lexicalRanks = Rank(lexicalOrder);
-        var vectorRanks = Rank(vectorOrder);
+        var vectorRanks = Rank(vectorOrder.Select(match => match.EntityId).ToArray());
+        var derivations = vectorOrder
+            .GroupBy(match => match.EntityId)
+            .ToDictionary(group => group.Key, group => group
+                .OrderByDescending(match => match.Similarity)
+                .ThenBy(match => match.DerivationId.ToString(), StringComparer.Ordinal)
+                .First().DerivationId);
         return lexicalRanks.Keys.Union(vectorRanks.Keys)
             .Select(id => new ExperienceHybridMatch(
                 id,
                 Score(lexicalRanks, id) + Score(vectorRanks, id),
                 lexicalRanks.TryGetValue(id, out var lexical) ? lexical : null,
-                vectorRanks.TryGetValue(id, out var vector) ? vector : null))
+                vectorRanks.TryGetValue(id, out var vector) ? vector : null,
+                vectorRanks.ContainsKey(id) ? derivations[id] : null))
             .OrderByDescending(match => match.Score)
             .ThenBy(match => match.EntityId.ToString(), StringComparer.Ordinal)
             .ToArray();
