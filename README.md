@@ -232,7 +232,7 @@ the event again as though nothing happened.
 
 ## Status and direction
 
-Hongxian `0.1.0-preview.2` targets .NET 10. The session kernel, SQLite provider,
+Hongxian `0.1.0-preview.3` (release candidate) targets .NET 10. The session kernel, SQLite provider,
 recovery and reconciliation contracts, verified experience projector,
 in-memory experience provider, and initial LatticeDB provider are implemented.
 The LatticeDB package remains a checkpoint: packed-consumer isolation and the

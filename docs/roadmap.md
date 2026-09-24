@@ -17,7 +17,10 @@ tracks only its application profile and package integration.
 Last reviewed: **2026-09-23**
 
 - `Penghou.Hongxian` and `Penghou.Hongxian.Sqlite` `0.1.0-preview.2` are
-  published on NuGet.
+  published on NuGet. `0.1.0-preview.3` is prepared as the first package
+  candidate carrying the LatticeDB provider, bounded recall, and derivation
+  contracts; compatibility against preview.2 records one intentional break
+  (the optional envelope v3 evidence parameter).
 - Preview 2's breaking consumer contract, SQLite composition,
   projection-delivery diagnostics, consistency audit, in-repository provider
   conformance reference suite, and package compatibility validation passed the
@@ -75,6 +78,11 @@ Last reviewed: **2026-09-23**
   vector/hybrid recall are implemented with 160 passing tests, including a
   provider-swap gate test. LatticeDB vector indexing stays deferred until
   its native capability is verified.
+- Experience implementation Phase 7 is started (2026-09-24): sibling survey
+  confirms Fuwen stays dependency-free with host-supplied adapters, Baize
+  integration is planned without a Baize-side dependency, and Guyabano
+  package replacement stays deferred. The Hongxian-side enablers are the
+  preview.3 candidate and the [ecosystem integration guide](ecosystem-integration.md).
 
 ## Accepted architectural direction
 

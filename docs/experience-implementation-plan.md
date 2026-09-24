@@ -447,6 +447,23 @@ derived data. Existing evidence and recall receipts remain verifiable.
 
 ## Phase 7 — Ecosystem integration
 
+### Progress
+
+Started (2026-09-24):
+
+- Surveyed Fuwen, Baize, and Guyabano: Fuwen keeps Hongxian optional behind
+  host-supplied adapters, Baize integration is planned with no Baize-side
+  dependency, and Guyabano package replacement stays deferred while Fuwen is
+  the active ecosystem priority.
+- Prepared the `0.1.0-preview.3` candidate carrying the LatticeDB provider,
+  bounded recall, and derivation contracts. Pack validation against
+  preview.2 passes with one recorded intentional break (the optional
+  envelope v3 evidence parameter on `SessionEventRequest`); everything else
+  is additive.
+- Added the [ecosystem integration guide](ecosystem-integration.md) with
+  host recipes for Fuwen planning evidence, Baize invocation outcomes, and
+  Guyabano package-backed mapping.
+
 ### Fuwen
 
 - Query experience during planning or replanning through the portable recall

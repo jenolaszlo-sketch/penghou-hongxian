@@ -4,14 +4,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Copyright>Copyright (c) 2026 Jenő Konrád László</Copyright>
-    <Version>0.1.0-preview.2</Version>
+    <Version>0.1.0-preview.3</Version>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <EnablePackageValidation>true</EnablePackageValidation>
     <!-- Compare every package build with the last published preview while the
-         public API files record intentional preview-2 additions. -->
-    <PackageValidationBaselineVersion>0.1.0-preview.1</PackageValidationBaselineVersion>
+         public API files record intentional preview-3 additions. -->
+    <PackageValidationBaselineVersion>0.1.0-preview.2</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <PropertyGroup>
