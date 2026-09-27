@@ -786,3 +786,59 @@ Do not graduate from preview until:
 - When does splitting `Penghou.Hongxian.Sqlite` into evidence composition and
   projection-provider packages materially improve deployment or dependency
   clarity?
+
+## V2 — Evidence-driven workflow evolution (deferred)
+
+Status: **future work after V1; not a current release gate**. Added 2026-09-26.
+V2.1/V2.2/V2.3 name cross-project delivery stages, not package or IR versions.
+Existing near-term priorities and completed work retain their current status.
+
+Architecture and shared acceptance gates: [reviewed V2 specification](../../Penghou.Guihua/docs/evidence-driven-workflow-evolution-v2.md).
+Cross-repository links assume sibling checkouts.
+
+### V2.1 — Outcome, evaluation and decision evidence profile
+
+- [ ] Extend the existing adaptive-evolution and historical-execution profiles
+  with bounded schema-versioned references to exact plan/run/generation/node/
+  attempt/artifact identities, evaluator/rubric versions, acceptance decisions,
+  corrections/retractions and human overrides.
+- [ ] Preserve receipt versus measurement/assertion/decision/derivation nature.
+  Completed execution, rejected quality and supersession remain separate facts;
+  ledger integrity never proves an evaluator's assertion is true.
+- [ ] Add idempotent authority-receipt delivery, conflict detection and explicit
+  projection lag for these profiles using existing outbox/cursor reconciliation.
+  Occurrence time, commit time and source checkpoints remain distinguishable.
+- [ ] Rebuild an explainable repair timeline including reuse, revalidation,
+  invalidation and late ignored-for-progression results without reconstructing
+  or controlling Zhinu state.
+
+Gate: duplicate delivery/rebuild yields the same bounded timeline at a verified
+checkpoint while conflicting evaluations and absent source evidence remain
+visible.
+
+### V2.2 — Comparative-execution projections
+
+- [ ] Project experiment questions, candidate definitions/differences, immutable
+  input/rubric snapshots, actual executed versus merely considered alternatives,
+  selection/no-selection receipts, partial work and losing candidates.
+- [ ] Keep measured/estimated/unavailable cost, currency/pricing revision,
+  elapsed latency, cumulative effort and corrections distinct.
+- [ ] Label before/after repair comparisons and inferred credit assignment as
+  observations/claims rather than controlled causal findings.
+
+Gate: a bounded query explains a winner, tie or no acceptable candidate without
+discarding unsuccessful work or turning unexecuted options into failure data.
+
+### V2.3 and later — Contextual aggregates and recall
+
+- [ ] Build on existing bounded recall/derivation contracts for preferences
+  scoped by task, versions, context and policy, exposing independent-case count,
+  freshness, contrary evidence, missing data and derivation/checkpoint identity.
+- [ ] Prove wrong-scope, stale, partial and conflicting evidence is reported
+  honestly and cannot masquerade as a globally valid strategy.
+- [ ] Export candidate lessons with provenance for host-reviewed retention/
+  promotion; later calibration/drift/topology projections require demonstrated
+  need. Hongxian never selects routes or automatically promotes knowledge.
+
+These refine the existing experience layer; no new ledger, graph authority or
+mandatory storage provider is introduced.
