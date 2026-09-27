@@ -4,6 +4,12 @@
 
 - Executable Fuwen/Baize host integration proofs and a parked-Neo4j decision.
 
+## 0.1.0-preview.4
+
+- Rebuilt against `Penghou.Siming.Sqlite` `0.1.0-preview.7` (epoch-2/3
+  support; repairs binary compatibility for consumers mixing packed
+  Hongxian with current Siming).
+
 ## 0.1.0-preview.3 (candidate, unreleased)
 
 - New `Penghou.Hongxian.LatticeDb` provider: disposable graph with exact
