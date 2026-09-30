@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
+using Penghou.Hongxian;
 using Penghou.Hongxian.Sqlite;
 
 namespace Penghou.Hongxian.Tests;
@@ -48,6 +49,40 @@ public sealed class HongxianSqliteStoreSetTests : IDisposable
         });
 
         create.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public async Task ReconciledRead_RepairsAnUntrackedLedgerCommitAfterRestart()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var sessionId = SessionId.New();
+        await using (var ledgerOnly = new SimingSessionEventStore(
+            Path.Combine(rootPath, "sessions")))
+        {
+            await ledgerOnly.AppendAsync(new SessionEventRequest(
+                sessionId,
+                SessionParticipantAttribution.System("test", "hongxian"),
+                SessionEventTypes.UserMessage,
+                DateTimeOffset.UtcNow), ct);
+        }
+
+        await using var stores = new HongxianSqliteStoreSet(new HongxianSqliteOptions
+        {
+            RootPath = rootPath,
+            Pooling = false
+        });
+        (await stores.Projections.GetAsync(sessionId, ct)).Should().BeNull();
+        (await stores.Projections.GetDeliveryStatusAsync(sessionId, ct)).Should().BeNull();
+
+        var repaired = await stores.ReadReconciledProjectionAsync(sessionId, ct);
+        repaired!.AppliedSequence.Should().Be(1);
+        repaired.State.TotalEvents.Should().Be(1);
+        var status = await stores.Projections.GetDeliveryStatusAsync(sessionId, ct);
+        status!.IsLagging.Should().BeFalse();
+        status.CommittedHeadHash.Should().Be(repaired.HeadHash);
+
+        var replay = await stores.ReadReconciledProjectionAsync(sessionId, ct);
+        replay.Should().BeEquivalentTo(repaired);
     }
 
     public void Dispose()

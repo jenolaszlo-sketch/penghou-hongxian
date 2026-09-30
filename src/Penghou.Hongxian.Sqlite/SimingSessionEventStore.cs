@@ -26,6 +26,8 @@ public sealed class SimingSessionEventStore :
     private readonly TimeProvider timeProvider;
     private readonly SemaphoreSlim ledgerGate = new(1, 1);
     private readonly Dictionary<SessionId, CachedLedgerEntry> ledgers = [];
+    private TaskCompletionSource? leasesDrained;
+    private int activeLeases;
     private int disposed;
 
     /// <summary>Creates a session event store rooted at the supplied directory.</summary>
@@ -225,6 +227,22 @@ public sealed class SimingSessionEventStore :
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref disposed, 1) != 0) return;
+        Task? pendingLeases;
+        await ledgerGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            pendingLeases = activeLeases == 0
+                ? null
+                : (leasesDrained = new TaskCompletionSource(
+                    TaskCreationOptions.RunContinuationsAsynchronously)).Task;
+        }
+        finally
+        {
+            ledgerGate.Release();
+        }
+        if (pendingLeases is not null)
+            await pendingLeases.ConfigureAwait(false);
+
         SqliteAppendOnlyLedger<CanonicalJsonPayloadSerializer>[] created;
         await ledgerGate.WaitAsync().ConfigureAwait(false);
         try
@@ -283,6 +301,7 @@ public sealed class SimingSessionEventStore :
                 }
             }
             entry.ReferenceCount++;
+            activeLeases++;
             entry.LastUsed = timeProvider.GetUtcNow();
             evicted = TrimUnlocked(sessionId);
             return new LedgerLease(this, sessionId, entry.Ledger.Value);
@@ -305,6 +324,9 @@ public sealed class SimingSessionEventStore :
             if (!ledgers.TryGetValue(sessionId, out var entry))
                 return;
             entry.ReferenceCount--;
+            activeLeases--;
+            if (activeLeases == 0)
+                leasesDrained?.TrySetResult();
             entry.LastUsed = timeProvider.GetUtcNow();
             evicted = TrimUnlocked(default);
         }

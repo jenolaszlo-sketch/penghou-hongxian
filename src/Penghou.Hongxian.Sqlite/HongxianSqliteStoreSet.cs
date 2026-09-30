@@ -148,6 +148,35 @@ public sealed class HongxianSqliteStoreSet : IAsyncDisposable, IDisposable
 
     public ICrossStoreOperationStore OperationStore => Operations;
 
+    /// <summary>
+    /// Reads a session projection after comparing it with verified ledger history.
+    /// Rebuilds missing or lagging derived state, including delivery status that
+    /// was lost when a process stopped between ledger append and status recording.
+    /// </summary>
+    public async Task<SessionProjectionSnapshot?> ReadReconciledProjectionAsync(
+        SessionId sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await Events.ExistsAsync(sessionId, cancellationToken).ConfigureAwait(false))
+            return null;
+
+        var history = await Events.ReadVerifiedHistoryAsync(sessionId, cancellationToken)
+            .ConfigureAwait(false);
+        var projection = await Projections.GetAsync(sessionId, cancellationToken)
+            .ConfigureAwait(false);
+        var delivery = await Projections.GetDeliveryStatusAsync(sessionId, cancellationToken)
+            .ConfigureAwait(false);
+        if (projection?.AppliedSequence == history.VerifiedHead.Sequence &&
+            string.Equals(projection.HeadHash, history.VerifiedHead.Hash, StringComparison.Ordinal) &&
+            delivery?.CommittedSequence == history.VerifiedHead.Sequence &&
+            string.Equals(delivery.CommittedHeadHash, history.VerifiedHead.Hash, StringComparison.Ordinal) &&
+            !delivery.IsLagging)
+            return projection;
+
+        return await Projections.RebuildAsync(history, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref disposed, 1) != 0) return;

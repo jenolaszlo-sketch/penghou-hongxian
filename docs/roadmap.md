@@ -14,7 +14,7 @@ tracks only its application profile and package integration.
 
 ## Current state
 
-Last reviewed: **2026-09-23**
+Last reviewed: **2026-09-30**
 
 - `Penghou.Hongxian` and `Penghou.Hongxian.Sqlite` `0.1.0-preview.2` are
   published on NuGet. `0.1.0-preview.3` is prepared as the first package
@@ -275,6 +275,13 @@ external capability without becoming authoritative for that capability.
 - [x] Keep SQLite current-state projections rebuildable from the ledger.
 - [x] Separate committed ledger state from rebuildable projection delivery and
   expose lag diagnostics.
+- [x] Provide a verified, on-read reconciliation path for SQLite session
+  projections. Repair both projection state and delivery status after a process
+  stops between ledger commit and projection tracking.
+- [ ] Add a bounded background reconciliation sweep for known sessions so
+  projection lag is repaired even when no consumer requests that session.
+  Compare each projection and delivery cursor with the verified ledger head;
+  report corrupt histories instead of applying them.
 - [x] Treat ledger commit time as authoritative while retaining bounded
   caller-supplied occurrence-time claims.
 - [x] Remove assumptions that an external operation is a workflow or that a
@@ -379,6 +386,9 @@ Consumer usability:
   projection lag, evidence-outbox delivery, incomplete operations, failed
   participants, lease ownership/loss, schema compatibility, and required
   reconciliation. Logs and traces remain diagnostics, not the operator API.
+- [ ] Add low-cardinality OpenTelemetry measurements for recall latency and
+  result counts, projection lag, and reconciliation outcomes. Keep session,
+  query, and evidence identities out of metric labels.
 - [x] Centralize bounded input limits for participants, event/application kinds,
   external identities, references, metadata, reasons, and receipts across both
   ledger and operational stores.

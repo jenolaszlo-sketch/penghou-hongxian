@@ -43,6 +43,7 @@ Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.OperationStore.get -> Penghou.Hon
 Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.ProjectionDelivery.get -> Penghou.Hongxian.ISessionProjectionDeliveryStore!
 Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.Projections.get -> Penghou.Hongxian.Sqlite.SqliteSessionProjectionStore!
 Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.ProjectionStore.get -> Penghou.Hongxian.ISessionProjectionStore!
+Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.ReadReconciledProjectionAsync(Penghou.Hongxian.SessionId sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Penghou.Hongxian.SessionProjectionSnapshot?>!
 Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.RootPath.get -> string!
 Penghou.Hongxian.Sqlite.HongxianSqliteStoreSet.SessionStore.get -> Penghou.Hongxian.ISessionStore!
 Penghou.Hongxian.Sqlite.SimingSessionEventStore

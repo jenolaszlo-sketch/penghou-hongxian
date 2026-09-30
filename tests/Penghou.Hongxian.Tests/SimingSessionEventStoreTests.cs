@@ -465,6 +465,27 @@ public sealed class SimingSessionEventStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Dispose_WaitsForAnActiveLedgerLease()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var projection = new BlockingProjectionStore();
+        var store = new SimingSessionEventStore(rootPath, projectionStore: projection);
+        var sessionId = SessionId.New();
+        var append = store.AppendAsync(new SessionEventRequest(
+            sessionId,
+            Participant("user"),
+            SessionEventTypes.UserMessage,
+            DateTimeOffset.UtcNow), ct);
+        await projection.Entered.WaitAsync(ct);
+
+        var dispose = store.DisposeAsync().AsTask();
+        dispose.IsCompleted.Should().BeFalse();
+        projection.Release();
+        (await append).Sequence.Should().Be(1);
+        await dispose;
+    }
+
+    [Fact]
     public async Task BoundedLedgerCache_EvictsIdleHandlesAndReopensTheChain()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -595,6 +616,40 @@ public sealed class SimingSessionEventStoreTests : IDisposable
     {
         SqliteConnection.ClearAllPools();
         if (Directory.Exists(rootPath)) Directory.Delete(rootPath, recursive: true);
+    }
+
+    private sealed class BlockingProjectionStore : ISessionProjectionStore
+    {
+        private readonly TaskCompletionSource entered = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource released = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task Entered => entered.Task;
+
+        public void Release() => released.TrySetResult();
+
+        public async Task ApplyAsync(
+            SessionEvent sessionEvent,
+            CancellationToken cancellationToken = default)
+        {
+            entered.TrySetResult();
+            await released.Task.WaitAsync(cancellationToken);
+        }
+
+        public Task<SessionProjectionSnapshot?> GetAsync(
+            SessionId sessionId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<SessionProjectionSnapshot?>(null);
+
+        public Task<IReadOnlyList<SessionProjectionSnapshot>> ListAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SessionProjectionSnapshot>>([]);
+
+        public Task<SessionProjectionSnapshot?> RebuildAsync(
+            VerifiedSessionHistory history,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<SessionProjectionSnapshot?>(null);
     }
 
     private sealed class FailOnceProjectionStore : ISessionProjectionStore
